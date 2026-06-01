@@ -1,0 +1,34 @@
+.DS_Store
+.DS_Store?
+.AppleDouble
+.LSOverride
+Icon
+ehthumbs.db
+Thumbs.db
+
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.DocumentRevisions-V100
+.TemporaryItems
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+.vscode/
+.idea/
+*.swp
+*.swo
+
+node_modules/
+package-lock.json
+npm-shrinkwrap.json
+yarn.lock
+pnpm-lock.yaml
+bun.lock
+bun.lockb

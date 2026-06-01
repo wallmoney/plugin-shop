@@ -1,0 +1,55 @@
+{
+	"id": "wmshop",
+	"org": "wallmoney",
+	"repo": "plugin-shop",
+	"name": "wallmoney-shop",
+	"displayName": "Wall Money Shop",
+	"description": "Run an ecommerce storefront with IPFS-hosted listings, categories, cart, saved delivery details, and Wall Money checkout.",
+	"version": "0.1.0",
+	"license": "MIT",
+	"icon": "icon.svg",
+	"src": [
+		"src/config.js",
+		"src/state.js",
+		"src/catalog.js",
+		"src/cart.js",
+		"src/ui/shared.js",
+		"src/ui/products.js",
+		"src/ui/cart.js",
+		"src/ui/checkout.js",
+		"src/ui/orders.js",
+		"src/ui/settings.js",
+		"src/plugin.js"
+	],
+	"permissions": [
+		"storage.get",
+		"storage.set",
+		"storage.remove",
+		"events.onPaymentExecuted",
+		"payments.openPrefilledPayment",
+		"user.getCoreId",
+		"ui.navigate",
+		"ui.notify",
+		"ui.toast"
+	],
+	"entry": "default",
+	"mota": {
+		"infopanel": {
+			"description": "Browse shop products and checkout with Wall Money.",
+			"primary": {
+				"label": "Open shop",
+				"action": {
+					"type": "navigate",
+					"href": "/marketplace/wallmoney/plugin-shop"
+				}
+			},
+			"secondary": {
+				"label": "Go to cart",
+				"action": {
+					"type": "navigate",
+					"href": "/marketplace/wallmoney/plugin-shop?view=cart"
+				}
+			}
+		}
+	}
+}
