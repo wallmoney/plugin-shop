@@ -4,15 +4,22 @@ function defaultState() {
 		category: 'all',
 		selectedProductId: SHOP_PRODUCTS[0] ? SHOP_PRODUCTS[0].id : '',
 		coreId: null,
+		userEmail: '',
+		countryCode: '',
+		theme: 'auto',
 		query: '',
 		page: 1,
+		productQuantities: {},
 		cart: {},
 		delivery: {
 			name: '',
 			email: '',
 			phone: '',
 			address: '',
+			address2: '',
 			city: '',
+			zip: '',
+			state: '',
 			country: '',
 			notes: ''
 		},
@@ -43,12 +50,15 @@ function cleanString(value, fallback) {
 function normalizeDelivery(raw) {
 	const fallback = defaultState().delivery;
 	const value = objectValue(raw);
-	return {
+		return {
 		name: cleanString(value.name, fallback.name),
 		email: cleanString(value.email, fallback.email),
 		phone: cleanString(value.phone, fallback.phone),
 		address: cleanString(value.address, fallback.address),
+		address2: cleanString(value.address2, fallback.address2),
 		city: cleanString(value.city, fallback.city),
+		zip: cleanString(value.zip, fallback.zip),
+		state: cleanString(value.state, fallback.state),
 		country: cleanString(value.country, fallback.country),
 		notes: cleanString(value.notes, fallback.notes)
 	};
@@ -93,10 +103,25 @@ function normalizeCart(raw) {
 	return cart;
 }
 
+function normalizeQuantities(raw) {
+	const quantities = {};
+	const value = objectValue(raw);
+	for (const product of SHOP_PRODUCTS) {
+		const quantity = Number(value[product.id]);
+		quantities[product.id] = Number.isFinite(quantity) && quantity > 0 ? Math.max(1, Math.round(quantity)) : 1;
+	}
+	return quantities;
+}
+
+function normalizeTheme(raw) {
+	const value = cleanString(raw, 'auto').toLowerCase();
+	return ['auto', 'light', 'dark'].includes(value) ? value : 'auto';
+}
+
 function normalizeState(raw) {
 	const fallback = defaultState();
 	const value = objectValue(raw);
-	const view = ['products', 'product', 'cart', 'checkout', 'orders'].includes(value.view)
+	const view = ['products', 'product', 'cart', 'checkout', 'orders', 'success'].includes(value.view)
 		? value.view
 		: fallback.view;
 	const category = normalizeCategory(value.category);
@@ -107,8 +132,12 @@ function normalizeState(raw) {
 		category,
 		selectedProductId: normalizeProductId(value.selectedProductId, category),
 		coreId: typeof value.coreId === 'string' && value.coreId.trim() ? value.coreId.trim() : null,
+		userEmail: cleanString(value.userEmail, fallback.userEmail),
+		countryCode: cleanString(value.countryCode, fallback.countryCode).toUpperCase(),
+		theme: normalizeTheme(value.theme),
 		query: typeof value.query === 'string' ? value.query : fallback.query,
 		page: Number.isFinite(Number(value.page)) && Number(value.page) > 0 ? Math.floor(Number(value.page)) : fallback.page,
+		productQuantities: normalizeQuantities(value.productQuantities),
 		cart: normalizeCart(value.cart),
 		delivery: normalizeDelivery(value.delivery),
 		saveDelivery: value.saveDelivery !== false,
@@ -127,7 +156,7 @@ function getState(hostApi) {
 function saveState(hostApi, next) {
 	hostApi.storage.set(STATE_KEY, normalizeState({
 		...next,
-		updatedAt: new Date().toISOString()
+		updatedAt: new Date(Date.now()).toISOString()
 	}));
 }
 

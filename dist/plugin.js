@@ -11,6 +11,7 @@ const SHOP_CONFIG = {
 	defaultGatewayUrl: 'https://ipf.sk',
 	defaultCatalogRef: 'data/inventory',
 	defaultMerchantAccount: 'wallmoney-shop',
+	collectorAccount: 'wallmoney-shop',
 	defaultCurrency: 'USD',
 	minimumCheckoutAmount: 50,
 	deliveryFee: 0,
@@ -123,6 +124,46 @@ const SHOP_PRODUCTS = [
 ];
 
 
+// src/countries.js
+const COUNTRY_OPTIONS = [
+	{ code: 'US', name: 'United States' },
+	{ code: 'CA', name: 'Canada' },
+	{ code: 'GB', name: 'United Kingdom' },
+	{ code: 'AT', name: 'Austria' },
+	{ code: 'SK', name: 'Slovakia' },
+	{ code: 'CZ', name: 'Czechia' },
+	{ code: 'DE', name: 'Germany' },
+	{ code: 'FR', name: 'France' },
+	{ code: 'IT', name: 'Italy' },
+	{ code: 'ES', name: 'Spain' },
+	{ code: 'NL', name: 'Netherlands' },
+	{ code: 'PL', name: 'Poland' },
+	{ code: 'AU', name: 'Australia' },
+	{ code: 'NZ', name: 'New Zealand' },
+	{ code: 'JP', name: 'Japan' },
+	{ code: 'KR', name: 'South Korea' },
+	{ code: 'SG', name: 'Singapore' },
+	{ code: 'BR', name: 'Brazil' },
+	{ code: 'MX', name: 'Mexico' },
+	{ code: 'ZA', name: 'South Africa' }
+];
+
+const US_STATE_OPTIONS = [
+	'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware',
+	'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky',
+	'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi',
+	'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico',
+	'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania',
+	'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont',
+	'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'
+].map((name) => ({ code: name, name }));
+
+function countryNameFromCode(code) {
+	const normalized = typeof code === 'string' ? code.trim().toUpperCase() : '';
+	return COUNTRY_OPTIONS.find((country) => country.code === normalized)?.name || '';
+}
+
+
 // src/state.js
 function defaultState() {
 	return {
@@ -130,15 +171,22 @@ function defaultState() {
 		category: 'all',
 		selectedProductId: SHOP_PRODUCTS[0] ? SHOP_PRODUCTS[0].id : '',
 		coreId: null,
+		userEmail: '',
+		countryCode: '',
+		theme: 'auto',
 		query: '',
 		page: 1,
+		productQuantities: {},
 		cart: {},
 		delivery: {
 			name: '',
 			email: '',
 			phone: '',
 			address: '',
+			address2: '',
 			city: '',
+			zip: '',
+			state: '',
 			country: '',
 			notes: ''
 		},
@@ -169,12 +217,15 @@ function cleanString(value, fallback) {
 function normalizeDelivery(raw) {
 	const fallback = defaultState().delivery;
 	const value = objectValue(raw);
-	return {
+		return {
 		name: cleanString(value.name, fallback.name),
 		email: cleanString(value.email, fallback.email),
 		phone: cleanString(value.phone, fallback.phone),
 		address: cleanString(value.address, fallback.address),
+		address2: cleanString(value.address2, fallback.address2),
 		city: cleanString(value.city, fallback.city),
+		zip: cleanString(value.zip, fallback.zip),
+		state: cleanString(value.state, fallback.state),
 		country: cleanString(value.country, fallback.country),
 		notes: cleanString(value.notes, fallback.notes)
 	};
@@ -219,10 +270,25 @@ function normalizeCart(raw) {
 	return cart;
 }
 
+function normalizeQuantities(raw) {
+	const quantities = {};
+	const value = objectValue(raw);
+	for (const product of SHOP_PRODUCTS) {
+		const quantity = Number(value[product.id]);
+		quantities[product.id] = Number.isFinite(quantity) && quantity > 0 ? Math.max(1, Math.round(quantity)) : 1;
+	}
+	return quantities;
+}
+
+function normalizeTheme(raw) {
+	const value = cleanString(raw, 'auto').toLowerCase();
+	return ['auto', 'light', 'dark'].includes(value) ? value : 'auto';
+}
+
 function normalizeState(raw) {
 	const fallback = defaultState();
 	const value = objectValue(raw);
-	const view = ['products', 'product', 'cart', 'checkout', 'orders'].includes(value.view)
+	const view = ['products', 'product', 'cart', 'checkout', 'orders', 'success'].includes(value.view)
 		? value.view
 		: fallback.view;
 	const category = normalizeCategory(value.category);
@@ -233,8 +299,12 @@ function normalizeState(raw) {
 		category,
 		selectedProductId: normalizeProductId(value.selectedProductId, category),
 		coreId: typeof value.coreId === 'string' && value.coreId.trim() ? value.coreId.trim() : null,
+		userEmail: cleanString(value.userEmail, fallback.userEmail),
+		countryCode: cleanString(value.countryCode, fallback.countryCode).toUpperCase(),
+		theme: normalizeTheme(value.theme),
 		query: typeof value.query === 'string' ? value.query : fallback.query,
 		page: Number.isFinite(Number(value.page)) && Number(value.page) > 0 ? Math.floor(Number(value.page)) : fallback.page,
+		productQuantities: normalizeQuantities(value.productQuantities),
 		cart: normalizeCart(value.cart),
 		delivery: normalizeDelivery(value.delivery),
 		saveDelivery: value.saveDelivery !== false,
@@ -253,7 +323,7 @@ function getState(hostApi) {
 function saveState(hostApi, next) {
 	hostApi.storage.set(STATE_KEY, normalizeState({
 		...next,
-		updatedAt: new Date().toISOString()
+		updatedAt: new Date(Date.now()).toISOString()
 	}));
 }
 
@@ -387,13 +457,46 @@ function cartTotal(state) {
 	return cartSubtotal(state) + deliveryFeeAmount(state);
 }
 
-function addToCart(state, productId) {
+function wholeQuantity(value) {
+	const quantity = Number(value);
+	return Number.isFinite(quantity) && quantity > 0 ? Math.max(1, Math.round(quantity)) : 1;
+}
+
+function productQuantity(state, productId) {
+	return wholeQuantity(state.productQuantities && state.productQuantities[productId]);
+}
+
+function setProductQuantity(state, productId, quantity) {
+	const product = SHOP_PRODUCTS.find((item) => item.id === productId);
+	if (!product) return state;
+	return normalizeState({
+		...state,
+		productQuantities: {
+			...state.productQuantities,
+			[productId]: wholeQuantity(quantity)
+		}
+	});
+}
+
+function incrementProductQuantity(state, productId) {
+	return setProductQuantity(state, productId, productQuantity(state, productId) + 1);
+}
+
+function decrementProductQuantity(state, productId) {
+	return setProductQuantity(state, productId, Math.max(1, productQuantity(state, productId) - 1));
+}
+
+function addQuantityToCart(state, productId, quantity) {
 	const product = SHOP_PRODUCTS.find((item) => item.id === productId);
 	if (!product) return state;
 	const cart = { ...state.cart };
 	const current = cart[productId] || 0;
-	cart[productId] = current + 1;
+	cart[productId] = current + wholeQuantity(quantity);
 	return normalizeState({ ...state, cart, checkoutStatus: 'draft' });
+}
+
+function addToCart(state, productId) {
+	return addQuantityToCart(state, productId, 1);
 }
 
 function removeOneFromCart(state, productId) {
@@ -419,8 +522,12 @@ function orderReference(state) {
 }
 
 function deliverySummary(delivery) {
-	const cityLine = [delivery.city, delivery.country].filter(Boolean).join(', ');
-	return [delivery.address, cityLine].filter(Boolean).join(' • ') || 'Not entered';
+	const cityLine = [delivery.city, delivery.state, delivery.zip, delivery.country].filter(Boolean).join(', ');
+	return [delivery.address, delivery.address2, cityLine].filter(Boolean).join(' • ') || 'Not entered';
+}
+
+function collectorAccount() {
+	return SHOP_CONFIG.collectorAccount || SHOP_CONFIG.defaultMerchantAccount;
 }
 
 
@@ -456,6 +563,7 @@ function renderView(state) {
 	if (state.view === 'product') return renderProductDetail(state);
 	if (state.view === 'cart') return renderCart(state);
 	if (state.view === 'checkout') return renderCheckout(state);
+	if (state.view === 'success') return renderSuccess(state);
 	if (state.view === 'orders') return renderOrders(state);
 	return renderProducts(state);
 }
@@ -491,10 +599,15 @@ function productCardNode(state, product) {
 		badge: product.badge,
 		packLabel: product.packLabel || 'Standard pack',
 		price: productPrice(state, product),
+		digital: product.digital === true,
 		action: stateAction(state, {
 			view: 'product',
 			category: product.category,
-			selectedProductId: product.id
+			selectedProductId: product.id,
+			productQuantities: {
+				...state.productQuantities,
+				[product.id]: productQuantity(state, product.id)
+			}
 		}),
 		addAction: stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`)
 	};
@@ -523,6 +636,8 @@ function renderProducts(state) {
 		subtitle: SHOP_CONFIG.tagline,
 		coreId: state.coreId,
 		cartCount: cartCount(state),
+		theme: state.theme,
+		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'light' : state.theme === 'light' ? 'dark' : 'auto' }),
 		portalAction: { type: 'navigate', href: '/' },
 		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
 		cartAction: stateAction(state, { view: 'cart' }),
@@ -560,15 +675,18 @@ function renderProductDetail(state) {
 		shopTitle: SHOP_CONFIG.name,
 		coreId: state.coreId,
 		cartCount: cartCount(state),
+		theme: state.theme,
+		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'light' : state.theme === 'light' ? 'dark' : 'auto' }),
 		product: productDetailNode(state, product),
-		quantity: state.cart[product.id] || 0,
+		quantity: productQuantity(state, product.id),
 		backAction: stateAction(state, { view: 'products', category: product.category }),
 		portalAction: { type: 'navigate', href: '/' },
 		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
 		cartAction: stateAction(state, { view: 'cart' }),
-		addAction: stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`),
-		removeAction: stateAction(removeOneFromCart(state, product.id), {}),
-		buyAction: stateAction(addToCart(state, product.id), { view: 'checkout' }),
+		addAction: stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`),
+		increaseQuantityAction: stateAction(incrementProductQuantity(state, product.id), {}),
+		decreaseQuantityAction: stateAction(decrementProductQuantity(state, product.id), {}),
+		buyAction: stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), { view: 'cart' }),
 		related: related.map((item) => productCardNode(state, item))
 	};
 }
@@ -582,6 +700,8 @@ function renderCart(state) {
 		shopTitle: SHOP_CONFIG.name,
 		coreId: state.coreId,
 		cartCount: cartCount(state),
+		theme: state.theme,
+		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'light' : state.theme === 'light' ? 'dark' : 'auto' }),
 		portalAction: { type: 'navigate', href: '/' },
 		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
 		checkoutAction: stateAction(state, { view: 'checkout' }),
@@ -597,6 +717,15 @@ function renderCart(state) {
 			quantity: item.quantity,
 			price: formatMoney(item.product.price, state.settings.currency),
 			lineTotal: formatMoney(item.product.price * item.quantity, state.settings.currency),
+			productAction: stateAction(state, {
+				view: 'product',
+				category: item.product.category,
+				selectedProductId: item.product.id,
+				productQuantities: {
+					...state.productQuantities,
+					[item.product.id]: Math.max(1, item.quantity)
+				}
+			}),
 			addAction: stateAction(addToCart(state, item.product.id), {}),
 			removeAction: stateAction(removeOneFromCart(state, item.product.id), {}),
 			deleteAction: stateAction(removeProductFromCart(state, item.product.id), {})
@@ -610,25 +739,58 @@ function renderDeliveryForm(state) {
 	const initialDelivery = state.savedDelivery && !state.delivery.name && !state.delivery.address
 		? state.savedDelivery
 		: state.delivery;
+	const hasPhysicalItems = cartItems(state).some((item) => item.product.digital !== true);
+	const selectedCountry = initialDelivery.country || countryNameFromCode(state.countryCode) || '';
+	const deliveryDraft = {
+		...initialDelivery,
+		email: initialDelivery.email || state.userEmail || '',
+		country: selectedCountry
+	};
 	const next = normalizeState({
 		...state,
-		delivery: initialDelivery,
-		savedDelivery: state.saveDelivery ? initialDelivery : state.savedDelivery,
+		delivery: deliveryDraft,
+		savedDelivery: state.saveDelivery ? deliveryDraft : state.savedDelivery,
 		view: 'checkout',
 		checkoutStatus: 'details_saved'
 	});
+	const fields = [
+		{ name: 'delivery.email', label: 'Email', type: 'email', value: deliveryDraft.email, placeholder: 'marsellus@wallace.pulp', required: true }
+	];
+	if (hasPhysicalItems) {
+		fields.push(
+			{ name: 'delivery.name', label: 'Full name', value: deliveryDraft.name, placeholder: 'Marsellus Wallace', required: true },
+			{ name: 'delivery.phone', label: 'Phone', value: deliveryDraft.phone, placeholder: '+1' },
+			{ name: 'delivery.address', label: 'Street address', value: deliveryDraft.address, placeholder: 'Street and number', required: true },
+			{ name: 'delivery.address2', label: 'Street address 2', value: deliveryDraft.address2, placeholder: 'Floor, flat number, …' },
+			{ name: 'delivery.city', label: 'City', value: deliveryDraft.city, placeholder: 'Los Angeles', required: true },
+			{ name: 'delivery.zip', label: 'ZIP', value: deliveryDraft.zip, placeholder: '90210', required: true },
+			{
+				name: 'delivery.country',
+				label: 'Country',
+				type: 'country',
+				value: deliveryDraft.country,
+				placeholder: 'United States',
+				options: COUNTRY_OPTIONS,
+				required: true
+			}
+		);
+		if (deliveryDraft.country === 'United States' || deliveryDraft.country === 'US') {
+			fields.push({
+				name: 'delivery.state',
+				label: 'State',
+				type: 'select',
+				value: deliveryDraft.state,
+				placeholder: 'California',
+				options: US_STATE_OPTIONS,
+				required: true
+			});
+		}
+		fields.push({ name: 'delivery.notes', label: 'Delivery notes', value: deliveryDraft.notes, placeholder: 'Floor, flat number, …' });
+	}
 
 	return {
 		type: 'form',
-		fields: [
-			{ name: 'delivery.name', label: 'Full name', value: initialDelivery.name, placeholder: 'Ada Lovelace' },
-			{ name: 'delivery.email', label: 'Email', type: 'email', value: initialDelivery.email, placeholder: 'ada@example.com' },
-			{ name: 'delivery.phone', label: 'Phone', value: initialDelivery.phone, placeholder: '+421…' },
-			{ name: 'delivery.address', label: 'Delivery address', value: initialDelivery.address, placeholder: 'Street and number' },
-			{ name: 'delivery.city', label: 'City / ZIP', value: initialDelivery.city, placeholder: 'Bratislava 811 01' },
-			{ name: 'delivery.country', label: 'Country', value: initialDelivery.country, placeholder: 'Slovakia' },
-			{ name: 'delivery.notes', label: 'Delivery notes', value: initialDelivery.notes, placeholder: 'Door code, pickup preference…' }
-		],
+		fields,
 		submitLabel: state.saveDelivery ? 'Save delivery details locally' : 'Use for this order only',
 		action: {
 			type: 'storage',
@@ -651,18 +813,34 @@ function minimumCheckoutMessage(state, total) {
 	return `Minimum checkout amount is ${formatMoney(minimum, state.settings.currency)}. Add ${formatMoney(minimum - total, state.settings.currency)} more to continue.`;
 }
 
+function checkoutRequiredMessage(state, hasPhysicalItems) {
+	const delivery = state.delivery || {};
+	if (!delivery.email) return 'Enter your email before checkout.';
+	if (!hasPhysicalItems) return '';
+	const missing = [];
+	if (!delivery.name) missing.push('name');
+	if (!delivery.address) missing.push('street address');
+	if (!delivery.city) missing.push('city');
+	if (!delivery.zip) missing.push('ZIP');
+	if (!delivery.country) missing.push('country');
+	if ((delivery.country === 'United States' || delivery.country === 'US') && !delivery.state) missing.push('state');
+	return missing.length ? `Add ${missing.join(', ')} before checkout.` : '';
+}
+
 function renderCheckout(state) {
 	const subtotal = cartSubtotal(state);
 	const deliveryFee = deliveryFeeAmount(state);
 	const total = cartTotal(state);
 	const items = cartItems(state);
+	const hasPhysicalItems = items.some((item) => item.product.digital !== true);
 	const minimumMessage = minimumCheckoutMessage(state, subtotal);
+	const requiredMessage = checkoutRequiredMessage(state, hasPhysicalItems);
 	const paymentRequest = {
 		label: `${SHOP_CONFIG.name} order`,
 		amount: total.toFixed(2),
 		reference: orderReference(state),
 		portalTransfer: {
-			account: state.settings.merchantAccount,
+			account: collectorAccount(),
 			currency: state.settings.currency,
 			amount: total.toFixed(2),
 			platform: 'platform',
@@ -679,6 +857,8 @@ function renderCheckout(state) {
 		shopTitle: SHOP_CONFIG.name,
 		coreId: state.coreId,
 		cartCount: cartCount(state),
+		theme: state.theme,
+		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'light' : state.theme === 'light' ? 'dark' : 'auto' }),
 		portalAction: { type: 'navigate', href: '/' },
 		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
 		cartAction: stateAction(state, { view: 'cart' }),
@@ -695,10 +875,12 @@ function renderCheckout(state) {
 			deliveryFeeApplied: deliveryFee > 0,
 			total: formatMoney(total, state.settings.currency),
 			merchantAccount: state.settings.merchantAccount,
+			collectorAccount: collectorAccount(),
 			reference: orderReference(state),
 			delivery: deliverySummary(state.delivery),
 			status: state.checkoutStatus,
-			minimumMessage,
+			minimumMessage: minimumMessage || requiredMessage,
+			hasPhysicalItems,
 			items: items.map((item) => ({
 				name: item.product.name,
 				quantity: item.quantity,
@@ -707,6 +889,8 @@ function renderCheckout(state) {
 		},
 		payAction: minimumMessage
 			? { type: 'notify', message: minimumMessage, level: 'warning' }
+			: requiredMessage
+				? { type: 'notify', message: requiredMessage, level: 'warning' }
 			: stockManagedPaymentAction(state, paymentRequest)
 	};
 }
@@ -750,6 +934,29 @@ function renderOrders(state) {
 				{ type: 'text', text: 'No paid order recorded yet on this device.', tone: 'muted' },
 				{ type: 'button', label: 'Browse products', variant: 'primary', action: stateAction(state, { view: 'products' }) }
 			]
+	};
+}
+
+
+// src/ui/success.js
+function renderSuccess(state) {
+	const order = state.lastOrder;
+	return {
+		type: 'shopSuccess',
+		shopTitle: SHOP_CONFIG.name,
+		coreId: state.coreId,
+		theme: state.theme,
+		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'light' : state.theme === 'light' ? 'dark' : 'auto' }),
+		portalAction: { type: 'navigate', href: '/' },
+		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
+		order: order
+			? {
+				status: order.status || 'paid',
+				total: formatMoney(order.total, order.currency),
+				paidAt: order.paidAt || '',
+				delivery: order.delivery || ''
+			}
+			: null
 	};
 }
 
@@ -861,7 +1068,7 @@ function orderEmailText(state, result) {
 		'',
 		`Reference: ${reference}`,
 		`Payment session: ${result.sessionId || 'n/a'}`,
-		`Paid at: ${result.executedAt || new Date().toISOString()}`,
+		`Paid at: ${result.executedAt || new Date(Date.now()).toISOString()}`,
 		`Subtotal: ${formatMoney(cartSubtotal(state), state.settings.currency)}`,
 		`Delivery fee: ${formatMoney(deliveryFee, state.settings.currency)}`,
 		`Total: ${formatMoney(cartTotal(state), state.settings.currency)}`,
@@ -893,7 +1100,7 @@ function orderEmailHtml(state, result) {
 		'<ul>',
 		`<li><strong>Reference:</strong> ${escapeHtml(reference)}</li>`,
 		`<li><strong>Payment session:</strong> ${escapeHtml(result.sessionId || 'n/a')}</li>`,
-		`<li><strong>Paid at:</strong> ${escapeHtml(result.executedAt || new Date().toISOString())}</li>`,
+		`<li><strong>Paid at:</strong> ${escapeHtml(result.executedAt || new Date(Date.now()).toISOString())}</li>`,
 		`<li><strong>Subtotal:</strong> ${escapeHtml(formatMoney(cartSubtotal(state), state.settings.currency))}</li>`,
 		`<li><strong>Delivery fee:</strong> ${escapeHtml(formatMoney(deliveryFee, state.settings.currency))}</li>`,
 		`<li><strong>Total:</strong> ${escapeHtml(formatMoney(cartTotal(state), state.settings.currency))}</li>`,
@@ -934,7 +1141,7 @@ function orderWebhookPayload(state, result) {
 		payment: {
 			reference,
 			sessionId: result.sessionId || null,
-			paidAt: result.executedAt || new Date().toISOString(),
+			paidAt: result.executedAt || new Date(Date.now()).toISOString(),
 			subtotal: cartSubtotal(state),
 			deliveryFee: deliveryFeeAmount(state),
 			total: cartTotal(state),
@@ -999,7 +1206,7 @@ module.exports = {
 			this.unsubscribe = hostApi.events.onPaymentExecuted((result) => {
 				const state = getState(hostApi);
 				if (result.status === 'executed') {
-					const paidAt = result.executedAt || new Date().toISOString();
+					const paidAt = result.executedAt || new Date(Date.now()).toISOString();
 					const lastOrder = {
 						status: 'paid',
 						total: cartTotal(state),
@@ -1013,7 +1220,7 @@ module.exports = {
 					};
 					saveState(hostApi, {
 						...state,
-						view: 'orders',
+						view: 'success',
 						cart: {},
 						checkoutStatus: 'paid',
 						lastOrder,
@@ -1048,10 +1255,30 @@ module.exports = {
 				} else if (result.status === 'failed' || result.status === 'cancelled' || result.status === 'expired') {
 					saveState(hostApi, {
 						...state,
+						view: 'cart',
 						checkoutStatus: result.status
 					});
 				}
 			});
+			hostApi.user.getProfile({ email: true, countryCode: true })
+				.then((profile) => {
+					if (!profile) return;
+					const state = getState(hostApi);
+					const country = state.delivery.country || countryNameFromCode(profile.countryCode);
+					saveState(hostApi, {
+						...state,
+						coreId: state.coreId || profile.coreId,
+						userEmail: state.userEmail || profile.email || '',
+						countryCode: state.countryCode || profile.countryCode || '',
+						delivery: {
+							...state.delivery,
+							email: state.delivery.email || profile.email || '',
+							name: state.delivery.name || profile.coreId || '',
+							country
+						}
+					});
+				})
+				.catch(() => {});
 			hostApi.user.getCoreId()
 				.then((coreId) => {
 					if (!coreId) return;
@@ -1072,6 +1299,7 @@ module.exports = {
 			const api = this.hostApi || hostApi;
 			const state = getState(api);
 			return {
+				title: SHOP_CONFIG.name,
 				nodes: [
 					renderView(state)
 				]
@@ -1089,6 +1317,6 @@ function readInitialPluginView() {
 	const view = context && typeof context.initialView === 'string'
 		? context.initialView.trim().toLowerCase()
 		: '';
-	return ['products', 'product', 'cart', 'checkout', 'orders'].includes(view) ? view : null;
+	return ['products', 'product', 'cart', 'checkout', 'orders', 'success'].includes(view) ? view : null;
 }
 

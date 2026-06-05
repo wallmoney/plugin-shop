@@ -29,6 +29,7 @@ function renderView(state) {
 	if (state.view === 'product') return renderProductDetail(state);
 	if (state.view === 'cart') return renderCart(state);
 	if (state.view === 'checkout') return renderCheckout(state);
+	if (state.view === 'success') return renderSuccess(state);
 	if (state.view === 'orders') return renderOrders(state);
 	return renderProducts(state);
 }

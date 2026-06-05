@@ -23,6 +23,7 @@
 		"events.onPaymentExecuted",
 		"network.postJson",
 		"payments.openPrefilledPayment",
+		"user.getProfile",
 		"user.getCoreId",
 		"ui.navigate",
 		"ui.notify",
@@ -52,6 +53,7 @@
 	"pluginSrc": [
 		"src/config.js",
 		"src/inventory.js",
+		"src/countries.js",
 		"src/state.js",
 		"src/catalog.js",
 		"src/cart.js",
@@ -60,6 +62,7 @@
 		"src/ui/cart.js",
 		"src/ui/checkout.js",
 		"src/ui/orders.js",
+		"src/ui/success.js",
 		"src/stock.js",
 		"src/email.js",
 		"src/plugin.js"

@@ -41,13 +41,46 @@ function cartTotal(state) {
 	return cartSubtotal(state) + deliveryFeeAmount(state);
 }
 
-function addToCart(state, productId) {
+function wholeQuantity(value) {
+	const quantity = Number(value);
+	return Number.isFinite(quantity) && quantity > 0 ? Math.max(1, Math.round(quantity)) : 1;
+}
+
+function productQuantity(state, productId) {
+	return wholeQuantity(state.productQuantities && state.productQuantities[productId]);
+}
+
+function setProductQuantity(state, productId, quantity) {
+	const product = SHOP_PRODUCTS.find((item) => item.id === productId);
+	if (!product) return state;
+	return normalizeState({
+		...state,
+		productQuantities: {
+			...state.productQuantities,
+			[productId]: wholeQuantity(quantity)
+		}
+	});
+}
+
+function incrementProductQuantity(state, productId) {
+	return setProductQuantity(state, productId, productQuantity(state, productId) + 1);
+}
+
+function decrementProductQuantity(state, productId) {
+	return setProductQuantity(state, productId, Math.max(1, productQuantity(state, productId) - 1));
+}
+
+function addQuantityToCart(state, productId, quantity) {
 	const product = SHOP_PRODUCTS.find((item) => item.id === productId);
 	if (!product) return state;
 	const cart = { ...state.cart };
 	const current = cart[productId] || 0;
-	cart[productId] = current + 1;
+	cart[productId] = current + wholeQuantity(quantity);
 	return normalizeState({ ...state, cart, checkoutStatus: 'draft' });
+}
+
+function addToCart(state, productId) {
+	return addQuantityToCart(state, productId, 1);
 }
 
 function removeOneFromCart(state, productId) {
@@ -73,6 +106,10 @@ function orderReference(state) {
 }
 
 function deliverySummary(delivery) {
-	const cityLine = [delivery.city, delivery.country].filter(Boolean).join(', ');
-	return [delivery.address, cityLine].filter(Boolean).join(' • ') || 'Not entered';
+	const cityLine = [delivery.city, delivery.state, delivery.zip, delivery.country].filter(Boolean).join(', ');
+	return [delivery.address, delivery.address2, cityLine].filter(Boolean).join(' • ') || 'Not entered';
+}
+
+function collectorAccount() {
+	return SHOP_CONFIG.collectorAccount || SHOP_CONFIG.defaultMerchantAccount;
 }

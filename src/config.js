@@ -6,6 +6,7 @@ const SHOP_CONFIG = {
 	defaultGatewayUrl: 'https://ipf.sk',
 	defaultCatalogRef: 'data/inventory',
 	defaultMerchantAccount: 'wallmoney-shop',
+	collectorAccount: 'wallmoney-shop',
 	defaultCurrency: 'USD',
 	minimumCheckoutAmount: 50,
 	deliveryFee: 0,

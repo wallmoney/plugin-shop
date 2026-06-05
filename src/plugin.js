@@ -12,7 +12,7 @@ module.exports = {
 			this.unsubscribe = hostApi.events.onPaymentExecuted((result) => {
 				const state = getState(hostApi);
 				if (result.status === 'executed') {
-					const paidAt = result.executedAt || new Date().toISOString();
+					const paidAt = result.executedAt || new Date(Date.now()).toISOString();
 					const lastOrder = {
 						status: 'paid',
 						total: cartTotal(state),
@@ -26,7 +26,7 @@ module.exports = {
 					};
 					saveState(hostApi, {
 						...state,
-						view: 'orders',
+						view: 'success',
 						cart: {},
 						checkoutStatus: 'paid',
 						lastOrder,
@@ -61,10 +61,30 @@ module.exports = {
 				} else if (result.status === 'failed' || result.status === 'cancelled' || result.status === 'expired') {
 					saveState(hostApi, {
 						...state,
+						view: 'cart',
 						checkoutStatus: result.status
 					});
 				}
 			});
+			hostApi.user.getProfile({ email: true, countryCode: true })
+				.then((profile) => {
+					if (!profile) return;
+					const state = getState(hostApi);
+					const country = state.delivery.country || countryNameFromCode(profile.countryCode);
+					saveState(hostApi, {
+						...state,
+						coreId: state.coreId || profile.coreId,
+						userEmail: state.userEmail || profile.email || '',
+						countryCode: state.countryCode || profile.countryCode || '',
+						delivery: {
+							...state.delivery,
+							email: state.delivery.email || profile.email || '',
+							name: state.delivery.name || profile.coreId || '',
+							country
+						}
+					});
+				})
+				.catch(() => {});
 			hostApi.user.getCoreId()
 				.then((coreId) => {
 					if (!coreId) return;
@@ -85,6 +105,7 @@ module.exports = {
 			const api = this.hostApi || hostApi;
 			const state = getState(api);
 			return {
+				title: SHOP_CONFIG.name,
 				nodes: [
 					renderView(state)
 				]
@@ -102,5 +123,5 @@ function readInitialPluginView() {
 	const view = context && typeof context.initialView === 'string'
 		? context.initialView.trim().toLowerCase()
 		: '';
-	return ['products', 'product', 'cart', 'checkout', 'orders'].includes(view) ? view : null;
+	return ['products', 'product', 'cart', 'checkout', 'orders', 'success'].includes(view) ? view : null;
 }

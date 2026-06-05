@@ -5,6 +5,8 @@ function renderCart(state) {
 		shopTitle: SHOP_CONFIG.name,
 		coreId: state.coreId,
 		cartCount: cartCount(state),
+		theme: state.theme,
+		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'light' : state.theme === 'light' ? 'dark' : 'auto' }),
 		portalAction: { type: 'navigate', href: '/' },
 		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
 		checkoutAction: stateAction(state, { view: 'checkout' }),
@@ -20,6 +22,15 @@ function renderCart(state) {
 			quantity: item.quantity,
 			price: formatMoney(item.product.price, state.settings.currency),
 			lineTotal: formatMoney(item.product.price * item.quantity, state.settings.currency),
+			productAction: stateAction(state, {
+				view: 'product',
+				category: item.product.category,
+				selectedProductId: item.product.id,
+				productQuantities: {
+					...state.productQuantities,
+					[item.product.id]: Math.max(1, item.quantity)
+				}
+			}),
 			addAction: stateAction(addToCart(state, item.product.id), {}),
 			removeAction: stateAction(removeOneFromCart(state, item.product.id), {}),
 			deleteAction: stateAction(removeProductFromCart(state, item.product.id), {})
