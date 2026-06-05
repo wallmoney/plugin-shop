@@ -4,6 +4,7 @@ function renderDeliveryForm(state) {
 		: state.delivery;
 	const hasPhysicalItems = cartItems(state).some((item) => item.product.digital !== true);
 	const selectedCountry = initialDelivery.country || countryNameFromCode(state.countryCode) || '';
+	const hasUnitedStates = selectedCountry === 'United States' || selectedCountry === 'US' || state.countryCode === 'US';
 	const deliveryDraft = {
 		...initialDelivery,
 		email: initialDelivery.email || state.userEmail || '',
@@ -24,7 +25,7 @@ function renderDeliveryForm(state) {
 			{ name: 'delivery.name', label: 'Full name', value: deliveryDraft.name, placeholder: 'Marsellus Wallace', required: true },
 			{ name: 'delivery.phone', label: 'Phone', value: deliveryDraft.phone, placeholder: '+1' },
 			{ name: 'delivery.address', label: 'Street address', value: deliveryDraft.address, placeholder: 'Street and number', required: true },
-			{ name: 'delivery.address2', label: 'Street address 2', value: deliveryDraft.address2, placeholder: 'Floor, flat number, …' },
+			{ name: 'delivery.address2', label: 'Street address 2', value: deliveryDraft.address2, placeholder: '' },
 			{ name: 'delivery.city', label: 'City', value: deliveryDraft.city, placeholder: 'Los Angeles', required: true },
 			{ name: 'delivery.zip', label: 'ZIP', value: deliveryDraft.zip, placeholder: '90210', required: true },
 			{
@@ -37,17 +38,15 @@ function renderDeliveryForm(state) {
 				required: true
 			}
 		);
-		if (deliveryDraft.country === 'United States' || deliveryDraft.country === 'US') {
-			fields.push({
-				name: 'delivery.state',
-				label: 'State',
-				type: 'select',
-				value: deliveryDraft.state,
-				placeholder: 'California',
-				options: US_STATE_OPTIONS,
-				required: true
-			});
-		}
+		fields.push({
+			name: 'delivery.state',
+			label: 'State',
+			type: 'select',
+			value: deliveryDraft.state,
+			placeholder: 'California',
+			options: US_STATE_OPTIONS,
+			required: hasUnitedStates
+		});
 		fields.push({ name: 'delivery.notes', label: 'Delivery notes', value: deliveryDraft.notes, placeholder: 'Floor, flat number, …' });
 	}
 
@@ -146,6 +145,7 @@ function renderCheckout(state) {
 			total: formatMoney(total, state.settings.currency),
 			merchantAccount: state.settings.merchantAccount,
 			collectorAccount: collectorAccount(),
+			customerCoreId: state.coreId || 'Not provided',
 			reference: orderReference(state),
 			delivery: deliverySummary(state.delivery),
 			status: state.checkoutStatus,

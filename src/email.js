@@ -23,6 +23,15 @@ function orderEmailSubject(state, result) {
 	return `${prefix}: ${reference}`;
 }
 
+function shopAdminEmail(state) {
+	return (state.settings && state.settings.adminEmail) || SHOP_CONFIG.orderEmail.adminEmail || '';
+}
+
+function customerEmailSubject(state, result) {
+	const reference = result.request && result.request.reference ? result.request.reference : orderReference(state);
+	return `Your ${SHOP_CONFIG.name} order: ${reference}`;
+}
+
 function orderEmailText(state, result) {
 	const reference = result.request && result.request.reference ? result.request.reference : orderReference(state);
 	const delivery = state.delivery || {};
@@ -47,7 +56,10 @@ function orderEmailText(state, result) {
 		`Email: ${delivery.email || 'n/a'}`,
 		`Phone: ${delivery.phone || 'n/a'}`,
 		`Address: ${delivery.address || 'n/a'}`,
-		`City / ZIP: ${delivery.city || 'n/a'}`,
+		`Address 2: ${delivery.address2 || 'n/a'}`,
+		`City: ${delivery.city || 'n/a'}`,
+		`State: ${delivery.state || 'n/a'}`,
+		`ZIP: ${delivery.zip || 'n/a'}`,
 		`Country: ${delivery.country || 'n/a'}`,
 		`Notes: ${delivery.notes || 'n/a'}`,
 		'',
@@ -82,7 +94,10 @@ function orderEmailHtml(state, result) {
 		`<li><strong>Email:</strong> ${escapeHtml(delivery.email || 'n/a')}</li>`,
 		`<li><strong>Phone:</strong> ${escapeHtml(delivery.phone || 'n/a')}</li>`,
 		`<li><strong>Address:</strong> ${escapeHtml(delivery.address || 'n/a')}</li>`,
-		`<li><strong>City / ZIP:</strong> ${escapeHtml(delivery.city || 'n/a')}</li>`,
+		`<li><strong>Address 2:</strong> ${escapeHtml(delivery.address2 || 'n/a')}</li>`,
+		`<li><strong>City:</strong> ${escapeHtml(delivery.city || 'n/a')}</li>`,
+		`<li><strong>State:</strong> ${escapeHtml(delivery.state || 'n/a')}</li>`,
+		`<li><strong>ZIP:</strong> ${escapeHtml(delivery.zip || 'n/a')}</li>`,
 		`<li><strong>Country:</strong> ${escapeHtml(delivery.country || 'n/a')}</li>`,
 		`<li><strong>Notes:</strong> ${escapeHtml(delivery.notes || 'n/a')}</li>`,
 		'</ul>',
@@ -103,7 +118,7 @@ function orderWebhookPayload(state, result) {
 		type: 'shop.order.paid',
 		shop: {
 			name: SHOP_CONFIG.name,
-			adminEmail: SHOP_CONFIG.orderEmail.adminEmail || null
+			adminEmail: shopAdminEmail(state) || null
 		},
 		payment: {
 			reference,
@@ -122,8 +137,28 @@ function orderWebhookPayload(state, result) {
 		},
 		delivery: state.delivery,
 		items: orderEmailItems(state),
+		emails: [
+			{
+				type: 'admin',
+				to: shopAdminEmail(state),
+				replyTo: state.delivery && state.delivery.email ? state.delivery.email : null,
+				subject: orderEmailSubject(state, result),
+				text: orderEmailText(state, result),
+				html: orderEmailHtml(state, result)
+			},
+			...(SHOP_CONFIG.orderEmail.sendCustomerReceipt && state.delivery && state.delivery.email
+				? [{
+					type: 'customer',
+					to: state.delivery.email,
+					replyTo: shopAdminEmail(state) || null,
+					subject: customerEmailSubject(state, result),
+					text: orderEmailText(state, result),
+					html: orderEmailHtml(state, result)
+				}]
+				: [])
+		],
 		email: {
-			to: SHOP_CONFIG.orderEmail.adminEmail || '',
+			to: shopAdminEmail(state),
 			replyTo: state.delivery && state.delivery.email ? state.delivery.email : null,
 			subject: orderEmailSubject(state, result),
 			text: orderEmailText(state, result),
@@ -135,7 +170,7 @@ function orderWebhookPayload(state, result) {
 async function sendAdminOrderEmail(hostApi, state, result) {
 	const config = SHOP_CONFIG.orderEmail || {};
 	const provider = config.provider || 'none';
-	const adminEmail = config.adminEmail || '';
+	const adminEmail = shopAdminEmail(state);
 	if (provider === 'none' || !adminEmail) return { ok: true, sent: false, reason: 'Admin email disabled.' };
 
 	if (provider === 'mailto') {
