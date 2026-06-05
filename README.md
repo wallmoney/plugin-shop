@@ -1,6 +1,6 @@
-# IPFS Shop Wall Money Plugin
+# Wall Money Shop Plugin
 
-IPFS Shop is a Wall Money marketplace plugin for running a lightweight ecommerce storefront without a server database.
+Wall Money Shop is a marketplace plugin for running a lightweight ecommerce storefront without a server database.
 
 The plugin keeps the cart, delivery draft, saved delivery details, and merchant configuration in portal plugin storage. Product listings are designed to be published as immutable IPFS JSON objects and referenced from a mutable catalog CID/IPNS name through a gateway such as `https://ipf.sk`.
 
@@ -30,49 +30,114 @@ Dedicated cart link:
 
 ## Source Layout
 
-Edit source files in `src/`; the portal reads the ordered `src` list from `package.json` and builds the runtime bundle during install/update.
+Edit the SvelteKit preview in `app/` and the portal plugin runtime in `src/`. The marketplace installs the compiled `dist/plugin.js` bundle.
 
 ```text
-src/config.js       Merchant-editable categories, sample products, and defaults
+app/routes/+page.svelte      SvelteKit shop preview UI
+data/categories.json        Merchant-editable category list
+data/inventory/*.json       One merchant-editable inventory item per file
+scripts/build-inventory.mjs Generates src/inventory.js from data files
+scripts/build-plugin.mjs    Compiles ordered plugin source into dist/plugin.js
+workers/order-email.ts      Optional external order-email webhook
+workers/wrangler.order-email.jsonc Example Cloudflare Worker email config
+src/config.js               Shop defaults
+src/inventory.js            Generated categories and products
 src/state.js        Local plugin state normalization and storage actions
 src/catalog.js      Category/product filtering and IPFS gateway URL helpers
 src/cart.js         Cart totals, quantity actions, order references
-src/ui/products.js  Product overview, category filters, listing cards
+src/ui/products.js  Shop-style category grid and product detail UI
 src/ui/cart.js      Shopping cart view
 src/ui/checkout.js  Delivery details and Wall Money payment action
 src/ui/orders.js    Local order result view
 src/ui/settings.js  Gateway/provider/settings UI
+src/email.js        Admin order email composition
 src/plugin.js       Portal runtime entrypoint
+dist/plugin.js      Generated marketplace bundle
+build/              Generated static SvelteKit preview
 ```
 
-## Portal Source Loading
+## Build Outputs
 
-The plugin does not need local build scripts. `package.json` declares source files in execution order:
+The portal plugin sandbox cannot execute a SvelteKit app directly. This repo therefore builds two useful outputs:
+
+- `dist/plugin.js` — marketplace-ready plugin bundle consumed by `package.json` via `"bundle"`.
+- `build/` — static SvelteKit preview for local design/development.
+
+Build both:
+
+```sh
+npm run build
+```
+
+Build only the marketplace bundle:
+
+```sh
+npm run build:plugin
+```
+
+Build only the SvelteKit static preview:
+
+```sh
+npm run build:web
+```
+
+## Configurable Categories And Inventory
+
+Categories are defined in `data/categories.json`:
 
 ```json
-"src": [
-  "src/config.js",
-  "src/state.js",
-  "src/plugin.js"
+[
+  { "id": "tea", "label": "Tea", "helper": "Leafy rituals and warm cups", "order": 1 },
+  { "id": "coffee", "label": "Coffee", "helper": "Roasted daily essentials", "order": 2 },
+  { "id": "flowers", "label": "Flowers", "helper": "Fresh stems and soft color", "order": 3 }
 ]
 ```
 
-At install/update time, the portal fetches those files, concatenates them into the sandbox runtime source, and stores that generated runtime internally. Plugins are source-first; the portal can still use a manifest `bundle` as a backup for older or single-file plugins when `src` is not defined.
+Products live as one file per inventory item in `data/inventory`. Example:
 
-## Configurable Categories
-
-Categories are defined in `src/config.js`:
-
-```js
-const SHOP_CATEGORIES = [
-  { id: 'all', label: 'All', icon: '🧺', helper: 'Everything' },
-  { id: 'pantry', label: 'Pantry', icon: '☕', helper: 'Food and drinks' }
-];
+```json
+{
+  "id": "red-tea",
+  "name": "Red Tea",
+  "category": "tea",
+  "price": 12,
+  "currency": "USDX",
+  "cid": "bafybeiev3uiuiwi26zchkmxqpepoaz5rieiivq6yk4tcutjbsixtozriya",
+  "description": "A mellow red tea with a ruby cup, gentle tannins, and a naturally sweet finish.",
+  "stock": 42
+}
 ```
 
-Products reference those categories by `category` id. No build step is needed after changing categories or products.
+After editing categories or inventory, regenerate the bundled source:
 
-The plugin UI is rendered by the portal’s schema renderer, which already uses Tailwind utility classes for the dark rounded card layout, badges, buttons, forms, and responsive grids. The plugin shapes its UI into those Tailwind-rendered components to get a Plebeian Market-style marketplace feel while staying compatible with the portal sandbox.
+```sh
+npm run build:plugin
+```
+
+The plugin UI is rendered by the portal’s schema renderer. The shop uses richer shop-specific schema nodes for a light product-grid experience, category rail, product detail page, and a bottom-left CoreID identicon that navigates back to the bank portal.
+
+## Order Email Webhook
+
+The portal does not store shop email credentials and does not send shop emails. After a successful payment, the plugin posts the order payload to the plugin-owned webhook configured in `src/config.js`:
+
+```js
+orderEmail: {
+  provider: 'webhook',
+  adminEmail: 'admin@example.com',
+  webhookUrl: 'https://shop-email.example.com/orders/paid',
+  authHeader: ''
+}
+```
+
+Use `workers/order-email.ts` as an example standalone email webhook. With Cloudflare Email Service, credentials/config live in the worker environment:
+
+```text
+EMAIL_FROM=shop@yourdomain.com
+EMAIL_FROM_NAME=Wall Money Shop
+ORDER_WEBHOOK_TOKEN=optional-shared-token
+```
+
+If `ORDER_WEBHOOK_TOKEN` is set, put `Bearer optional-shared-token` into `orderEmail.authHeader`. The worker receives the order items, delivery details, payment reference/session, customer reply-to email, and rendered email body, then sends the email using its own email provider binding.
 
 ## IPFS-First Catalog Model
 
@@ -113,6 +178,7 @@ The plugin uses:
 - `storage.get`, `storage.set`, and `storage.remove` for local cart/profile/config.
 - `payments.openPrefilledPayment` for Wall Money checkout.
 - `events.onPaymentExecuted` to update order status after payment.
+- `network.postJson` to notify the plugin-owned order email webhook after successful payment.
 - `user.getCoreId` to prefill the customer Core ID when available.
 - `ui.navigate`, `ui.toast`, and `ui.notify` for links and status feedback.
 
@@ -121,13 +187,22 @@ The plugin uses:
 ```text
 package.json Plugin manifest consumed by Wall Money marketplace
 icon.svg     Marketplace/plugin icon
-src/         Source split into logical parts
+app/         SvelteKit preview source
+src/         Portal plugin source split into logical parts
+dist/        Compiled marketplace plugin bundle
+build/       Static SvelteKit preview output
 README.md    This documentation
 ```
 
 ## Development Checks
 
-Check whitespace in the repo:
+Run checks:
+
+```sh
+npm run check
+```
+
+Check whitespace:
 
 ```sh
 git diff --check

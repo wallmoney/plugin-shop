@@ -1,0 +1,18 @@
+{
+	"id": "tulip",
+	"name": "Tulip",
+	"category": "flowers",
+	"price": 7,
+	"currency": "USDX",
+	"icon": "\ud83c\udf37",
+	"cid": "bafybeib2xc5krqhdgzfgyfgnc2bjkuanwmsnbco37s735qnkb43mqf6rd4",
+	"description": "A bright tulip stem with a clean silhouette and spring energy. Lovely alone, better in a small bunch.",
+	"stock": 58,
+	"vendor": "Wall Money Florist",
+	"rating": 4.6,
+	"reviews": 121,
+	"soldLast30Days": 88,
+	"badge": "Seasonal",
+	"packLabel": "Single stem",
+	"order": 5
+}

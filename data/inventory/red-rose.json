@@ -1,0 +1,18 @@
+{
+	"id": "red-rose",
+	"name": "Red Rose",
+	"category": "flowers",
+	"price": 9,
+	"currency": "USDX",
+	"icon": "\ud83c\udf39",
+	"cid": "bafybeihny5f3zl3ir3423a3eh2zw4emcm3z54r5emm4qgrhtfglumk5wle",
+	"description": "A classic red rose selected for deep color and long vase life. Simple, direct, and somehow still undefeated.",
+	"stock": 64,
+	"vendor": "Wall Money Florist",
+	"rating": 4.8,
+	"reviews": 167,
+	"soldLast30Days": 102,
+	"badge": "Giftable",
+	"packLabel": "Single stem",
+	"order": 4
+}

@@ -1,7 +1,9 @@
 function defaultState() {
 	return {
 		view: 'products',
-		category: 'all',
+		category: SHOP_CATEGORIES[0] ? SHOP_CATEGORIES[0].id : 'tea',
+		selectedProductId: SHOP_PRODUCTS[0] ? SHOP_PRODUCTS[0].id : '',
+		coreId: null,
 		query: '',
 		cart: {},
 		delivery: {
@@ -65,8 +67,19 @@ function normalizeSettings(raw) {
 }
 
 function normalizeCategory(raw) {
-	const value = cleanString(raw, 'all').toLowerCase();
-	return SHOP_CATEGORIES.some((category) => category.id === value) ? value : 'all';
+	const fallback = SHOP_CATEGORIES[0] ? SHOP_CATEGORIES[0].id : 'tea';
+	const value = cleanString(raw, fallback).toLowerCase();
+	return SHOP_CATEGORIES.some((category) => category.id === value) ? value : fallback;
+}
+
+function normalizeProductId(raw, category) {
+	const fallbackProduct =
+		SHOP_PRODUCTS.find((product) => product.category === category) ||
+		SHOP_PRODUCTS[0] ||
+		null;
+	const fallback = fallbackProduct ? fallbackProduct.id : '';
+	const value = cleanString(raw, fallback);
+	return SHOP_PRODUCTS.some((product) => product.id === value) ? value : fallback;
 }
 
 function normalizeCart(raw) {
@@ -84,14 +97,17 @@ function normalizeCart(raw) {
 function normalizeState(raw) {
 	const fallback = defaultState();
 	const value = objectValue(raw);
-	const view = ['products', 'cart', 'checkout', 'settings', 'orders'].includes(value.view)
+	const view = ['products', 'product', 'cart', 'checkout', 'settings', 'orders'].includes(value.view)
 		? value.view
 		: fallback.view;
+	const category = normalizeCategory(value.category);
 	return {
 		...fallback,
 		...value,
 		view,
-		category: normalizeCategory(value.category),
+		category,
+		selectedProductId: normalizeProductId(value.selectedProductId, category),
+		coreId: typeof value.coreId === 'string' && value.coreId.trim() ? value.coreId.trim() : null,
 		query: typeof value.query === 'string' ? value.query : fallback.query,
 		cart: normalizeCart(value.cart),
 		delivery: normalizeDelivery(value.delivery),

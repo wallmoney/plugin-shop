@@ -27,6 +27,7 @@ function renderHero(state) {
 }
 
 function renderView(state) {
+	if (state.view === 'product') return renderProductDetail(state);
 	if (state.view === 'cart') return renderCart(state);
 	if (state.view === 'checkout') return renderCheckout(state);
 	if (state.view === 'settings') return renderSettings(state);

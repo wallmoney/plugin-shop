@@ -1,0 +1,18 @@
+{
+	"id": "turkish-tea",
+	"name": "Turkish Tea",
+	"category": "tea",
+	"price": 14,
+	"currency": "USDX",
+	"icon": "\ud83e\uded6",
+	"cid": "bafybeidasvv63e3xchk6hbe4vde3grlc652qa6io2s3pw7y5vqrwiohehu",
+	"description": "Bold black tea inspired by Turkish tea gardens. Brew it strong, serve it bright, and keep the second glass close.",
+	"stock": 36,
+	"vendor": "Wall Money Pantry",
+	"rating": 4.7,
+	"reviews": 139,
+	"soldLast30Days": 74,
+	"badge": "Fresh",
+	"packLabel": "100g tin",
+	"order": 2
+}

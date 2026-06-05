@@ -32,3 +32,5 @@ yarn.lock
 pnpm-lock.yaml
 bun.lock
 bun.lockb
+
+.svelte-kit/

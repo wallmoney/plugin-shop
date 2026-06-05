@@ -10,7 +10,7 @@ function filteredProducts(state) {
 	const query = state.query.trim().toLowerCase();
 	return SHOP_PRODUCTS.filter((product) => {
 		const category = productCategory(product);
-		const categoryMatch = state.category === 'all' || product.category === state.category;
+		const categoryMatch = product.category === state.category;
 		const queryMatch = !query || [
 			product.name,
 			category.label,
@@ -19,6 +19,23 @@ function filteredProducts(state) {
 		].join(' ').toLowerCase().includes(query);
 		return categoryMatch && queryMatch;
 	});
+}
+
+function selectedProduct(state) {
+	return (
+		SHOP_PRODUCTS.find((product) => product.id === state.selectedProductId) ||
+		filteredProducts(state)[0] ||
+		SHOP_PRODUCTS[0] ||
+		null
+	);
+}
+
+function productsByCategory(categoryId) {
+	return SHOP_PRODUCTS.filter((product) => product.category === categoryId);
+}
+
+function categoryProductCount(categoryId) {
+	return productsByCategory(categoryId).length;
 }
 
 function catalogUrl(state) {
@@ -39,4 +56,8 @@ function catalogUrl(state) {
 function productUrl(state, product) {
 	if (!product.cid) return catalogUrl(state);
 	return `${state.settings.gatewayUrl}/ipfs/${product.cid}`;
+}
+
+function productImageUrl(state, product) {
+	return productUrl(state, product);
 }
