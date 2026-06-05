@@ -6,13 +6,15 @@
 const STATE_KEY = 'shop-state';
 
 const SHOP_CONFIG = {
-	name: 'Wall Money Shop',
-	tagline: 'A small IPFS-backed shop for tea, coffee, and flowers',
+	name: 'WM Shop',
+	tagline: 'Decentralized shopping listed as WM plugin.',
 	defaultGatewayUrl: 'https://ipf.sk',
-	defaultUploadProviderUrl: 'https://web3.storage',
 	defaultCatalogRef: 'data/inventory',
 	defaultMerchantAccount: 'wallmoney-shop',
-	defaultCurrency: 'USDX',
+	defaultCurrency: 'USD',
+	minimumCheckoutAmount: 50,
+	deliveryFee: 0,
+	pageSize: 8,
 	orderEmail: {
 		provider: 'webhook',
 		adminEmail: 'admin@example.com',
@@ -20,6 +22,11 @@ const SHOP_CONFIG = {
 		authHeader: '',
 		fromName: 'Wall Money Shop',
 		subjectPrefix: 'New shop order'
+	},
+	stockManagement: {
+		provider: 'none',
+		webhookUrl: '',
+		authHeader: ''
 	}
 };
 
@@ -53,15 +60,10 @@ const SHOP_PRODUCTS = [
 		"name": "Red Tea",
 		"category": "tea",
 		"price": 12,
-		"currency": "USDX",
 		"icon": "🍵",
 		"cid": "bafybeiev3uiuiwi26zchkmxqpepoaz5rieiivq6yk4tcutjbsixtozriya",
 		"description": "A mellow red tea with a ruby cup, gentle tannins, and a naturally sweet finish. Ideal for slow mornings or an afternoon reset.",
-		"stock": 42,
 		"vendor": "Wall Money Pantry",
-		"rating": 4.8,
-		"reviews": 184,
-		"soldLast30Days": 96,
 		"badge": "Popular",
 		"packLabel": "80g pouch",
 		"order": 1
@@ -71,15 +73,10 @@ const SHOP_PRODUCTS = [
 		"name": "Turkish Tea",
 		"category": "tea",
 		"price": 14,
-		"currency": "USDX",
 		"icon": "🫖",
 		"cid": "bafybeidasvv63e3xchk6hbe4vde3grlc652qa6io2s3pw7y5vqrwiohehu",
 		"description": "Bold black tea inspired by Turkish tea gardens. Brew it strong, serve it bright, and keep the second glass close.",
-		"stock": 36,
 		"vendor": "Wall Money Pantry",
-		"rating": 4.7,
-		"reviews": 139,
-		"soldLast30Days": 74,
 		"badge": "Fresh",
 		"packLabel": "100g tin",
 		"order": 2
@@ -89,15 +86,10 @@ const SHOP_PRODUCTS = [
 		"name": "Coffee",
 		"category": "coffee",
 		"price": 18,
-		"currency": "USDX",
 		"icon": "☕",
 		"cid": "bafybeibi24hc42onhxq3dqyphnen2aklv4uplbozeifvay7vmw43mmbhzi",
 		"description": "A balanced roast with cocoa depth, toasted sugar, and a clean finish. Built for both espresso and quiet filter brews.",
-		"stock": 28,
 		"vendor": "Wall Money Roasters",
-		"rating": 4.9,
-		"reviews": 211,
-		"soldLast30Days": 128,
 		"badge": "Top pick",
 		"packLabel": "250g bag",
 		"order": 3
@@ -107,15 +99,10 @@ const SHOP_PRODUCTS = [
 		"name": "Red Rose",
 		"category": "flowers",
 		"price": 9,
-		"currency": "USDX",
 		"icon": "🌹",
 		"cid": "bafybeihny5f3zl3ir3423a3eh2zw4emcm3z54r5emm4qgrhtfglumk5wle",
 		"description": "A classic red rose selected for deep color and long vase life. Simple, direct, and somehow still undefeated.",
-		"stock": 64,
 		"vendor": "Wall Money Florist",
-		"rating": 4.8,
-		"reviews": 167,
-		"soldLast30Days": 102,
 		"badge": "Giftable",
 		"packLabel": "Single stem",
 		"order": 4
@@ -125,15 +112,10 @@ const SHOP_PRODUCTS = [
 		"name": "Tulip",
 		"category": "flowers",
 		"price": 7,
-		"currency": "USDX",
 		"icon": "🌷",
 		"cid": "bafybeib2xc5krqhdgzfgyfgnc2bjkuanwmsnbco37s735qnkb43mqf6rd4",
 		"description": "A bright tulip stem with a clean silhouette and spring energy. Lovely alone, better in a small bunch.",
-		"stock": 58,
 		"vendor": "Wall Money Florist",
-		"rating": 4.6,
-		"reviews": 121,
-		"soldLast30Days": 88,
 		"badge": "Seasonal",
 		"packLabel": "Single stem",
 		"order": 5
@@ -145,10 +127,11 @@ const SHOP_PRODUCTS = [
 function defaultState() {
 	return {
 		view: 'products',
-		category: SHOP_CATEGORIES[0] ? SHOP_CATEGORIES[0].id : 'tea',
+		category: 'all',
 		selectedProductId: SHOP_PRODUCTS[0] ? SHOP_PRODUCTS[0].id : '',
 		coreId: null,
 		query: '',
+		page: 1,
 		cart: {},
 		delivery: {
 			name: '',
@@ -167,8 +150,7 @@ function defaultState() {
 			merchantAccount: SHOP_CONFIG.defaultMerchantAccount,
 			currency: SHOP_CONFIG.defaultCurrency,
 			gatewayUrl: SHOP_CONFIG.defaultGatewayUrl,
-			catalogRef: SHOP_CONFIG.defaultCatalogRef,
-			uploadProviderUrl: SHOP_CONFIG.defaultUploadProviderUrl
+			catalogRef: SHOP_CONFIG.defaultCatalogRef
 		},
 		updatedAt: null
 	};
@@ -205,20 +187,19 @@ function normalizeSettings(raw) {
 		merchantAccount: cleanString(value.merchantAccount, fallback.merchantAccount),
 		currency: cleanString(value.currency, fallback.currency).toUpperCase(),
 		gatewayUrl: cleanString(value.gatewayUrl, fallback.gatewayUrl).replace(/\/+$/, ''),
-		catalogRef: cleanString(value.catalogRef, fallback.catalogRef),
-		uploadProviderUrl: cleanString(value.uploadProviderUrl, fallback.uploadProviderUrl)
+		catalogRef: cleanString(value.catalogRef, fallback.catalogRef)
 	};
 }
 
 function normalizeCategory(raw) {
-	const fallback = SHOP_CATEGORIES[0] ? SHOP_CATEGORIES[0].id : 'tea';
+	const fallback = 'all';
 	const value = cleanString(raw, fallback).toLowerCase();
-	return SHOP_CATEGORIES.some((category) => category.id === value) ? value : fallback;
+	return value === 'all' || SHOP_CATEGORIES.some((category) => category.id === value) ? value : fallback;
 }
 
 function normalizeProductId(raw, category) {
 	const fallbackProduct =
-		SHOP_PRODUCTS.find((product) => product.category === category) ||
+		(category === 'all' ? SHOP_PRODUCTS[0] : SHOP_PRODUCTS.find((product) => product.category === category)) ||
 		SHOP_PRODUCTS[0] ||
 		null;
 	const fallback = fallbackProduct ? fallbackProduct.id : '';
@@ -232,7 +213,7 @@ function normalizeCart(raw) {
 	for (const product of SHOP_PRODUCTS) {
 		const quantity = Number(value[product.id]);
 		if (Number.isFinite(quantity) && quantity > 0) {
-			cart[product.id] = Math.min(product.stock, Math.round(quantity));
+			cart[product.id] = Math.round(quantity);
 		}
 	}
 	return cart;
@@ -241,7 +222,7 @@ function normalizeCart(raw) {
 function normalizeState(raw) {
 	const fallback = defaultState();
 	const value = objectValue(raw);
-	const view = ['products', 'product', 'cart', 'checkout', 'settings', 'orders'].includes(value.view)
+	const view = ['products', 'product', 'cart', 'checkout', 'orders'].includes(value.view)
 		? value.view
 		: fallback.view;
 	const category = normalizeCategory(value.category);
@@ -253,6 +234,7 @@ function normalizeState(raw) {
 		selectedProductId: normalizeProductId(value.selectedProductId, category),
 		coreId: typeof value.coreId === 'string' && value.coreId.trim() ? value.coreId.trim() : null,
 		query: typeof value.query === 'string' ? value.query : fallback.query,
+		page: Number.isFinite(Number(value.page)) && Number(value.page) > 0 ? Math.floor(Number(value.page)) : fallback.page,
 		cart: normalizeCart(value.cart),
 		delivery: normalizeDelivery(value.delivery),
 		saveDelivery: value.saveDelivery !== false,
@@ -302,12 +284,11 @@ function filteredProducts(state) {
 	const query = state.query.trim().toLowerCase();
 	return SHOP_PRODUCTS.filter((product) => {
 		const category = productCategory(product);
-		const categoryMatch = product.category === state.category;
+		const categoryMatch = state.category === 'all' || product.category === state.category;
 		const queryMatch = !query || [
 			product.name,
 			category.label,
-			product.description,
-			product.cid
+			product.description
 		].join(' ').toLowerCase().includes(query);
 		return categoryMatch && queryMatch;
 	});
@@ -328,6 +309,13 @@ function productsByCategory(categoryId) {
 
 function categoryProductCount(categoryId) {
 	return productsByCategory(categoryId).length;
+}
+
+function allCategories() {
+	return [
+		{ id: 'all', label: 'All', helper: 'Every listing', order: 0 },
+		...SHOP_CATEGORIES
+	];
 }
 
 function catalogUrl(state) {
@@ -359,7 +347,16 @@ function productImageUrl(state, product) {
 function formatMoney(value, currency) {
 	const amount = Number(value);
 	const safe = Number.isFinite(amount) ? amount : 0;
-	return `${safe.toFixed(2)} ${currency || SHOP_CONFIG.defaultCurrency}`;
+	const code = currency || SHOP_CONFIG.defaultCurrency;
+	try {
+		return new Intl.NumberFormat('en-US', {
+			style: 'currency',
+			currency: code,
+			maximumFractionDigits: safe % 1 === 0 ? 0 : 2
+		}).format(safe);
+	} catch {
+		return `${safe.toFixed(2)} ${code}`;
+	}
 }
 
 function cartItems(state) {
@@ -375,8 +372,19 @@ function cartCount(state) {
 	return cartItems(state).reduce((sum, item) => sum + item.quantity, 0);
 }
 
-function cartTotal(state) {
+function cartSubtotal(state) {
 	return cartItems(state).reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+}
+
+function deliveryFeeAmount(state) {
+	const fee = Number(SHOP_CONFIG.deliveryFee);
+	if (!Number.isFinite(fee) || fee <= 0) return 0;
+	const requiresDelivery = cartItems(state).some((item) => item.product.digital !== true);
+	return requiresDelivery ? fee : 0;
+}
+
+function cartTotal(state) {
+	return cartSubtotal(state) + deliveryFeeAmount(state);
 }
 
 function addToCart(state, productId) {
@@ -384,8 +392,8 @@ function addToCart(state, productId) {
 	if (!product) return state;
 	const cart = { ...state.cart };
 	const current = cart[productId] || 0;
-	cart[productId] = Math.min(product.stock, current + 1);
-	return normalizeState({ ...state, cart, view: 'products', checkoutStatus: 'draft' });
+	cart[productId] = current + 1;
+	return normalizeState({ ...state, cart, checkoutStatus: 'draft' });
 }
 
 function removeOneFromCart(state, productId) {
@@ -437,8 +445,7 @@ function renderHero(state) {
 					{ label: 'Products', variant: state.view === 'products' ? 'primary' : 'secondary', action: stateAction(state, { view: 'products' }) },
 					{ label: `Cart (${cartCount(state)})`, variant: state.view === 'cart' ? 'primary' : 'secondary', action: stateAction(state, { view: 'cart' }) },
 					{ label: 'Checkout', variant: state.view === 'checkout' ? 'primary' : 'secondary', action: stateAction(state, { view: 'checkout' }) },
-					{ label: 'Orders', variant: state.view === 'orders' ? 'primary' : 'secondary', action: stateAction(state, { view: 'orders' }) },
-					{ label: 'Settings', variant: state.view === 'settings' ? 'primary' : 'ghost', action: stateAction(state, { view: 'settings' }) }
+					{ label: 'Orders', variant: state.view === 'orders' ? 'primary' : 'secondary', action: stateAction(state, { view: 'orders' }) }
 				]
 			}
 		]
@@ -449,7 +456,6 @@ function renderView(state) {
 	if (state.view === 'product') return renderProductDetail(state);
 	if (state.view === 'cart') return renderCart(state);
 	if (state.view === 'checkout') return renderCheckout(state);
-	if (state.view === 'settings') return renderSettings(state);
 	if (state.view === 'orders') return renderOrders(state);
 	return renderProducts(state);
 }
@@ -457,12 +463,13 @@ function renderView(state) {
 
 // src/ui/products.js
 function categoryTitle(state) {
+	if (state.category === 'all') return 'All';
 	const category = categoryById(state.category);
 	return category ? category.label : 'Products';
 }
 
 function productPrice(state, product) {
-	return formatMoney(product.price, product.currency || state.settings.currency);
+	return formatMoney(product.price, state.settings.currency);
 }
 
 function vendorInitials(product) {
@@ -482,8 +489,7 @@ function productCardNode(state, product) {
 		icon: product.icon,
 		imageUrl: productImageUrl(state, product),
 		badge: product.badge,
-		rating: product.rating,
-		reviews: String(product.reviews || 0),
+		packLabel: product.packLabel || 'Standard pack',
 		price: productPrice(state, product),
 		action: stateAction(state, {
 			view: 'product',
@@ -499,35 +505,46 @@ function productDetailNode(state, product) {
 		...productCardNode(state, product),
 		vendorInitials: vendorInitials(product),
 		description: product.description,
-		cid: product.cid,
-		packLabel: product.packLabel || 'Standard pack',
-		soldLabel: `${product.soldLast30Days || 0} sold in the last 30 days`
+		packLabel: product.packLabel || 'Standard pack'
 	};
 }
 
 function renderProducts(state) {
 	const products = filteredProducts(state);
+	const pageSize = Math.max(1, Number(SHOP_CONFIG.pageSize) || 8);
+	const totalPages = Math.max(1, Math.ceil(products.length / pageSize));
+	const currentPage = Math.min(Math.max(1, state.page || 1), totalPages);
+	const visibleProducts = products.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 	return {
 		type: 'shopCatalog',
+		shopTitle: SHOP_CONFIG.name,
+		shopSubtitle: SHOP_CONFIG.tagline,
 		title: categoryTitle(state),
 		subtitle: SHOP_CONFIG.tagline,
 		coreId: state.coreId,
 		cartCount: cartCount(state),
 		portalAction: { type: 'navigate', href: '/' },
+		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
 		cartAction: stateAction(state, { view: 'cart' }),
-		settingsAction: stateAction(state, { view: 'settings' }),
-		categories: SHOP_CATEGORIES.map((category) => ({
+		categories: allCategories().map((category) => ({
 			id: category.id,
 			label: category.label,
-			count: categoryProductCount(category.id),
 			selected: state.category === category.id,
 			action: stateAction(state, {
 				category: category.id,
 				view: 'products',
-				selectedProductId: productsByCategory(category.id)[0]?.id || state.selectedProductId
+				page: 1,
+				selectedProductId: (category.id === 'all' ? SHOP_PRODUCTS[0] : productsByCategory(category.id)[0])?.id || state.selectedProductId
 			})
 		})),
-		products: products.map((product) => productCardNode(state, product))
+		products: visibleProducts.map((product) => productCardNode(state, product)),
+		pagination: {
+			currentPage,
+			totalPages,
+			totalItems: products.length,
+			prevAction: currentPage > 1 ? stateAction(state, { page: currentPage - 1 }) : null,
+			nextAction: currentPage < totalPages ? stateAction(state, { page: currentPage + 1 }) : null
+		}
 	};
 }
 
@@ -540,11 +557,15 @@ function renderProductDetail(state) {
 		.slice(0, 3);
 	return {
 		type: 'shopProductDetail',
+		shopTitle: SHOP_CONFIG.name,
 		coreId: state.coreId,
+		cartCount: cartCount(state),
 		product: productDetailNode(state, product),
 		quantity: state.cart[product.id] || 0,
 		backAction: stateAction(state, { view: 'products', category: product.category }),
 		portalAction: { type: 'navigate', href: '/' },
+		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
+		cartAction: stateAction(state, { view: 'cart' }),
 		addAction: stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`),
 		removeAction: stateAction(removeOneFromCart(state, product.id), {}),
 		buyAction: stateAction(addToCart(state, product.id), { view: 'checkout' }),
@@ -557,46 +578,29 @@ function renderProductDetail(state) {
 function renderCart(state) {
 	const items = cartItems(state);
 	return {
-		type: 'section',
-		title: 'Shopping cart',
-		description: 'Cart state is local to this portal device. Product data remains IPFS-addressed.',
-		children: items.length
-			? [
-				{
-					type: 'stat',
-					label: 'Subtotal',
-					value: formatMoney(cartTotal(state), state.settings.currency),
-					helper: `${cartCount(state)} item${cartCount(state) === 1 ? '' : 's'} before shipping or merchant adjustments`
-				},
-				{
-					type: 'list',
-					items: items.map((item) => ({
-						label: `${item.product.icon} ${item.product.name} × ${item.quantity}`,
-						value: formatMoney(item.product.price * item.quantity, state.settings.currency)
-					}))
-				}
-			].concat(items.map((item) => ({
-				type: 'buttonRow',
-				buttons: [
-					{ label: `+ ${item.product.name}`, variant: 'secondary', action: stateAction(addToCart(state, item.product.id), {}) },
-					{ label: `− ${item.product.name}`, variant: 'secondary', action: stateAction(removeOneFromCart(state, item.product.id), {}) },
-					{ label: 'Remove', variant: 'ghost', action: stateAction(removeProductFromCart(state, item.product.id), {}) }
-				]
-			}))).concat([
-				{
-					type: 'buttonRow',
-					align: 'between',
-					buttons: [
-						{ label: 'Continue shopping', variant: 'secondary', action: stateAction(state, { view: 'products' }) },
-						{ label: 'Checkout', variant: 'primary', action: stateAction(state, { view: 'checkout' }) },
-						{ label: 'Clear cart', variant: 'ghost', action: stateAction(state, { cart: {}, checkoutStatus: 'draft' }, 'Cart cleared') }
-					]
-				}
-			])
-			: [
-				{ type: 'text', text: 'Your cart is empty. Add a few products, little digital basket goblin.', tone: 'muted' },
-				{ type: 'button', label: 'Browse products', variant: 'primary', action: stateAction(state, { view: 'products' }) }
-			]
+		type: 'shopCart',
+		shopTitle: SHOP_CONFIG.name,
+		coreId: state.coreId,
+		cartCount: cartCount(state),
+		portalAction: { type: 'navigate', href: '/' },
+		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
+		checkoutAction: stateAction(state, { view: 'checkout' }),
+		clearAction: stateAction(state, { cart: {}, checkoutStatus: 'draft' }, 'Cart cleared'),
+		subtotal: formatMoney(cartSubtotal(state), state.settings.currency),
+		items: items.map((item) => ({
+			id: item.product.id,
+			name: item.product.name,
+			vendor: item.product.vendor || SHOP_CONFIG.name,
+			imageUrl: productImageUrl(state, item.product),
+			icon: item.product.icon,
+			packLabel: item.product.packLabel || 'Standard pack',
+			quantity: item.quantity,
+			price: formatMoney(item.product.price, state.settings.currency),
+			lineTotal: formatMoney(item.product.price * item.quantity, state.settings.currency),
+			addAction: stateAction(addToCart(state, item.product.id), {}),
+			removeAction: stateAction(removeOneFromCart(state, item.product.id), {}),
+			deleteAction: stateAction(removeProductFromCart(state, item.product.id), {})
+		}))
 	};
 }
 
@@ -636,111 +640,74 @@ function renderDeliveryForm(state) {
 	};
 }
 
+function checkoutMinimumAmount() {
+	const minimum = Number(SHOP_CONFIG.minimumCheckoutAmount);
+	return Number.isFinite(minimum) && minimum > 0 ? minimum : 0;
+}
+
+function minimumCheckoutMessage(state, total) {
+	const minimum = checkoutMinimumAmount();
+	if (!minimum || total >= minimum) return '';
+	return `Minimum checkout amount is ${formatMoney(minimum, state.settings.currency)}. Add ${formatMoney(minimum - total, state.settings.currency)} more to continue.`;
+}
+
 function renderCheckout(state) {
+	const subtotal = cartSubtotal(state);
+	const deliveryFee = deliveryFeeAmount(state);
 	const total = cartTotal(state);
 	const items = cartItems(state);
+	const minimumMessage = minimumCheckoutMessage(state, subtotal);
+	const paymentRequest = {
+		label: `${SHOP_CONFIG.name} order`,
+		amount: total.toFixed(2),
+		reference: orderReference(state),
+		portalTransfer: {
+			account: state.settings.merchantAccount,
+			currency: state.settings.currency,
+			amount: total.toFixed(2),
+			platform: 'platform',
+			description: `${SHOP_CONFIG.name} order (${cartCount(state)} items)`,
+			descriptionExp: orderReference(state)
+		}
+	};
 	if (!items.length) {
-		return {
-			type: 'section',
-			title: 'Checkout',
-			description: 'Add products before starting checkout.',
-			children: [
-				{ type: 'text', text: 'Nothing to pay yet — your cart is currently empty.', tone: 'warning' },
-				{ type: 'button', label: 'Browse products', variant: 'primary', action: stateAction(state, { view: 'products' }) }
-			]
-		};
+		return renderCart(state);
 	}
 
 	return {
-		type: 'stack',
-		gap: 'lg',
-		children: [
-			{
-				type: 'section',
-				title: 'Checkout',
-				description: 'No login is needed here because the portal already knows the user. Delivery details can be saved locally for future orders.',
-				children: [
-					{
-						type: 'stat',
-						label: 'Order total',
-						value: formatMoney(total, state.settings.currency),
-						helper: `${items.length} line item${items.length === 1 ? '' : 's'} paid through Wall Money`
-					},
-					{
-						type: 'choiceGroup',
-						columns: 'two',
-						options: [
-							{
-								label: 'Save details',
-								icon: '💾',
-								selected: state.saveDelivery,
-								helper: 'Store delivery profile in portal plugin storage',
-								action: stateAction(state, { saveDelivery: true })
-							},
-							{
-								label: 'This order only',
-								icon: '📦',
-								selected: !state.saveDelivery,
-								helper: 'Keep details only in the current checkout draft',
-								action: stateAction(state, { saveDelivery: false })
-							}
-						]
-					},
-					state.savedDelivery
-						? {
-							type: 'button',
-							label: 'Use saved delivery profile',
-							variant: 'secondary',
-							action: stateAction(state, { delivery: state.savedDelivery, checkoutStatus: 'details_saved' }, 'Saved delivery profile loaded')
-						}
-						: { type: 'text', text: 'No saved delivery profile yet.', tone: 'muted' },
-					renderDeliveryForm(state)
-				]
-			},
-			{
-				type: 'section',
-				title: 'Review and pay',
-				description: 'The plugin opens a prefilled portal transfer. Payment completion events update the order status after returning.',
-				children: [
-					{
-						type: 'list',
-						items: [
-							{ label: 'Merchant account', value: state.settings.merchantAccount },
-							{ label: 'Reference', value: orderReference(state) },
-							{ label: 'Delivery', value: deliverySummary(state.delivery) },
-							{ label: 'Status', value: state.checkoutStatus }
-						]
-					},
-					{
-						type: 'buttonRow',
-						align: 'between',
-						buttons: [
-							{ label: 'Back to cart', variant: 'secondary', action: stateAction(state, { view: 'cart' }) },
-							{
-								label: 'Pay with Wall Money',
-								variant: 'primary',
-								action: {
-									type: 'payment',
-									request: {
-										label: `${SHOP_CONFIG.name} order`,
-										amount: total.toFixed(2),
-										reference: orderReference(state),
-										portalTransfer: {
-											account: state.settings.merchantAccount,
-											currency: state.settings.currency,
-											amount: total.toFixed(2),
-											platform: 'platform',
-											description: `${SHOP_CONFIG.name} order (${cartCount(state)} items)`,
-											descriptionExp: orderReference(state)
-										}
-									}
-								}
-							}
-						]
-					}
-				]
-			}
-		]
+		type: 'shopCheckout',
+		shopTitle: SHOP_CONFIG.name,
+		coreId: state.coreId,
+		cartCount: cartCount(state),
+		portalAction: { type: 'navigate', href: '/' },
+		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
+		cartAction: stateAction(state, { view: 'cart' }),
+		deliveryForm: renderDeliveryForm(state),
+		useSavedDeliveryAction: state.savedDelivery
+			? stateAction(state, { delivery: state.savedDelivery, checkoutStatus: 'details_saved' }, 'Saved delivery profile loaded')
+			: null,
+		saveDeliveryAction: stateAction(state, { saveDelivery: true }),
+		oneOrderAction: stateAction(state, { saveDelivery: false }),
+		saveDelivery: state.saveDelivery,
+		summary: {
+			subtotal: formatMoney(subtotal, state.settings.currency),
+			deliveryFee: formatMoney(deliveryFee, state.settings.currency),
+			deliveryFeeApplied: deliveryFee > 0,
+			total: formatMoney(total, state.settings.currency),
+			merchantAccount: state.settings.merchantAccount,
+			reference: orderReference(state),
+			delivery: deliverySummary(state.delivery),
+			status: state.checkoutStatus,
+			minimumMessage,
+			items: items.map((item) => ({
+				name: item.product.name,
+				quantity: item.quantity,
+				lineTotal: formatMoney(item.product.price * item.quantity, state.settings.currency)
+			}))
+		},
+		payAction: minimumMessage
+			? { type: 'notify', message: minimumMessage, level: 'warning' }
+			: stockManagedPaymentAction(state, paymentRequest)
 	};
 }
 
@@ -758,6 +725,7 @@ function renderOrders(state) {
 					type: 'badgeGrid',
 					items: [
 						{ label: 'Status', value: order.status || 'unknown', tone: order.status === 'paid' ? 'success' : 'warning' },
+						...(order.deliveryFee ? [{ label: 'Delivery', value: formatMoney(order.deliveryFee, order.currency), tone: 'muted' }] : []),
 						{ label: 'Total', value: formatMoney(order.total, order.currency), tone: 'success' },
 						{ label: 'Reference', value: order.reference, tone: 'muted' }
 					]
@@ -786,87 +754,74 @@ function renderOrders(state) {
 }
 
 
-// src/ui/settings.js
-function renderSettings(state) {
-	const next = normalizeState({
-		...state,
-		view: 'settings'
-	});
+// src/stock.js
+function stockItems(state) {
+	return cartItems(state).map((item) => ({
+		id: item.product.id,
+		name: item.product.name,
+		quantity: item.quantity
+	}));
+}
+
+function stockPayload(state, type, result) {
+	const reference = result && result.request && result.request.reference ? result.request.reference : orderReference(state);
 	return {
-		type: 'stack',
-		gap: 'lg',
-		children: [
-			{
-				type: 'section',
-				title: 'IPFS catalog settings',
-				description: 'Use IPFS/IPNS for product data and a merchant-defined upload provider. No external database is required by the plugin.',
-				children: [
-					{
-						type: 'form',
-						fields: [
-							{ name: 'settings.merchantAccount', label: 'Merchant payment account', value: state.settings.merchantAccount, placeholder: 'merchant-core-id-or-account' },
-							{ name: 'settings.currency', label: 'Currency', value: state.settings.currency, placeholder: SHOP_CONFIG.defaultCurrency },
-							{ name: 'settings.gatewayUrl', label: 'IPFS gateway URL', value: state.settings.gatewayUrl, placeholder: SHOP_CONFIG.defaultGatewayUrl },
-							{ name: 'settings.catalogRef', label: 'Catalog CID / IPNS / URL', value: state.settings.catalogRef, placeholder: SHOP_CONFIG.defaultCatalogRef },
-							{ name: 'settings.uploadProviderUrl', label: 'Upload provider URL', value: state.settings.uploadProviderUrl, placeholder: 'https://…' }
-						],
-						submitLabel: 'Save shop settings',
-						action: {
-							type: 'storage',
-							key: STATE_KEY,
-							value: next,
-							message: 'Shop settings saved locally',
-							level: 'success'
-						}
-					},
-					{
-						type: 'buttonRow',
-						buttons: [
-							{ label: 'Open catalog', variant: 'primary', action: { type: 'navigate', href: catalogUrl(state) } },
-							{ label: 'Open upload provider', variant: 'secondary', action: { type: 'navigate', href: state.settings.uploadProviderUrl } },
-							{ label: 'Reset local shop data', variant: 'ghost', action: { type: 'storage', key: STATE_KEY, value: defaultState(), message: 'Local shop data reset', level: 'warning' } }
-						]
-					}
-				]
-			},
-			{
-				type: 'section',
-				title: 'Merchant-editable categories',
-				description: 'Categories live in data/categories.json. Products live as one JSON file per item in data/inventory. Edit those files, run npm run build:inventory, and the plugin bundle updates.',
-				children: [
-					{
-						type: 'badgeGrid',
-						items: SHOP_CATEGORIES.map((category) => ({
-							label: category.icon ? `${category.icon} ${category.label}` : category.label,
-							value: category.id,
-							tone: category.id === SHOP_CATEGORIES[0]?.id ? 'success' : 'muted'
-						}))
-					}
-				]
-			},
-			{
-				type: 'section',
-				title: 'Suggested IPFS publishing workflow',
-				description: 'A merchant can pin product JSON and images, then publish a mutable catalog reference through IPNS or another pinned catalog CID.',
-				children: [
-					{
-						type: 'list',
-						items: [
-							{ label: '1. Upload images', value: 'Pin product media to IPFS' },
-							{ label: '2. Upload metadata', value: 'One JSON object per listing' },
-							{ label: '3. Publish catalog', value: 'CID or IPNS points to product IDs/CIDs' },
-							{ label: '4. Configure plugin', value: 'Paste gateway, catalog ref, and merchant account' }
-						]
-					},
-					{
-						type: 'text',
-						text: 'Portal sandbox note: current plugins cannot fetch arbitrary network JSON yet, so this release stores local sample listings and opens IPFS links. The data model is ready for safe catalog fetch when the host exposes it.',
-						tone: 'warning'
-					}
-				]
-			}
-		]
+		type,
+		shop: {
+			name: SHOP_CONFIG.name
+		},
+		payment: {
+			reference,
+			sessionId: result && result.sessionId ? result.sessionId : null,
+			paidAt: result && result.executedAt ? result.executedAt : null
+		},
+		items: stockItems(state)
 	};
+}
+
+function stockWebhookHeaders(config) {
+	return config.authHeader ? { authorization: config.authHeader } : undefined;
+}
+
+function stockManagedPaymentAction(state, paymentRequest) {
+	const config = SHOP_CONFIG.stockManagement || {};
+	const provider = config.provider || 'none';
+	if (provider === 'none' || provider !== 'webhook' || !config.webhookUrl) {
+		return {
+			type: 'payment',
+			request: paymentRequest
+		};
+	}
+
+	return {
+		type: 'stockCheckedPayment',
+		check: {
+			url: config.webhookUrl,
+			headers: stockWebhookHeaders(config),
+			body: stockPayload(state, 'shop.stock.validate')
+		},
+		storageKey: STATE_KEY,
+		cart: state.cart,
+		request: paymentRequest
+	};
+}
+
+async function sendStockAdjustment(hostApi, state, result) {
+	const config = SHOP_CONFIG.stockManagement || {};
+	const provider = config.provider || 'none';
+	if (provider === 'none') return { ok: true, adjusted: false, reason: 'Stock management disabled.' };
+	if (provider !== 'webhook') return { ok: true, adjusted: false, reason: `Unsupported stock provider: ${provider}` };
+	if (!config.webhookUrl) return { ok: true, adjusted: false, reason: 'Stock webhook is not configured.' };
+
+	const response = await hostApi.network.postJson({
+		url: config.webhookUrl,
+		headers: stockWebhookHeaders(config),
+		body: stockPayload(state, 'shop.stock.decrement', result)
+	});
+	if (!response.ok) {
+		throw new Error(`Stock webhook failed (${response.status}).`);
+	}
+	return { ok: true, adjusted: true, provider: 'webhook' };
 }
 
 
@@ -884,8 +839,8 @@ function orderEmailItems(state) {
 	return cartItems(state).map((item) => ({
 		name: item.product.name,
 		quantity: item.quantity,
-		unitPrice: formatMoney(item.product.price, item.product.currency || state.settings.currency),
-		lineTotal: formatMoney(item.product.price * item.quantity, item.product.currency || state.settings.currency),
+		unitPrice: formatMoney(item.product.price, state.settings.currency),
+		lineTotal: formatMoney(item.product.price * item.quantity, state.settings.currency),
 		cid: item.product.cid
 	}));
 }
@@ -900,12 +855,15 @@ function orderEmailText(state, result) {
 	const reference = result.request && result.request.reference ? result.request.reference : orderReference(state);
 	const delivery = state.delivery || {};
 	const items = orderEmailItems(state);
+	const deliveryFee = deliveryFeeAmount(state);
 	return [
 		`A new ${SHOP_CONFIG.name} order was paid.`,
 		'',
 		`Reference: ${reference}`,
 		`Payment session: ${result.sessionId || 'n/a'}`,
 		`Paid at: ${result.executedAt || new Date().toISOString()}`,
+		`Subtotal: ${formatMoney(cartSubtotal(state), state.settings.currency)}`,
+		`Delivery fee: ${formatMoney(deliveryFee, state.settings.currency)}`,
 		`Total: ${formatMoney(cartTotal(state), state.settings.currency)}`,
 		'',
 		'Items:',
@@ -920,7 +878,7 @@ function orderEmailText(state, result) {
 		`Country: ${delivery.country || 'n/a'}`,
 		`Notes: ${delivery.notes || 'n/a'}`,
 		'',
-		`Core ID: ${state.coreId || delivery.name || 'n/a'}`
+		`User CoreID: ${state.coreId || 'n/a'}`
 	].join('\n');
 }
 
@@ -928,6 +886,7 @@ function orderEmailHtml(state, result) {
 	const reference = result.request && result.request.reference ? result.request.reference : orderReference(state);
 	const delivery = state.delivery || {};
 	const items = orderEmailItems(state);
+	const deliveryFee = deliveryFeeAmount(state);
 	return [
 		`<h1>New paid ${escapeHtml(SHOP_CONFIG.name)} order</h1>`,
 		'<h2>Payment</h2>',
@@ -935,6 +894,8 @@ function orderEmailHtml(state, result) {
 		`<li><strong>Reference:</strong> ${escapeHtml(reference)}</li>`,
 		`<li><strong>Payment session:</strong> ${escapeHtml(result.sessionId || 'n/a')}</li>`,
 		`<li><strong>Paid at:</strong> ${escapeHtml(result.executedAt || new Date().toISOString())}</li>`,
+		`<li><strong>Subtotal:</strong> ${escapeHtml(formatMoney(cartSubtotal(state), state.settings.currency))}</li>`,
+		`<li><strong>Delivery fee:</strong> ${escapeHtml(formatMoney(deliveryFee, state.settings.currency))}</li>`,
 		`<li><strong>Total:</strong> ${escapeHtml(formatMoney(cartTotal(state), state.settings.currency))}</li>`,
 		'</ul>',
 		'<h2>Items</h2>',
@@ -951,7 +912,7 @@ function orderEmailHtml(state, result) {
 		`<li><strong>Country:</strong> ${escapeHtml(delivery.country || 'n/a')}</li>`,
 		`<li><strong>Notes:</strong> ${escapeHtml(delivery.notes || 'n/a')}</li>`,
 		'</ul>',
-		`<p><strong>Core ID:</strong> ${escapeHtml(state.coreId || delivery.name || 'n/a')}</p>`
+		`<p><strong>User CoreID:</strong> ${escapeHtml(state.coreId || 'n/a')}</p>`
 	].join('');
 }
 
@@ -974,11 +935,15 @@ function orderWebhookPayload(state, result) {
 			reference,
 			sessionId: result.sessionId || null,
 			paidAt: result.executedAt || new Date().toISOString(),
+			subtotal: cartSubtotal(state),
+			deliveryFee: deliveryFeeAmount(state),
 			total: cartTotal(state),
 			currency: state.settings.currency
 		},
 		customer: {
 			coreId: state.coreId || null,
+			name: state.delivery && state.delivery.name ? state.delivery.name : null,
+			email: state.delivery && state.delivery.email ? state.delivery.email : null,
 			replyTo: state.delivery && state.delivery.email ? state.delivery.email : null
 		},
 		delivery: state.delivery,
@@ -1038,6 +1003,8 @@ module.exports = {
 					const lastOrder = {
 						status: 'paid',
 						total: cartTotal(state),
+						subtotal: cartSubtotal(state),
+						deliveryFee: deliveryFeeAmount(state),
 						currency: state.settings.currency,
 						reference: result.request && result.request.reference ? result.request.reference : orderReference(state),
 						sessionId: result.sessionId,
@@ -1062,6 +1029,16 @@ module.exports = {
 						.catch((error) => {
 							const message = error && error.message ? error.message : 'Unable to send order email.';
 							hostApi.ui.notify(message, 'error');
+						});
+					sendStockAdjustment(hostApi, state, result)
+						.then((stockResult) => {
+							if (stockResult && stockResult.adjusted) {
+								hostApi.ui.toast('Stock updated.', 'success');
+							}
+						})
+						.catch((error) => {
+							const message = error && error.message ? error.message : 'Unable to update stock.';
+							hostApi.ui.notify(message, 'warning');
 						});
 				} else if (result.status === 'opened') {
 					saveState(hostApi, {
@@ -1112,6 +1089,6 @@ function readInitialPluginView() {
 	const view = context && typeof context.initialView === 'string'
 		? context.initialView.trim().toLowerCase()
 		: '';
-	return ['products', 'product', 'cart', 'checkout', 'settings', 'orders'].includes(view) ? view : null;
+	return ['products', 'product', 'cart', 'checkout', 'orders'].includes(view) ? view : null;
 }
 

@@ -1,13 +1,15 @@
 const STATE_KEY = 'shop-state';
 
 const SHOP_CONFIG = {
-	name: 'Wall Money Shop',
-	tagline: 'A small IPFS-backed shop for tea, coffee, and flowers',
+	name: 'WM Shop',
+	tagline: 'Decentralized shopping listed as WM plugin.',
 	defaultGatewayUrl: 'https://ipf.sk',
-	defaultUploadProviderUrl: 'https://web3.storage',
 	defaultCatalogRef: 'data/inventory',
 	defaultMerchantAccount: 'wallmoney-shop',
-	defaultCurrency: 'USDX',
+	defaultCurrency: 'USD',
+	minimumCheckoutAmount: 50,
+	deliveryFee: 0,
+	pageSize: 8,
 	orderEmail: {
 		provider: 'webhook',
 		adminEmail: 'admin@example.com',
@@ -15,5 +17,10 @@ const SHOP_CONFIG = {
 		authHeader: '',
 		fromName: 'Wall Money Shop',
 		subjectPrefix: 'New shop order'
+	},
+	stockManagement: {
+		provider: 'none',
+		webhookUrl: '',
+		authHeader: ''
 	}
 };

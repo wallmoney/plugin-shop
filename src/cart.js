@@ -1,7 +1,16 @@
 function formatMoney(value, currency) {
 	const amount = Number(value);
 	const safe = Number.isFinite(amount) ? amount : 0;
-	return `${safe.toFixed(2)} ${currency || SHOP_CONFIG.defaultCurrency}`;
+	const code = currency || SHOP_CONFIG.defaultCurrency;
+	try {
+		return new Intl.NumberFormat('en-US', {
+			style: 'currency',
+			currency: code,
+			maximumFractionDigits: safe % 1 === 0 ? 0 : 2
+		}).format(safe);
+	} catch {
+		return `${safe.toFixed(2)} ${code}`;
+	}
 }
 
 function cartItems(state) {
@@ -17,8 +26,19 @@ function cartCount(state) {
 	return cartItems(state).reduce((sum, item) => sum + item.quantity, 0);
 }
 
-function cartTotal(state) {
+function cartSubtotal(state) {
 	return cartItems(state).reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+}
+
+function deliveryFeeAmount(state) {
+	const fee = Number(SHOP_CONFIG.deliveryFee);
+	if (!Number.isFinite(fee) || fee <= 0) return 0;
+	const requiresDelivery = cartItems(state).some((item) => item.product.digital !== true);
+	return requiresDelivery ? fee : 0;
+}
+
+function cartTotal(state) {
+	return cartSubtotal(state) + deliveryFeeAmount(state);
 }
 
 function addToCart(state, productId) {
@@ -26,8 +46,8 @@ function addToCart(state, productId) {
 	if (!product) return state;
 	const cart = { ...state.cart };
 	const current = cart[productId] || 0;
-	cart[productId] = Math.min(product.stock, current + 1);
-	return normalizeState({ ...state, cart, view: 'products', checkoutStatus: 'draft' });
+	cart[productId] = current + 1;
+	return normalizeState({ ...state, cart, checkoutStatus: 'draft' });
 }
 
 function removeOneFromCart(state, productId) {

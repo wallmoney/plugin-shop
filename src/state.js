@@ -1,10 +1,11 @@
 function defaultState() {
 	return {
 		view: 'products',
-		category: SHOP_CATEGORIES[0] ? SHOP_CATEGORIES[0].id : 'tea',
+		category: 'all',
 		selectedProductId: SHOP_PRODUCTS[0] ? SHOP_PRODUCTS[0].id : '',
 		coreId: null,
 		query: '',
+		page: 1,
 		cart: {},
 		delivery: {
 			name: '',
@@ -23,8 +24,7 @@ function defaultState() {
 			merchantAccount: SHOP_CONFIG.defaultMerchantAccount,
 			currency: SHOP_CONFIG.defaultCurrency,
 			gatewayUrl: SHOP_CONFIG.defaultGatewayUrl,
-			catalogRef: SHOP_CONFIG.defaultCatalogRef,
-			uploadProviderUrl: SHOP_CONFIG.defaultUploadProviderUrl
+			catalogRef: SHOP_CONFIG.defaultCatalogRef
 		},
 		updatedAt: null
 	};
@@ -61,20 +61,19 @@ function normalizeSettings(raw) {
 		merchantAccount: cleanString(value.merchantAccount, fallback.merchantAccount),
 		currency: cleanString(value.currency, fallback.currency).toUpperCase(),
 		gatewayUrl: cleanString(value.gatewayUrl, fallback.gatewayUrl).replace(/\/+$/, ''),
-		catalogRef: cleanString(value.catalogRef, fallback.catalogRef),
-		uploadProviderUrl: cleanString(value.uploadProviderUrl, fallback.uploadProviderUrl)
+		catalogRef: cleanString(value.catalogRef, fallback.catalogRef)
 	};
 }
 
 function normalizeCategory(raw) {
-	const fallback = SHOP_CATEGORIES[0] ? SHOP_CATEGORIES[0].id : 'tea';
+	const fallback = 'all';
 	const value = cleanString(raw, fallback).toLowerCase();
-	return SHOP_CATEGORIES.some((category) => category.id === value) ? value : fallback;
+	return value === 'all' || SHOP_CATEGORIES.some((category) => category.id === value) ? value : fallback;
 }
 
 function normalizeProductId(raw, category) {
 	const fallbackProduct =
-		SHOP_PRODUCTS.find((product) => product.category === category) ||
+		(category === 'all' ? SHOP_PRODUCTS[0] : SHOP_PRODUCTS.find((product) => product.category === category)) ||
 		SHOP_PRODUCTS[0] ||
 		null;
 	const fallback = fallbackProduct ? fallbackProduct.id : '';
@@ -88,7 +87,7 @@ function normalizeCart(raw) {
 	for (const product of SHOP_PRODUCTS) {
 		const quantity = Number(value[product.id]);
 		if (Number.isFinite(quantity) && quantity > 0) {
-			cart[product.id] = Math.min(product.stock, Math.round(quantity));
+			cart[product.id] = Math.round(quantity);
 		}
 	}
 	return cart;
@@ -97,7 +96,7 @@ function normalizeCart(raw) {
 function normalizeState(raw) {
 	const fallback = defaultState();
 	const value = objectValue(raw);
-	const view = ['products', 'product', 'cart', 'checkout', 'settings', 'orders'].includes(value.view)
+	const view = ['products', 'product', 'cart', 'checkout', 'orders'].includes(value.view)
 		? value.view
 		: fallback.view;
 	const category = normalizeCategory(value.category);
@@ -109,6 +108,7 @@ function normalizeState(raw) {
 		selectedProductId: normalizeProductId(value.selectedProductId, category),
 		coreId: typeof value.coreId === 'string' && value.coreId.trim() ? value.coreId.trim() : null,
 		query: typeof value.query === 'string' ? value.query : fallback.query,
+		page: Number.isFinite(Number(value.page)) && Number(value.page) > 0 ? Math.floor(Number(value.page)) : fallback.page,
 		cart: normalizeCart(value.cart),
 		delivery: normalizeDelivery(value.delivery),
 		saveDelivery: value.saveDelivery !== false,

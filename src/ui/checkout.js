@@ -32,110 +32,73 @@ function renderDeliveryForm(state) {
 	};
 }
 
+function checkoutMinimumAmount() {
+	const minimum = Number(SHOP_CONFIG.minimumCheckoutAmount);
+	return Number.isFinite(minimum) && minimum > 0 ? minimum : 0;
+}
+
+function minimumCheckoutMessage(state, total) {
+	const minimum = checkoutMinimumAmount();
+	if (!minimum || total >= minimum) return '';
+	return `Minimum checkout amount is ${formatMoney(minimum, state.settings.currency)}. Add ${formatMoney(minimum - total, state.settings.currency)} more to continue.`;
+}
+
 function renderCheckout(state) {
+	const subtotal = cartSubtotal(state);
+	const deliveryFee = deliveryFeeAmount(state);
 	const total = cartTotal(state);
 	const items = cartItems(state);
+	const minimumMessage = minimumCheckoutMessage(state, subtotal);
+	const paymentRequest = {
+		label: `${SHOP_CONFIG.name} order`,
+		amount: total.toFixed(2),
+		reference: orderReference(state),
+		portalTransfer: {
+			account: state.settings.merchantAccount,
+			currency: state.settings.currency,
+			amount: total.toFixed(2),
+			platform: 'platform',
+			description: `${SHOP_CONFIG.name} order (${cartCount(state)} items)`,
+			descriptionExp: orderReference(state)
+		}
+	};
 	if (!items.length) {
-		return {
-			type: 'section',
-			title: 'Checkout',
-			description: 'Add products before starting checkout.',
-			children: [
-				{ type: 'text', text: 'Nothing to pay yet — your cart is currently empty.', tone: 'warning' },
-				{ type: 'button', label: 'Browse products', variant: 'primary', action: stateAction(state, { view: 'products' }) }
-			]
-		};
+		return renderCart(state);
 	}
 
 	return {
-		type: 'stack',
-		gap: 'lg',
-		children: [
-			{
-				type: 'section',
-				title: 'Checkout',
-				description: 'No login is needed here because the portal already knows the user. Delivery details can be saved locally for future orders.',
-				children: [
-					{
-						type: 'stat',
-						label: 'Order total',
-						value: formatMoney(total, state.settings.currency),
-						helper: `${items.length} line item${items.length === 1 ? '' : 's'} paid through Wall Money`
-					},
-					{
-						type: 'choiceGroup',
-						columns: 'two',
-						options: [
-							{
-								label: 'Save details',
-								icon: '💾',
-								selected: state.saveDelivery,
-								helper: 'Store delivery profile in portal plugin storage',
-								action: stateAction(state, { saveDelivery: true })
-							},
-							{
-								label: 'This order only',
-								icon: '📦',
-								selected: !state.saveDelivery,
-								helper: 'Keep details only in the current checkout draft',
-								action: stateAction(state, { saveDelivery: false })
-							}
-						]
-					},
-					state.savedDelivery
-						? {
-							type: 'button',
-							label: 'Use saved delivery profile',
-							variant: 'secondary',
-							action: stateAction(state, { delivery: state.savedDelivery, checkoutStatus: 'details_saved' }, 'Saved delivery profile loaded')
-						}
-						: { type: 'text', text: 'No saved delivery profile yet.', tone: 'muted' },
-					renderDeliveryForm(state)
-				]
-			},
-			{
-				type: 'section',
-				title: 'Review and pay',
-				description: 'The plugin opens a prefilled portal transfer. Payment completion events update the order status after returning.',
-				children: [
-					{
-						type: 'list',
-						items: [
-							{ label: 'Merchant account', value: state.settings.merchantAccount },
-							{ label: 'Reference', value: orderReference(state) },
-							{ label: 'Delivery', value: deliverySummary(state.delivery) },
-							{ label: 'Status', value: state.checkoutStatus }
-						]
-					},
-					{
-						type: 'buttonRow',
-						align: 'between',
-						buttons: [
-							{ label: 'Back to cart', variant: 'secondary', action: stateAction(state, { view: 'cart' }) },
-							{
-								label: 'Pay with Wall Money',
-								variant: 'primary',
-								action: {
-									type: 'payment',
-									request: {
-										label: `${SHOP_CONFIG.name} order`,
-										amount: total.toFixed(2),
-										reference: orderReference(state),
-										portalTransfer: {
-											account: state.settings.merchantAccount,
-											currency: state.settings.currency,
-											amount: total.toFixed(2),
-											platform: 'platform',
-											description: `${SHOP_CONFIG.name} order (${cartCount(state)} items)`,
-											descriptionExp: orderReference(state)
-										}
-									}
-								}
-							}
-						]
-					}
-				]
-			}
-		]
+		type: 'shopCheckout',
+		shopTitle: SHOP_CONFIG.name,
+		coreId: state.coreId,
+		cartCount: cartCount(state),
+		portalAction: { type: 'navigate', href: '/' },
+		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
+		cartAction: stateAction(state, { view: 'cart' }),
+		deliveryForm: renderDeliveryForm(state),
+		useSavedDeliveryAction: state.savedDelivery
+			? stateAction(state, { delivery: state.savedDelivery, checkoutStatus: 'details_saved' }, 'Saved delivery profile loaded')
+			: null,
+		saveDeliveryAction: stateAction(state, { saveDelivery: true }),
+		oneOrderAction: stateAction(state, { saveDelivery: false }),
+		saveDelivery: state.saveDelivery,
+		summary: {
+			subtotal: formatMoney(subtotal, state.settings.currency),
+			deliveryFee: formatMoney(deliveryFee, state.settings.currency),
+			deliveryFeeApplied: deliveryFee > 0,
+			total: formatMoney(total, state.settings.currency),
+			merchantAccount: state.settings.merchantAccount,
+			reference: orderReference(state),
+			delivery: deliverySummary(state.delivery),
+			status: state.checkoutStatus,
+			minimumMessage,
+			items: items.map((item) => ({
+				name: item.product.name,
+				quantity: item.quantity,
+				lineTotal: formatMoney(item.product.price * item.quantity, state.settings.currency)
+			}))
+		},
+		payAction: minimumMessage
+			? { type: 'notify', message: minimumMessage, level: 'warning' }
+			: stockManagedPaymentAction(state, paymentRequest)
 	};
 }
