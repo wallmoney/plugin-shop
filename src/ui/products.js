@@ -27,10 +27,15 @@ function productCardNode(state, product) {
 		badge: product.badge,
 		packLabel: product.packLabel || 'Standard pack',
 		price: productPrice(state, product),
+		digital: product.digital === true,
 		action: stateAction(state, {
 			view: 'product',
 			category: product.category,
-			selectedProductId: product.id
+			selectedProductId: product.id,
+			productQuantities: {
+				...state.productQuantities,
+				[product.id]: productQuantity(state, product.id)
+			}
 		}),
 		addAction: stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`)
 	};
@@ -59,6 +64,8 @@ function renderProducts(state) {
 		subtitle: SHOP_CONFIG.tagline,
 		coreId: state.coreId,
 		cartCount: cartCount(state),
+		theme: state.theme,
+		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'light' : state.theme === 'light' ? 'dark' : 'auto' }),
 		portalAction: { type: 'navigate', href: '/' },
 		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
 		cartAction: stateAction(state, { view: 'cart' }),
@@ -96,15 +103,18 @@ function renderProductDetail(state) {
 		shopTitle: SHOP_CONFIG.name,
 		coreId: state.coreId,
 		cartCount: cartCount(state),
+		theme: state.theme,
+		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'light' : state.theme === 'light' ? 'dark' : 'auto' }),
 		product: productDetailNode(state, product),
-		quantity: state.cart[product.id] || 0,
+		quantity: productQuantity(state, product.id),
 		backAction: stateAction(state, { view: 'products', category: product.category }),
 		portalAction: { type: 'navigate', href: '/' },
 		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
 		cartAction: stateAction(state, { view: 'cart' }),
-		addAction: stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`),
-		removeAction: stateAction(removeOneFromCart(state, product.id), {}),
-		buyAction: stateAction(addToCart(state, product.id), { view: 'checkout' }),
+		addAction: stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`),
+		increaseQuantityAction: stateAction(incrementProductQuantity(state, product.id), {}),
+		decreaseQuantityAction: stateAction(decrementProductQuantity(state, product.id), {}),
+		buyAction: stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), { view: 'cart' }),
 		related: related.map((item) => productCardNode(state, item))
 	};
 }
