@@ -70,6 +70,10 @@ function checkoutMinimumAmount() {
 	return Number.isFinite(minimum) && minimum > 0 ? minimum : 0;
 }
 
+function isValidEmail(value) {
+	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+}
+
 function minimumCheckoutMessage(state, total) {
 	const minimum = checkoutMinimumAmount();
 	if (!minimum || total >= minimum) return '';
@@ -79,6 +83,7 @@ function minimumCheckoutMessage(state, total) {
 function checkoutRequiredMessage(state, hasPhysicalItems) {
 	const delivery = state.delivery || {};
 	if (!delivery.email) return 'Enter your email before checkout.';
+	if (!isValidEmail(delivery.email)) return 'Enter a valid email before checkout.';
 	if (!hasPhysicalItems) return '';
 	const missing = [];
 	if (!delivery.name) missing.push('name');
@@ -98,6 +103,7 @@ function renderCheckout(state) {
 	const hasPhysicalItems = items.some((item) => item.product.digital !== true);
 	const minimumMessage = minimumCheckoutMessage(state, subtotal);
 	const requiredMessage = checkoutRequiredMessage(state, hasPhysicalItems);
+	const blockedMessage = minimumMessage || requiredMessage;
 	const paymentRequest = {
 		label: `${SHOP_CONFIG.name} order`,
 		amount: total.toFixed(2),
@@ -118,10 +124,11 @@ function renderCheckout(state) {
 	return {
 		type: 'shopCheckout',
 		shopTitle: SHOP_CONFIG.name,
+		shopLogoUrl: SHOP_CONFIG.logoUrl,
 		coreId: state.coreId,
 		cartCount: cartCount(state),
 		theme: state.theme,
-		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'light' : state.theme === 'light' ? 'dark' : 'auto' }),
+		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'dark' : state.theme === 'dark' ? 'light' : 'auto' }),
 		portalAction: { type: 'navigate', href: '/' },
 		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
 		cartAction: stateAction(state, { view: 'cart' }),
@@ -142,7 +149,7 @@ function renderCheckout(state) {
 			reference: orderReference(state),
 			delivery: deliverySummary(state.delivery),
 			status: state.checkoutStatus,
-			minimumMessage: minimumMessage || requiredMessage,
+			minimumMessage: blockedMessage,
 			hasPhysicalItems,
 			items: items.map((item) => ({
 				name: item.product.name,
@@ -150,6 +157,8 @@ function renderCheckout(state) {
 				lineTotal: formatMoney(item.product.price * item.quantity, state.settings.currency)
 			}))
 		},
+		payDisabled: Boolean(blockedMessage),
+		payDisabledMessage: blockedMessage,
 		payAction: minimumMessage
 			? { type: 'notify', message: minimumMessage, level: 'warning' }
 			: requiredMessage

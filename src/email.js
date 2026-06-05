@@ -28,12 +28,13 @@ function orderEmailText(state, result) {
 	const delivery = state.delivery || {};
 	const items = orderEmailItems(state);
 	const deliveryFee = deliveryFeeAmount(state);
+	const paidAt = result.executedAt || 'n/a';
 	return [
 		`A new ${SHOP_CONFIG.name} order was paid.`,
 		'',
 		`Reference: ${reference}`,
 		`Payment session: ${result.sessionId || 'n/a'}`,
-		`Paid at: ${result.executedAt || new Date(Date.now()).toISOString()}`,
+		`Paid at: ${paidAt}`,
 		`Subtotal: ${formatMoney(cartSubtotal(state), state.settings.currency)}`,
 		`Delivery fee: ${formatMoney(deliveryFee, state.settings.currency)}`,
 		`Total: ${formatMoney(cartTotal(state), state.settings.currency)}`,
@@ -59,13 +60,14 @@ function orderEmailHtml(state, result) {
 	const delivery = state.delivery || {};
 	const items = orderEmailItems(state);
 	const deliveryFee = deliveryFeeAmount(state);
+	const paidAt = result.executedAt || 'n/a';
 	return [
 		`<h1>New paid ${escapeHtml(SHOP_CONFIG.name)} order</h1>`,
 		'<h2>Payment</h2>',
 		'<ul>',
 		`<li><strong>Reference:</strong> ${escapeHtml(reference)}</li>`,
 		`<li><strong>Payment session:</strong> ${escapeHtml(result.sessionId || 'n/a')}</li>`,
-		`<li><strong>Paid at:</strong> ${escapeHtml(result.executedAt || new Date(Date.now()).toISOString())}</li>`,
+		`<li><strong>Paid at:</strong> ${escapeHtml(paidAt)}</li>`,
 		`<li><strong>Subtotal:</strong> ${escapeHtml(formatMoney(cartSubtotal(state), state.settings.currency))}</li>`,
 		`<li><strong>Delivery fee:</strong> ${escapeHtml(formatMoney(deliveryFee, state.settings.currency))}</li>`,
 		`<li><strong>Total:</strong> ${escapeHtml(formatMoney(cartTotal(state), state.settings.currency))}</li>`,
@@ -106,7 +108,7 @@ function orderWebhookPayload(state, result) {
 		payment: {
 			reference,
 			sessionId: result.sessionId || null,
-			paidAt: result.executedAt || new Date(Date.now()).toISOString(),
+			paidAt: result.executedAt || null,
 			subtotal: cartSubtotal(state),
 			deliveryFee: deliveryFeeAmount(state),
 			total: cartTotal(state),

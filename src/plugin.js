@@ -12,7 +12,7 @@ module.exports = {
 			this.unsubscribe = hostApi.events.onPaymentExecuted((result) => {
 				const state = getState(hostApi);
 				if (result.status === 'executed') {
-					const paidAt = result.executedAt || new Date(Date.now()).toISOString();
+					const paidAt = result.executedAt || '';
 					const lastOrder = {
 						status: 'paid',
 						total: cartTotal(state),

@@ -8,6 +8,7 @@ const STATE_KEY = 'shop-state';
 const SHOP_CONFIG = {
 	name: 'WM Shop',
 	tagline: 'Decentralized shopping listed as WM plugin.',
+	logoUrl: '',
 	defaultGatewayUrl: 'https://ipf.sk',
 	defaultCatalogRef: 'data/inventory',
 	defaultMerchantAccount: 'wallmoney-shop',
@@ -321,10 +322,7 @@ function getState(hostApi) {
 }
 
 function saveState(hostApi, next) {
-	hostApi.storage.set(STATE_KEY, normalizeState({
-		...next,
-		updatedAt: new Date(Date.now()).toISOString()
-	}));
+	hostApi.storage.set(STATE_KEY, normalizeState(next));
 }
 
 function stateAction(state, patch, message) {
@@ -589,6 +587,10 @@ function vendorInitials(product) {
 		.join('') || 'WM';
 }
 
+function shopThemeAction(state) {
+	return stateAction(state, { theme: state.theme === 'auto' ? 'dark' : state.theme === 'dark' ? 'light' : 'auto' });
+}
+
 function productCardNode(state, product) {
 	return {
 		id: product.id,
@@ -632,12 +634,13 @@ function renderProducts(state) {
 		type: 'shopCatalog',
 		shopTitle: SHOP_CONFIG.name,
 		shopSubtitle: SHOP_CONFIG.tagline,
+		shopLogoUrl: SHOP_CONFIG.logoUrl,
 		title: categoryTitle(state),
 		subtitle: SHOP_CONFIG.tagline,
 		coreId: state.coreId,
 		cartCount: cartCount(state),
 		theme: state.theme,
-		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'light' : state.theme === 'light' ? 'dark' : 'auto' }),
+		themeAction: shopThemeAction(state),
 		portalAction: { type: 'navigate', href: '/' },
 		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
 		cartAction: stateAction(state, { view: 'cart' }),
@@ -673,10 +676,11 @@ function renderProductDetail(state) {
 	return {
 		type: 'shopProductDetail',
 		shopTitle: SHOP_CONFIG.name,
+		shopLogoUrl: SHOP_CONFIG.logoUrl,
 		coreId: state.coreId,
 		cartCount: cartCount(state),
 		theme: state.theme,
-		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'light' : state.theme === 'light' ? 'dark' : 'auto' }),
+		themeAction: shopThemeAction(state),
 		product: productDetailNode(state, product),
 		quantity: productQuantity(state, product.id),
 		backAction: stateAction(state, { view: 'products', category: product.category }),
@@ -698,10 +702,11 @@ function renderCart(state) {
 	return {
 		type: 'shopCart',
 		shopTitle: SHOP_CONFIG.name,
+		shopLogoUrl: SHOP_CONFIG.logoUrl,
 		coreId: state.coreId,
 		cartCount: cartCount(state),
 		theme: state.theme,
-		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'light' : state.theme === 'light' ? 'dark' : 'auto' }),
+		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'dark' : state.theme === 'dark' ? 'light' : 'auto' }),
 		portalAction: { type: 'navigate', href: '/' },
 		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
 		checkoutAction: stateAction(state, { view: 'checkout' }),
@@ -807,6 +812,10 @@ function checkoutMinimumAmount() {
 	return Number.isFinite(minimum) && minimum > 0 ? minimum : 0;
 }
 
+function isValidEmail(value) {
+	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+}
+
 function minimumCheckoutMessage(state, total) {
 	const minimum = checkoutMinimumAmount();
 	if (!minimum || total >= minimum) return '';
@@ -816,6 +825,7 @@ function minimumCheckoutMessage(state, total) {
 function checkoutRequiredMessage(state, hasPhysicalItems) {
 	const delivery = state.delivery || {};
 	if (!delivery.email) return 'Enter your email before checkout.';
+	if (!isValidEmail(delivery.email)) return 'Enter a valid email before checkout.';
 	if (!hasPhysicalItems) return '';
 	const missing = [];
 	if (!delivery.name) missing.push('name');
@@ -835,6 +845,7 @@ function renderCheckout(state) {
 	const hasPhysicalItems = items.some((item) => item.product.digital !== true);
 	const minimumMessage = minimumCheckoutMessage(state, subtotal);
 	const requiredMessage = checkoutRequiredMessage(state, hasPhysicalItems);
+	const blockedMessage = minimumMessage || requiredMessage;
 	const paymentRequest = {
 		label: `${SHOP_CONFIG.name} order`,
 		amount: total.toFixed(2),
@@ -855,10 +866,11 @@ function renderCheckout(state) {
 	return {
 		type: 'shopCheckout',
 		shopTitle: SHOP_CONFIG.name,
+		shopLogoUrl: SHOP_CONFIG.logoUrl,
 		coreId: state.coreId,
 		cartCount: cartCount(state),
 		theme: state.theme,
-		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'light' : state.theme === 'light' ? 'dark' : 'auto' }),
+		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'dark' : state.theme === 'dark' ? 'light' : 'auto' }),
 		portalAction: { type: 'navigate', href: '/' },
 		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
 		cartAction: stateAction(state, { view: 'cart' }),
@@ -879,7 +891,7 @@ function renderCheckout(state) {
 			reference: orderReference(state),
 			delivery: deliverySummary(state.delivery),
 			status: state.checkoutStatus,
-			minimumMessage: minimumMessage || requiredMessage,
+			minimumMessage: blockedMessage,
 			hasPhysicalItems,
 			items: items.map((item) => ({
 				name: item.product.name,
@@ -887,6 +899,8 @@ function renderCheckout(state) {
 				lineTotal: formatMoney(item.product.price * item.quantity, state.settings.currency)
 			}))
 		},
+		payDisabled: Boolean(blockedMessage),
+		payDisabledMessage: blockedMessage,
 		payAction: minimumMessage
 			? { type: 'notify', message: minimumMessage, level: 'warning' }
 			: requiredMessage
@@ -944,9 +958,10 @@ function renderSuccess(state) {
 	return {
 		type: 'shopSuccess',
 		shopTitle: SHOP_CONFIG.name,
+		shopLogoUrl: SHOP_CONFIG.logoUrl,
 		coreId: state.coreId,
 		theme: state.theme,
-		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'light' : state.theme === 'light' ? 'dark' : 'auto' }),
+		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'dark' : state.theme === 'dark' ? 'light' : 'auto' }),
 		portalAction: { type: 'navigate', href: '/' },
 		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
 		order: order
@@ -1063,12 +1078,13 @@ function orderEmailText(state, result) {
 	const delivery = state.delivery || {};
 	const items = orderEmailItems(state);
 	const deliveryFee = deliveryFeeAmount(state);
+	const paidAt = result.executedAt || 'n/a';
 	return [
 		`A new ${SHOP_CONFIG.name} order was paid.`,
 		'',
 		`Reference: ${reference}`,
 		`Payment session: ${result.sessionId || 'n/a'}`,
-		`Paid at: ${result.executedAt || new Date(Date.now()).toISOString()}`,
+		`Paid at: ${paidAt}`,
 		`Subtotal: ${formatMoney(cartSubtotal(state), state.settings.currency)}`,
 		`Delivery fee: ${formatMoney(deliveryFee, state.settings.currency)}`,
 		`Total: ${formatMoney(cartTotal(state), state.settings.currency)}`,
@@ -1094,13 +1110,14 @@ function orderEmailHtml(state, result) {
 	const delivery = state.delivery || {};
 	const items = orderEmailItems(state);
 	const deliveryFee = deliveryFeeAmount(state);
+	const paidAt = result.executedAt || 'n/a';
 	return [
 		`<h1>New paid ${escapeHtml(SHOP_CONFIG.name)} order</h1>`,
 		'<h2>Payment</h2>',
 		'<ul>',
 		`<li><strong>Reference:</strong> ${escapeHtml(reference)}</li>`,
 		`<li><strong>Payment session:</strong> ${escapeHtml(result.sessionId || 'n/a')}</li>`,
-		`<li><strong>Paid at:</strong> ${escapeHtml(result.executedAt || new Date(Date.now()).toISOString())}</li>`,
+		`<li><strong>Paid at:</strong> ${escapeHtml(paidAt)}</li>`,
 		`<li><strong>Subtotal:</strong> ${escapeHtml(formatMoney(cartSubtotal(state), state.settings.currency))}</li>`,
 		`<li><strong>Delivery fee:</strong> ${escapeHtml(formatMoney(deliveryFee, state.settings.currency))}</li>`,
 		`<li><strong>Total:</strong> ${escapeHtml(formatMoney(cartTotal(state), state.settings.currency))}</li>`,
@@ -1141,7 +1158,7 @@ function orderWebhookPayload(state, result) {
 		payment: {
 			reference,
 			sessionId: result.sessionId || null,
-			paidAt: result.executedAt || new Date(Date.now()).toISOString(),
+			paidAt: result.executedAt || null,
 			subtotal: cartSubtotal(state),
 			deliveryFee: deliveryFeeAmount(state),
 			total: cartTotal(state),
@@ -1206,7 +1223,7 @@ module.exports = {
 			this.unsubscribe = hostApi.events.onPaymentExecuted((result) => {
 				const state = getState(hostApi);
 				if (result.status === 'executed') {
-					const paidAt = result.executedAt || new Date(Date.now()).toISOString();
+					const paidAt = result.executedAt || '';
 					const lastOrder = {
 						status: 'paid',
 						total: cartTotal(state),
