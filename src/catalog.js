@@ -10,12 +10,11 @@ function filteredProducts(state) {
 	const query = state.query.trim().toLowerCase();
 	return SHOP_PRODUCTS.filter((product) => {
 		const category = productCategory(product);
-		const categoryMatch = product.category === state.category;
+		const categoryMatch = state.category === 'all' || product.category === state.category;
 		const queryMatch = !query || [
 			product.name,
 			category.label,
-			product.description,
-			product.cid
+			product.description
 		].join(' ').toLowerCase().includes(query);
 		return categoryMatch && queryMatch;
 	});
@@ -36,6 +35,13 @@ function productsByCategory(categoryId) {
 
 function categoryProductCount(categoryId) {
 	return productsByCategory(categoryId).length;
+}
+
+function allCategories() {
+	return [
+		{ id: 'all', label: 'All', helper: 'Every listing', order: 0 },
+		...SHOP_CATEGORIES
+	];
 }
 
 function catalogUrl(state) {

@@ -18,8 +18,7 @@ function renderHero(state) {
 					{ label: 'Products', variant: state.view === 'products' ? 'primary' : 'secondary', action: stateAction(state, { view: 'products' }) },
 					{ label: `Cart (${cartCount(state)})`, variant: state.view === 'cart' ? 'primary' : 'secondary', action: stateAction(state, { view: 'cart' }) },
 					{ label: 'Checkout', variant: state.view === 'checkout' ? 'primary' : 'secondary', action: stateAction(state, { view: 'checkout' }) },
-					{ label: 'Orders', variant: state.view === 'orders' ? 'primary' : 'secondary', action: stateAction(state, { view: 'orders' }) },
-					{ label: 'Settings', variant: state.view === 'settings' ? 'primary' : 'ghost', action: stateAction(state, { view: 'settings' }) }
+					{ label: 'Orders', variant: state.view === 'orders' ? 'primary' : 'secondary', action: stateAction(state, { view: 'orders' }) }
 				]
 			}
 		]
@@ -30,7 +29,6 @@ function renderView(state) {
 	if (state.view === 'product') return renderProductDetail(state);
 	if (state.view === 'cart') return renderCart(state);
 	if (state.view === 'checkout') return renderCheckout(state);
-	if (state.view === 'settings') return renderSettings(state);
 	if (state.view === 'orders') return renderOrders(state);
 	return renderProducts(state);
 }

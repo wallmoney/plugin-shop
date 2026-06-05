@@ -1,0 +1,12 @@
+{
+	"name": "plugin-shop-order-stock",
+	"main": "order-stock.ts",
+	"compatibility_date": "2026-06-05",
+	"kv_namespaces": [
+		{
+			"binding": "SHOP_STOCK",
+			"id": "replace-with-production-kv-namespace-id",
+			"preview_id": "replace-with-preview-kv-namespace-id"
+		}
+	]
+}

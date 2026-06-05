@@ -11,8 +11,8 @@ function orderEmailItems(state) {
 	return cartItems(state).map((item) => ({
 		name: item.product.name,
 		quantity: item.quantity,
-		unitPrice: formatMoney(item.product.price, item.product.currency || state.settings.currency),
-		lineTotal: formatMoney(item.product.price * item.quantity, item.product.currency || state.settings.currency),
+		unitPrice: formatMoney(item.product.price, state.settings.currency),
+		lineTotal: formatMoney(item.product.price * item.quantity, state.settings.currency),
 		cid: item.product.cid
 	}));
 }
@@ -27,12 +27,15 @@ function orderEmailText(state, result) {
 	const reference = result.request && result.request.reference ? result.request.reference : orderReference(state);
 	const delivery = state.delivery || {};
 	const items = orderEmailItems(state);
+	const deliveryFee = deliveryFeeAmount(state);
 	return [
 		`A new ${SHOP_CONFIG.name} order was paid.`,
 		'',
 		`Reference: ${reference}`,
 		`Payment session: ${result.sessionId || 'n/a'}`,
 		`Paid at: ${result.executedAt || new Date().toISOString()}`,
+		`Subtotal: ${formatMoney(cartSubtotal(state), state.settings.currency)}`,
+		`Delivery fee: ${formatMoney(deliveryFee, state.settings.currency)}`,
 		`Total: ${formatMoney(cartTotal(state), state.settings.currency)}`,
 		'',
 		'Items:',
@@ -47,7 +50,7 @@ function orderEmailText(state, result) {
 		`Country: ${delivery.country || 'n/a'}`,
 		`Notes: ${delivery.notes || 'n/a'}`,
 		'',
-		`Core ID: ${state.coreId || delivery.name || 'n/a'}`
+		`User CoreID: ${state.coreId || 'n/a'}`
 	].join('\n');
 }
 
@@ -55,6 +58,7 @@ function orderEmailHtml(state, result) {
 	const reference = result.request && result.request.reference ? result.request.reference : orderReference(state);
 	const delivery = state.delivery || {};
 	const items = orderEmailItems(state);
+	const deliveryFee = deliveryFeeAmount(state);
 	return [
 		`<h1>New paid ${escapeHtml(SHOP_CONFIG.name)} order</h1>`,
 		'<h2>Payment</h2>',
@@ -62,6 +66,8 @@ function orderEmailHtml(state, result) {
 		`<li><strong>Reference:</strong> ${escapeHtml(reference)}</li>`,
 		`<li><strong>Payment session:</strong> ${escapeHtml(result.sessionId || 'n/a')}</li>`,
 		`<li><strong>Paid at:</strong> ${escapeHtml(result.executedAt || new Date().toISOString())}</li>`,
+		`<li><strong>Subtotal:</strong> ${escapeHtml(formatMoney(cartSubtotal(state), state.settings.currency))}</li>`,
+		`<li><strong>Delivery fee:</strong> ${escapeHtml(formatMoney(deliveryFee, state.settings.currency))}</li>`,
 		`<li><strong>Total:</strong> ${escapeHtml(formatMoney(cartTotal(state), state.settings.currency))}</li>`,
 		'</ul>',
 		'<h2>Items</h2>',
@@ -78,7 +84,7 @@ function orderEmailHtml(state, result) {
 		`<li><strong>Country:</strong> ${escapeHtml(delivery.country || 'n/a')}</li>`,
 		`<li><strong>Notes:</strong> ${escapeHtml(delivery.notes || 'n/a')}</li>`,
 		'</ul>',
-		`<p><strong>Core ID:</strong> ${escapeHtml(state.coreId || delivery.name || 'n/a')}</p>`
+		`<p><strong>User CoreID:</strong> ${escapeHtml(state.coreId || 'n/a')}</p>`
 	].join('');
 }
 
@@ -101,11 +107,15 @@ function orderWebhookPayload(state, result) {
 			reference,
 			sessionId: result.sessionId || null,
 			paidAt: result.executedAt || new Date().toISOString(),
+			subtotal: cartSubtotal(state),
+			deliveryFee: deliveryFeeAmount(state),
 			total: cartTotal(state),
 			currency: state.settings.currency
 		},
 		customer: {
 			coreId: state.coreId || null,
+			name: state.delivery && state.delivery.name ? state.delivery.name : null,
+			email: state.delivery && state.delivery.email ? state.delivery.email : null,
 			replyTo: state.delivery && state.delivery.email ? state.delivery.email : null
 		},
 		delivery: state.delivery,

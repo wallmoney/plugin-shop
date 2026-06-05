@@ -1,10 +1,11 @@
 function categoryTitle(state) {
+	if (state.category === 'all') return 'All';
 	const category = categoryById(state.category);
 	return category ? category.label : 'Products';
 }
 
 function productPrice(state, product) {
-	return formatMoney(product.price, product.currency || state.settings.currency);
+	return formatMoney(product.price, state.settings.currency);
 }
 
 function vendorInitials(product) {
@@ -24,8 +25,7 @@ function productCardNode(state, product) {
 		icon: product.icon,
 		imageUrl: productImageUrl(state, product),
 		badge: product.badge,
-		rating: product.rating,
-		reviews: String(product.reviews || 0),
+		packLabel: product.packLabel || 'Standard pack',
 		price: productPrice(state, product),
 		action: stateAction(state, {
 			view: 'product',
@@ -41,35 +41,46 @@ function productDetailNode(state, product) {
 		...productCardNode(state, product),
 		vendorInitials: vendorInitials(product),
 		description: product.description,
-		cid: product.cid,
-		packLabel: product.packLabel || 'Standard pack',
-		soldLabel: `${product.soldLast30Days || 0} sold in the last 30 days`
+		packLabel: product.packLabel || 'Standard pack'
 	};
 }
 
 function renderProducts(state) {
 	const products = filteredProducts(state);
+	const pageSize = Math.max(1, Number(SHOP_CONFIG.pageSize) || 8);
+	const totalPages = Math.max(1, Math.ceil(products.length / pageSize));
+	const currentPage = Math.min(Math.max(1, state.page || 1), totalPages);
+	const visibleProducts = products.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 	return {
 		type: 'shopCatalog',
+		shopTitle: SHOP_CONFIG.name,
+		shopSubtitle: SHOP_CONFIG.tagline,
 		title: categoryTitle(state),
 		subtitle: SHOP_CONFIG.tagline,
 		coreId: state.coreId,
 		cartCount: cartCount(state),
 		portalAction: { type: 'navigate', href: '/' },
+		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
 		cartAction: stateAction(state, { view: 'cart' }),
-		settingsAction: stateAction(state, { view: 'settings' }),
-		categories: SHOP_CATEGORIES.map((category) => ({
+		categories: allCategories().map((category) => ({
 			id: category.id,
 			label: category.label,
-			count: categoryProductCount(category.id),
 			selected: state.category === category.id,
 			action: stateAction(state, {
 				category: category.id,
 				view: 'products',
-				selectedProductId: productsByCategory(category.id)[0]?.id || state.selectedProductId
+				page: 1,
+				selectedProductId: (category.id === 'all' ? SHOP_PRODUCTS[0] : productsByCategory(category.id)[0])?.id || state.selectedProductId
 			})
 		})),
-		products: products.map((product) => productCardNode(state, product))
+		products: visibleProducts.map((product) => productCardNode(state, product)),
+		pagination: {
+			currentPage,
+			totalPages,
+			totalItems: products.length,
+			prevAction: currentPage > 1 ? stateAction(state, { page: currentPage - 1 }) : null,
+			nextAction: currentPage < totalPages ? stateAction(state, { page: currentPage + 1 }) : null
+		}
 	};
 }
 
@@ -82,11 +93,15 @@ function renderProductDetail(state) {
 		.slice(0, 3);
 	return {
 		type: 'shopProductDetail',
+		shopTitle: SHOP_CONFIG.name,
 		coreId: state.coreId,
+		cartCount: cartCount(state),
 		product: productDetailNode(state, product),
 		quantity: state.cart[product.id] || 0,
 		backAction: stateAction(state, { view: 'products', category: product.category }),
 		portalAction: { type: 'navigate', href: '/' },
+		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
+		cartAction: stateAction(state, { view: 'cart' }),
 		addAction: stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`),
 		removeAction: stateAction(removeOneFromCart(state, product.id), {}),
 		buyAction: stateAction(addToCart(state, product.id), { view: 'checkout' }),

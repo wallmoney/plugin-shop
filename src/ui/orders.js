@@ -10,6 +10,7 @@ function renderOrders(state) {
 					type: 'badgeGrid',
 					items: [
 						{ label: 'Status', value: order.status || 'unknown', tone: order.status === 'paid' ? 'success' : 'warning' },
+						...(order.deliveryFee ? [{ label: 'Delivery', value: formatMoney(order.deliveryFee, order.currency), tone: 'muted' }] : []),
 						{ label: 'Total', value: formatMoney(order.total, order.currency), tone: 'success' },
 						{ label: 'Reference', value: order.reference, tone: 'muted' }
 					]

@@ -60,7 +60,7 @@
 		"src/ui/cart.js",
 		"src/ui/checkout.js",
 		"src/ui/orders.js",
-		"src/ui/settings.js",
+		"src/stock.js",
 		"src/email.js",
 		"src/plugin.js"
 	],

@@ -16,6 +16,8 @@ module.exports = {
 					const lastOrder = {
 						status: 'paid',
 						total: cartTotal(state),
+						subtotal: cartSubtotal(state),
+						deliveryFee: deliveryFeeAmount(state),
 						currency: state.settings.currency,
 						reference: result.request && result.request.reference ? result.request.reference : orderReference(state),
 						sessionId: result.sessionId,
@@ -40,6 +42,16 @@ module.exports = {
 						.catch((error) => {
 							const message = error && error.message ? error.message : 'Unable to send order email.';
 							hostApi.ui.notify(message, 'error');
+						});
+					sendStockAdjustment(hostApi, state, result)
+						.then((stockResult) => {
+							if (stockResult && stockResult.adjusted) {
+								hostApi.ui.toast('Stock updated.', 'success');
+							}
+						})
+						.catch((error) => {
+							const message = error && error.message ? error.message : 'Unable to update stock.';
+							hostApi.ui.notify(message, 'warning');
 						});
 				} else if (result.status === 'opened') {
 					saveState(hostApi, {
@@ -90,5 +102,5 @@ function readInitialPluginView() {
 	const view = context && typeof context.initialView === 'string'
 		? context.initialView.trim().toLowerCase()
 		: '';
-	return ['products', 'product', 'cart', 'checkout', 'settings', 'orders'].includes(view) ? view : null;
+	return ['products', 'product', 'cart', 'checkout', 'orders'].includes(view) ? view : null;
 }

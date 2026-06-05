@@ -39,7 +39,9 @@ data/inventory/*.json       One merchant-editable inventory item per file
 scripts/build-inventory.mjs Generates src/inventory.js from data files
 scripts/build-plugin.mjs    Compiles ordered plugin source into dist/plugin.js
 workers/order-email.ts      Optional external order-email webhook
+workers/order-stock.ts      Optional external stock-decrement webhook using Cloudflare KV
 workers/wrangler.order-email.jsonc Example Cloudflare Worker email config
+workers/wrangler.order-stock.jsonc Example Cloudflare Worker KV stock config
 src/config.js               Shop defaults
 src/inventory.js            Generated categories and products
 src/state.js        Local plugin state normalization and storage actions
@@ -49,8 +51,8 @@ src/ui/products.js  Shop-style category grid and product detail UI
 src/ui/cart.js      Shopping cart view
 src/ui/checkout.js  Delivery details and Wall Money payment action
 src/ui/orders.js    Local order result view
-src/ui/settings.js  Gateway/provider/settings UI
 src/email.js        Admin order email composition
+src/stock.js        Optional post-payment stock decrement webhook payload
 src/plugin.js       Portal runtime entrypoint
 dist/plugin.js      Generated marketplace bundle
 build/              Generated static SvelteKit preview
@@ -101,10 +103,12 @@ Products live as one file per inventory item in `data/inventory`. Example:
   "name": "Red Tea",
   "category": "tea",
   "price": 12,
-  "currency": "USDX",
   "cid": "bafybeiev3uiuiwi26zchkmxqpepoaz5rieiivq6yk4tcutjbsixtozriya",
   "description": "A mellow red tea with a ruby cup, gentle tannins, and a naturally sweet finish.",
-  "stock": 42
+  "vendor": "Wall Money Pantry",
+  "badge": "Popular",
+  "packLabel": "80g pouch",
+  "digital": false
 }
 ```
 
@@ -114,11 +118,24 @@ After editing categories or inventory, regenerate the bundled source:
 npm run build:plugin
 ```
 
-The plugin UI is rendered by the portal’s schema renderer. The shop uses richer shop-specific schema nodes for a light product-grid experience, category rail, product detail page, and a bottom-left CoreID identicon that navigates back to the bank portal.
+The plugin UI is rendered by the portal’s schema renderer. The shop uses richer shop-specific schema nodes for a light/dark product-grid experience, category rail, product detail page, themed cart, checkout form, and CoreID identicon that navigates back to the bank portal.
+
+## Shop Settings
+
+Shop-level settings live in `src/config.js`. Currency and minimum checkout amount are configured per shop, not per item:
+
+```js
+defaultCurrency: 'USD',
+minimumCheckoutAmount: 50,
+deliveryFee: 0
+```
+
+If `minimumCheckoutAmount` is missing, `0`, or not a valid positive number, checkout has no minimum amount.
+`deliveryFee` is applied once per order when the cart contains at least one physical item. Products marked with `"digital": true` do not require delivery; carts containing only digital items skip the delivery fee.
 
 ## Order Email Webhook
 
-The portal does not store shop email credentials and does not send shop emails. After a successful payment, the plugin posts the order payload to the plugin-owned webhook configured in `src/config.js`:
+The portal does not store shop email credentials and does not send shop emails. After a successful payment, the plugin posts the order payload to the plugin-owned webhook configured in `src/config.js`. The payload includes order items, delivery details, payment data, reply-to email, and the user's CoreID when available:
 
 ```js
 orderEmail: {
@@ -139,6 +156,38 @@ ORDER_WEBHOOK_TOKEN=optional-shared-token
 
 If `ORDER_WEBHOOK_TOKEN` is set, put `Bearer optional-shared-token` into `orderEmail.authHeader`. The worker receives the order items, delivery details, payment reference/session, customer reply-to email, and rendered email body, then sends the email using its own email provider binding.
 
+## Optional Stock Management With Cloudflare KV
+
+Stock is optional and intentionally not displayed in the shop UI. If stock management is not configured, or if a purchased item ID is not present in KV, the plugin treats that item as unmanaged and continues normally. Managed stock is checked before opening payment and decremented only after the portal emits a successful payment event.
+
+Enable the plugin-owned stock webhook in `src/config.js`:
+
+```js
+stockManagement: {
+  provider: 'webhook',
+  webhookUrl: 'https://your-stock-worker.example.workers.dev',
+  authHeader: 'Bearer shared-stock-token'
+}
+```
+
+Use `workers/order-stock.ts` as the standalone Cloudflare Worker. Bind a KV namespace named `SHOP_STOCK` using `workers/wrangler.order-stock.jsonc`, then set the matching Worker secret:
+
+```sh
+wrangler secret put STOCK_WEBHOOK_TOKEN --config workers/wrangler.order-stock.jsonc
+```
+
+The Worker requires `Authorization: Bearer {STOCK_WEBHOOK_TOKEN}`. Requests without the token are rejected. Stock keys are item IDs prefixed with `stock:`:
+
+```text
+stock:red-tea = 42
+stock:coffee = 18
+stock:red-rose = 64
+```
+
+Before payment the plugin posts `type: "shop.stock.validate"` with `{ items: [{ id, name, quantity }] }`. If a managed item has less stock than requested, the portal blocks payment and updates the cart to the available amount, or removes the item when available stock is zero. Missing keys mean no stock management for that item.
+
+After successful payment the plugin posts `type: "shop.stock.decrement"` with the same item quantities. The Worker refuses over-decrementing and only writes decrements when all managed items have enough stock.
+
 ## IPFS-First Catalog Model
 
 The plugin avoids an external database:
@@ -146,8 +195,7 @@ The plugin avoids an external database:
 - Product descriptions, images, and metadata should be uploaded to IPFS by the merchant.
 - The catalog can be represented by a CID or IPNS name.
 - The configured gateway defaults to `https://ipf.sk`, which supports path-based and subdomain IPFS/IPNS access.
-- The upload provider URL is merchant-defined and opened externally from the plugin.
-- Portal plugin storage is used only for local UX state: cart, draft checkout, saved delivery profile, and merchant settings.
+- Portal plugin storage is used only for local UX state: cart, draft checkout, saved delivery profile, and order status.
 
 Example catalog shape:
 
@@ -161,7 +209,6 @@ Example catalog shape:
       "name": "Origin Coffee",
       "category": "Pantry",
       "price": 18,
-      "currency": "USDX",
       "cid": "bafy...",
       "description": "Small batch coffee beans."
     }
@@ -175,10 +222,10 @@ Current portal sandbox APIs do not expose plugin network fetch, so this version 
 
 The plugin uses:
 
-- `storage.get`, `storage.set`, and `storage.remove` for local cart/profile/config.
+- `storage.get`, `storage.set`, and `storage.remove` for local cart/profile/order state.
 - `payments.openPrefilledPayment` for Wall Money checkout.
 - `events.onPaymentExecuted` to update order status after payment.
-- `network.postJson` to notify the plugin-owned order email webhook after successful payment.
+- `network.postJson` to notify plugin-owned order email and optional stock webhooks after successful payment.
 - `user.getCoreId` to prefill the customer Core ID when available.
 - `ui.navigate`, `ui.toast`, and `ui.notify` for links and status feedback.
 
