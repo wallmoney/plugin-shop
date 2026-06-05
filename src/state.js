@@ -51,7 +51,9 @@ function cleanString(value, fallback) {
 function normalizeDelivery(raw) {
 	const fallback = defaultState().delivery;
 	const value = objectValue(raw);
-		return {
+	const country = cleanString(value.country, fallback.country);
+	const isUnitedStates = country === 'United States' || country === 'US';
+	return {
 		name: cleanString(value.name, fallback.name),
 		email: cleanString(value.email, fallback.email),
 		phone: cleanString(value.phone, fallback.phone),
@@ -59,8 +61,8 @@ function normalizeDelivery(raw) {
 		address2: cleanString(value.address2, fallback.address2),
 		city: cleanString(value.city, fallback.city),
 		zip: cleanString(value.zip, fallback.zip),
-		state: cleanString(value.state, fallback.state),
-		country: cleanString(value.country, fallback.country),
+		state: isUnitedStates ? cleanString(value.state, fallback.state) : '',
+		country,
 		notes: cleanString(value.notes, fallback.notes)
 	};
 }

@@ -66,7 +66,7 @@ module.exports = {
 					});
 				}
 			});
-			hostApi.user.getProfile({ email: true, countryCode: true })
+			hostApi.user.getProfile({ coreId: true, email: true, countryCode: true })
 				.then((profile) => {
 					if (!profile) return;
 					const state = getState(hostApi);
@@ -79,7 +79,6 @@ module.exports = {
 						delivery: {
 							...state.delivery,
 							email: state.delivery.email || profile.email || '',
-							name: state.delivery.name || profile.coreId || '',
 							country
 						}
 					});
@@ -91,11 +90,7 @@ module.exports = {
 					const state = getState(hostApi);
 					saveState(hostApi, {
 						...state,
-						coreId,
-						delivery: {
-							...state.delivery,
-							name: state.delivery.name || coreId
-						}
+						coreId
 					});
 				})
 				.catch(() => {});

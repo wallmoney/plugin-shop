@@ -220,7 +220,9 @@ function cleanString(value, fallback) {
 function normalizeDelivery(raw) {
 	const fallback = defaultState().delivery;
 	const value = objectValue(raw);
-		return {
+	const country = cleanString(value.country, fallback.country);
+	const isUnitedStates = country === 'United States' || country === 'US';
+	return {
 		name: cleanString(value.name, fallback.name),
 		email: cleanString(value.email, fallback.email),
 		phone: cleanString(value.phone, fallback.phone),
@@ -228,8 +230,8 @@ function normalizeDelivery(raw) {
 		address2: cleanString(value.address2, fallback.address2),
 		city: cleanString(value.city, fallback.city),
 		zip: cleanString(value.zip, fallback.zip),
-		state: cleanString(value.state, fallback.state),
-		country: cleanString(value.country, fallback.country),
+		state: isUnitedStates ? cleanString(value.state, fallback.state) : '',
+		country,
 		notes: cleanString(value.notes, fallback.notes)
 	};
 }
@@ -744,9 +746,7 @@ function renderCart(state) {
 
 // src/ui/checkout.js
 function renderDeliveryForm(state) {
-	const initialDelivery = state.savedDelivery && !state.delivery.name && !state.delivery.address
-		? state.savedDelivery
-		: state.delivery;
+	const initialDelivery = checkoutDelivery(state);
 	const hasPhysicalItems = cartItems(state).some((item) => item.product.digital !== true);
 	const selectedCountry = initialDelivery.country || countryNameFromCode(state.countryCode) || '';
 	const hasUnitedStates = selectedCountry === 'United States' || selectedCountry === 'US' || state.countryCode === 'US';
@@ -768,7 +768,7 @@ function renderDeliveryForm(state) {
 	if (hasPhysicalItems) {
 		fields.push(
 			{ name: 'delivery.name', label: 'Full name', value: deliveryDraft.name, placeholder: 'Marsellus Wallace', required: true },
-			{ name: 'delivery.phone', label: 'Phone', value: deliveryDraft.phone, placeholder: '+1' },
+			{ name: 'delivery.phone', label: 'Phone', type: 'tel', value: deliveryDraft.phone, placeholder: '+1', required: true },
 			{ name: 'delivery.address', label: 'Street address', value: deliveryDraft.address, placeholder: 'Street and number', required: true },
 			{ name: 'delivery.address2', label: 'Street address 2', value: deliveryDraft.address2, placeholder: '' },
 			{ name: 'delivery.city', label: 'City', value: deliveryDraft.city, placeholder: 'Los Angeles', required: true },
@@ -790,7 +790,8 @@ function renderDeliveryForm(state) {
 			value: deliveryDraft.state,
 			placeholder: 'California',
 			options: US_STATE_OPTIONS,
-			required: hasUnitedStates
+			required: hasUnitedStates,
+			visibleWhenCountry: 'United States'
 		});
 		fields.push({ name: 'delivery.notes', label: 'Delivery notes', value: deliveryDraft.notes, placeholder: 'Floor, flat number, …' });
 	}
@@ -809,6 +810,13 @@ function renderDeliveryForm(state) {
 	};
 }
 
+function checkoutDelivery(state) {
+	const delivery = state.delivery || emptyDelivery();
+	if (state.saveDelivery && state.savedDelivery) return state.savedDelivery;
+	if (state.savedDelivery && !delivery.name && !delivery.address) return state.savedDelivery;
+	return delivery;
+}
+
 function checkoutMinimumAmount() {
 	const minimum = Number(SHOP_CONFIG.minimumCheckoutAmount);
 	return Number.isFinite(minimum) && minimum > 0 ? minimum : 0;
@@ -816,6 +824,14 @@ function checkoutMinimumAmount() {
 
 function isValidEmail(value) {
 	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+}
+
+function isValidPhone(value) {
+	return /^\+?[0-9][0-9\s().-]{5,24}$/.test(String(value || '').trim());
+}
+
+function isUnitedStates(value) {
+	return value === 'United States' || value === 'US';
 }
 
 function minimumCheckoutMessage(state, total) {
@@ -826,17 +842,30 @@ function minimumCheckoutMessage(state, total) {
 
 function checkoutRequiredMessage(state, hasPhysicalItems) {
 	const delivery = state.delivery || {};
-	if (!delivery.email) return 'Enter your email before checkout.';
+	if (!delivery.email) return hasPhysicalItems ? 'Enter delivery details before checkout.' : 'Enter email address before checkout.';
 	if (!isValidEmail(delivery.email)) return 'Enter a valid email before checkout.';
 	if (!hasPhysicalItems) return '';
 	const missing = [];
 	if (!delivery.name) missing.push('name');
+	if (!delivery.phone) missing.push('phone');
 	if (!delivery.address) missing.push('street address');
 	if (!delivery.city) missing.push('city');
 	if (!delivery.zip) missing.push('ZIP');
 	if (!delivery.country) missing.push('country');
-	if ((delivery.country === 'United States' || delivery.country === 'US') && !delivery.state) missing.push('state');
+	if (missing.length) return 'Enter delivery details before checkout.';
+	if (delivery.name.length < 2) return 'Enter a valid full name.';
+	if (!isValidPhone(delivery.phone)) return 'Enter a valid phone number.';
+	if (delivery.address.length < 3) return 'Enter a valid street address.';
+	if (delivery.city.length < 2) return 'Enter a valid city.';
+	if (delivery.zip.length < 2) return 'Enter a valid ZIP/postal code.';
+	if (!COUNTRY_OPTIONS.some((country) => country.name === delivery.country || country.code === delivery.country)) return 'Select a valid country.';
+	if (isUnitedStates(delivery.country) && !delivery.state) return 'Select a state for United States delivery.';
+	if (isUnitedStates(delivery.country) && !US_STATE_OPTIONS.some((stateOption) => stateOption.name === delivery.state)) return 'Select a valid state.';
 	return missing.length ? `Add ${missing.join(', ')} before checkout.` : '';
+}
+
+function emptyDelivery() {
+	return defaultState().delivery;
 }
 
 function renderCheckout(state) {
@@ -845,8 +874,14 @@ function renderCheckout(state) {
 	const total = cartTotal(state);
 	const items = cartItems(state);
 	const hasPhysicalItems = items.some((item) => item.product.digital !== true);
+	const delivery = normalizeDelivery({
+		...checkoutDelivery(state),
+		email: checkoutDelivery(state).email || state.userEmail || '',
+		country: checkoutDelivery(state).country || countryNameFromCode(state.countryCode) || ''
+	});
+	const checkoutState = normalizeState({ ...state, delivery });
 	const minimumMessage = minimumCheckoutMessage(state, subtotal);
-	const requiredMessage = checkoutRequiredMessage(state, hasPhysicalItems);
+	const requiredMessage = checkoutRequiredMessage(checkoutState, hasPhysicalItems);
 	const blockedMessage = minimumMessage || requiredMessage;
 	const paymentRequest = {
 		label: `${SHOP_CONFIG.name} order`,
@@ -880,6 +915,10 @@ function renderCheckout(state) {
 		useSavedDeliveryAction: state.savedDelivery
 			? stateAction(state, { delivery: state.savedDelivery, checkoutStatus: 'details_saved' }, 'Saved delivery profile loaded')
 			: null,
+		clearDeliveryAction: stateAction(state, { delivery: { ...emptyDelivery(), email: state.userEmail || '' }, checkoutStatus: 'draft' }, 'Delivery form cleared'),
+		removeSavedDeliveryAction: state.savedDelivery
+			? stateAction(state, { savedDelivery: null, saveDelivery: false, checkoutStatus: 'draft' }, 'Saved delivery profile removed')
+			: null,
 		saveDeliveryAction: stateAction(state, { saveDelivery: true }),
 		oneOrderAction: stateAction(state, { saveDelivery: false }),
 		saveDelivery: state.saveDelivery,
@@ -892,7 +931,7 @@ function renderCheckout(state) {
 			collectorAccount: collectorAccount(),
 			customerCoreId: state.coreId || 'Not provided',
 			reference: orderReference(state),
-			delivery: deliverySummary(state.delivery),
+			delivery: deliverySummary(delivery),
 			status: state.checkoutStatus,
 			minimumMessage: blockedMessage,
 			hasPhysicalItems,
@@ -1315,7 +1354,7 @@ module.exports = {
 					});
 				}
 			});
-			hostApi.user.getProfile({ email: true, countryCode: true })
+			hostApi.user.getProfile({ coreId: true, email: true, countryCode: true })
 				.then((profile) => {
 					if (!profile) return;
 					const state = getState(hostApi);
@@ -1328,7 +1367,6 @@ module.exports = {
 						delivery: {
 							...state.delivery,
 							email: state.delivery.email || profile.email || '',
-							name: state.delivery.name || profile.coreId || '',
 							country
 						}
 					});
@@ -1340,11 +1378,7 @@ module.exports = {
 					const state = getState(hostApi);
 					saveState(hostApi, {
 						...state,
-						coreId,
-						delivery: {
-							...state.delivery,
-							name: state.delivery.name || coreId
-						}
+						coreId
 					});
 				})
 				.catch(() => {});
