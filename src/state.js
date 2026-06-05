@@ -29,6 +29,7 @@ function defaultState() {
 		lastOrder: null,
 		settings: {
 			merchantAccount: SHOP_CONFIG.defaultMerchantAccount,
+			adminEmail: SHOP_CONFIG.orderEmail.adminEmail,
 			currency: SHOP_CONFIG.defaultCurrency,
 			gatewayUrl: SHOP_CONFIG.defaultGatewayUrl,
 			catalogRef: SHOP_CONFIG.defaultCatalogRef
@@ -69,6 +70,7 @@ function normalizeSettings(raw) {
 	const value = objectValue(raw);
 	return {
 		merchantAccount: cleanString(value.merchantAccount, fallback.merchantAccount),
+		adminEmail: cleanString(value.adminEmail, fallback.adminEmail),
 		currency: cleanString(value.currency, fallback.currency).toUpperCase(),
 		gatewayUrl: cleanString(value.gatewayUrl, fallback.gatewayUrl).replace(/\/+$/, ''),
 		catalogRef: cleanString(value.catalogRef, fallback.catalogRef)

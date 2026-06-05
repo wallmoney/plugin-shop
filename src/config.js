@@ -15,6 +15,7 @@ const SHOP_CONFIG = {
 	orderEmail: {
 		provider: 'webhook',
 		adminEmail: 'admin@example.com',
+		sendCustomerReceipt: true,
 		webhookUrl: 'https://shop-email.example.com/orders/paid',
 		authHeader: '',
 		fromName: 'Wall Money Shop',
