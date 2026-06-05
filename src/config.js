@@ -3,6 +3,7 @@ const STATE_KEY = 'shop-state';
 const SHOP_CONFIG = {
 	name: 'WM Shop',
 	tagline: 'Decentralized shopping listed as WM plugin.',
+	logoUrl: '',
 	defaultGatewayUrl: 'https://ipf.sk',
 	defaultCatalogRef: 'data/inventory',
 	defaultMerchantAccount: 'wallmoney-shop',

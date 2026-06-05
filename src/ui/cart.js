@@ -3,10 +3,11 @@ function renderCart(state) {
 	return {
 		type: 'shopCart',
 		shopTitle: SHOP_CONFIG.name,
+		shopLogoUrl: SHOP_CONFIG.logoUrl,
 		coreId: state.coreId,
 		cartCount: cartCount(state),
 		theme: state.theme,
-		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'light' : state.theme === 'light' ? 'dark' : 'auto' }),
+		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'dark' : state.theme === 'dark' ? 'light' : 'auto' }),
 		portalAction: { type: 'navigate', href: '/' },
 		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
 		checkoutAction: stateAction(state, { view: 'checkout' }),

@@ -154,10 +154,7 @@ function getState(hostApi) {
 }
 
 function saveState(hostApi, next) {
-	hostApi.storage.set(STATE_KEY, normalizeState({
-		...next,
-		updatedAt: new Date(Date.now()).toISOString()
-	}));
+	hostApi.storage.set(STATE_KEY, normalizeState(next));
 }
 
 function stateAction(state, patch, message) {

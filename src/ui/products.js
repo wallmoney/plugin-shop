@@ -17,6 +17,10 @@ function vendorInitials(product) {
 		.join('') || 'WM';
 }
 
+function shopThemeAction(state) {
+	return stateAction(state, { theme: state.theme === 'auto' ? 'dark' : state.theme === 'dark' ? 'light' : 'auto' });
+}
+
 function productCardNode(state, product) {
 	return {
 		id: product.id,
@@ -60,12 +64,13 @@ function renderProducts(state) {
 		type: 'shopCatalog',
 		shopTitle: SHOP_CONFIG.name,
 		shopSubtitle: SHOP_CONFIG.tagline,
+		shopLogoUrl: SHOP_CONFIG.logoUrl,
 		title: categoryTitle(state),
 		subtitle: SHOP_CONFIG.tagline,
 		coreId: state.coreId,
 		cartCount: cartCount(state),
 		theme: state.theme,
-		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'light' : state.theme === 'light' ? 'dark' : 'auto' }),
+		themeAction: shopThemeAction(state),
 		portalAction: { type: 'navigate', href: '/' },
 		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
 		cartAction: stateAction(state, { view: 'cart' }),
@@ -101,10 +106,11 @@ function renderProductDetail(state) {
 	return {
 		type: 'shopProductDetail',
 		shopTitle: SHOP_CONFIG.name,
+		shopLogoUrl: SHOP_CONFIG.logoUrl,
 		coreId: state.coreId,
 		cartCount: cartCount(state),
 		theme: state.theme,
-		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'light' : state.theme === 'light' ? 'dark' : 'auto' }),
+		themeAction: shopThemeAction(state),
 		product: productDetailNode(state, product),
 		quantity: productQuantity(state, product.id),
 		backAction: stateAction(state, { view: 'products', category: product.category }),
