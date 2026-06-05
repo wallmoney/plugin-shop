@@ -43,14 +43,14 @@ function renderSettings(state) {
 			{
 				type: 'section',
 				title: 'Merchant-editable categories',
-				description: 'Categories and products live in src/config.js. Change that file, run the build script, and the plugin bundle updates.',
+				description: 'Categories live in data/categories.json. Products live as one JSON file per item in data/inventory. Edit those files, run npm run build:inventory, and the plugin bundle updates.',
 				children: [
 					{
 						type: 'badgeGrid',
 						items: SHOP_CATEGORIES.map((category) => ({
-							label: `${category.icon} ${category.label}`,
+							label: category.icon ? `${category.icon} ${category.label}` : category.label,
 							value: category.id,
-							tone: category.id === 'all' ? 'success' : 'muted'
+							tone: category.id === SHOP_CATEGORIES[0]?.id ? 'success' : 'muted'
 						}))
 					}
 				]

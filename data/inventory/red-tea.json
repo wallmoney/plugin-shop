@@ -1,0 +1,18 @@
+{
+	"id": "red-tea",
+	"name": "Red Tea",
+	"category": "tea",
+	"price": 12,
+	"currency": "USDX",
+	"icon": "\ud83c\udf75",
+	"cid": "bafybeiev3uiuiwi26zchkmxqpepoaz5rieiivq6yk4tcutjbsixtozriya",
+	"description": "A mellow red tea with a ruby cup, gentle tannins, and a naturally sweet finish. Ideal for slow mornings or an afternoon reset.",
+	"stock": 42,
+	"vendor": "Wall Money Pantry",
+	"rating": 4.8,
+	"reviews": 184,
+	"soldLast30Days": 96,
+	"badge": "Popular",
+	"packLabel": "80g pouch",
+	"order": 1
+}

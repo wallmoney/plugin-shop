@@ -13,23 +13,34 @@ module.exports = {
 				const state = getState(hostApi);
 				if (result.status === 'executed') {
 					const paidAt = result.executedAt || new Date().toISOString();
+					const lastOrder = {
+						status: 'paid',
+						total: cartTotal(state),
+						currency: state.settings.currency,
+						reference: result.request && result.request.reference ? result.request.reference : orderReference(state),
+						sessionId: result.sessionId,
+						paidAt,
+						delivery: deliverySummary(state.delivery)
+					};
 					saveState(hostApi, {
 						...state,
 						view: 'orders',
 						cart: {},
 						checkoutStatus: 'paid',
-						lastOrder: {
-							status: 'paid',
-							total: cartTotal(state),
-							currency: state.settings.currency,
-							reference: result.request && result.request.reference ? result.request.reference : orderReference(state),
-							sessionId: result.sessionId,
-							paidAt,
-							delivery: deliverySummary(state.delivery)
-						},
+						lastOrder,
 						savedDelivery: state.saveDelivery ? state.delivery : state.savedDelivery
 					});
 					hostApi.ui.notify('Order paid. The merchant can fulfill it using the payment reference.', 'success');
+					sendAdminOrderEmail(hostApi, state, result)
+						.then((emailResult) => {
+							if (emailResult && emailResult.sent) {
+								hostApi.ui.toast('Order email sent to shop admin.', 'success');
+							}
+						})
+						.catch((error) => {
+							const message = error && error.message ? error.message : 'Unable to send order email.';
+							hostApi.ui.notify(message, 'error');
+						});
 				} else if (result.status === 'opened') {
 					saveState(hostApi, {
 						...state,
@@ -46,12 +57,12 @@ module.exports = {
 				.then((coreId) => {
 					if (!coreId) return;
 					const state = getState(hostApi);
-					if (state.delivery.name) return;
 					saveState(hostApi, {
 						...state,
+						coreId,
 						delivery: {
 							...state.delivery,
-							name: coreId
+							name: state.delivery.name || coreId
 						}
 					});
 				})
@@ -62,17 +73,8 @@ module.exports = {
 			const api = this.hostApi || hostApi;
 			const state = getState(api);
 			return {
-				title: SHOP_CONFIG.name,
-				description: `${SHOP_CONFIG.tagline} with categories, cart, checkout, saved delivery details, and Wall Money payments.`,
 				nodes: [
-					{
-						type: 'stack',
-						gap: 'lg',
-						children: [
-							renderHero(state),
-							renderView(state)
-						]
-					}
+					renderView(state)
 				]
 			};
 		},
@@ -88,5 +90,5 @@ function readInitialPluginView() {
 	const view = context && typeof context.initialView === 'string'
 		? context.initialView.trim().toLowerCase()
 		: '';
-	return ['products', 'cart', 'checkout', 'settings', 'orders'].includes(view) ? view : null;
+	return ['products', 'product', 'cart', 'checkout', 'settings', 'orders'].includes(view) ? view : null;
 }

@@ -7,25 +7,21 @@
 	"description": "Run an ecommerce storefront with IPFS-hosted listings, categories, cart, saved delivery details, and Wall Money checkout.",
 	"version": "0.1.0",
 	"license": "MIT",
+	"scripts": {
+		"dev": "vite dev",
+		"build:inventory": "node scripts/build-inventory.mjs",
+		"build:plugin": "npm run build:inventory && node scripts/build-plugin.mjs",
+		"build:web": "svelte-kit sync && vite build",
+		"build": "npm run build:plugin && npm run build:web",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
+	},
 	"icon": "icon.svg",
-	"src": [
-		"src/config.js",
-		"src/state.js",
-		"src/catalog.js",
-		"src/cart.js",
-		"src/ui/shared.js",
-		"src/ui/products.js",
-		"src/ui/cart.js",
-		"src/ui/checkout.js",
-		"src/ui/orders.js",
-		"src/ui/settings.js",
-		"src/plugin.js"
-	],
 	"permissions": [
 		"storage.get",
 		"storage.set",
 		"storage.remove",
 		"events.onPaymentExecuted",
+		"network.postJson",
 		"payments.openPrefilledPayment",
 		"user.getCoreId",
 		"ui.navigate",
@@ -51,5 +47,32 @@
 				}
 			}
 		}
-	}
+	},
+	"bundle": "dist/plugin.js",
+	"pluginSrc": [
+		"src/config.js",
+		"src/inventory.js",
+		"src/state.js",
+		"src/catalog.js",
+		"src/cart.js",
+		"src/ui/shared.js",
+		"src/ui/products.js",
+		"src/ui/cart.js",
+		"src/ui/checkout.js",
+		"src/ui/orders.js",
+		"src/ui/settings.js",
+		"src/email.js",
+		"src/plugin.js"
+	],
+	"devDependencies": {
+		"@sveltejs/adapter-static": "^3.0.8",
+		"@sveltejs/kit": "^2.61.1",
+		"@sveltejs/vite-plugin-svelte": "^7.1.2",
+		"svelte": "^5.56.0",
+		"svelte-check": "^4.5.0",
+		"typescript": "^6.0.3",
+		"vite": "^8.0.16",
+		"@types/node": "^24.0.0"
+	},
+	"type": "module"
 }
