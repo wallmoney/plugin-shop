@@ -174,6 +174,7 @@ function defaultState() {
 		selectedProductId: SHOP_PRODUCTS[0] ? SHOP_PRODUCTS[0].id : '',
 		coreId: null,
 		userEmail: '',
+		emailRequestStatus: 'idle',
 		countryCode: '',
 		theme: 'auto',
 		query: '',
@@ -306,6 +307,9 @@ function normalizeState(raw) {
 		selectedProductId: normalizeProductId(value.selectedProductId, category),
 		coreId: typeof value.coreId === 'string' && value.coreId.trim() ? value.coreId.trim() : null,
 		userEmail: cleanString(value.userEmail, fallback.userEmail),
+		emailRequestStatus: ['idle', 'requested', 'resolved'].includes(value.emailRequestStatus)
+			? value.emailRequestStatus
+			: fallback.emailRequestStatus,
 		countryCode: cleanString(value.countryCode, fallback.countryCode).toUpperCase(),
 		theme: normalizeTheme(value.theme),
 		query: typeof value.query === 'string' ? value.query : fallback.query,
@@ -1354,7 +1358,7 @@ module.exports = {
 					});
 				}
 			});
-			hostApi.user.getProfile({ coreId: true, email: true, countryCode: true })
+			hostApi.user.getProfile({ coreId: true, countryCode: true })
 				.then((profile) => {
 					if (!profile) return;
 					const state = getState(hostApi);
@@ -1362,11 +1366,9 @@ module.exports = {
 					saveState(hostApi, {
 						...state,
 						coreId: state.coreId || profile.coreId,
-						userEmail: state.userEmail || profile.email || '',
 						countryCode: state.countryCode || profile.countryCode || '',
 						delivery: {
 							...state.delivery,
-							email: state.delivery.email || profile.email || '',
 							country
 						}
 					});
@@ -1387,6 +1389,7 @@ module.exports = {
 		render() {
 			const api = this.hostApi || hostApi;
 			const state = getState(api);
+			maybeRequestCheckoutEmail(api, state);
 			return {
 				title: SHOP_CONFIG.name,
 				nodes: [
@@ -1400,6 +1403,36 @@ module.exports = {
 		}
 	}
 };
+
+function maybeRequestCheckoutEmail(api, state) {
+	if (state.view !== 'checkout') return;
+	if (state.userEmail || state.delivery.email || state.emailRequestStatus !== 'idle') return;
+	saveState(api, {
+		...state,
+		emailRequestStatus: 'requested'
+	});
+	api.user.getProfile({ email: true })
+		.then((profile) => {
+			const nextState = getState(api);
+			const email = profile && profile.email ? profile.email : '';
+			saveState(api, {
+				...nextState,
+				userEmail: nextState.userEmail || email,
+				emailRequestStatus: 'resolved',
+				delivery: {
+					...nextState.delivery,
+					email: nextState.delivery.email || email
+				}
+			});
+		})
+		.catch(() => {
+			const nextState = getState(api);
+			saveState(api, {
+				...nextState,
+				emailRequestStatus: 'resolved'
+			});
+		});
+}
 
 function readInitialPluginView() {
 	const context = typeof pluginContext === 'object' && pluginContext ? pluginContext : null;
