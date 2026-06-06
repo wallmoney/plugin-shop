@@ -5,6 +5,7 @@ function defaultState() {
 		selectedProductId: SHOP_PRODUCTS[0] ? SHOP_PRODUCTS[0].id : '',
 		coreId: null,
 		userEmail: '',
+		emailRequestStatus: 'idle',
 		countryCode: '',
 		theme: 'auto',
 		query: '',
@@ -137,6 +138,9 @@ function normalizeState(raw) {
 		selectedProductId: normalizeProductId(value.selectedProductId, category),
 		coreId: typeof value.coreId === 'string' && value.coreId.trim() ? value.coreId.trim() : null,
 		userEmail: cleanString(value.userEmail, fallback.userEmail),
+		emailRequestStatus: ['idle', 'requested', 'resolved'].includes(value.emailRequestStatus)
+			? value.emailRequestStatus
+			: fallback.emailRequestStatus,
 		countryCode: cleanString(value.countryCode, fallback.countryCode).toUpperCase(),
 		theme: normalizeTheme(value.theme),
 		query: typeof value.query === 'string' ? value.query : fallback.query,
