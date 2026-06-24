@@ -70,6 +70,19 @@ function checkoutDelivery(state) {
 	return delivery;
 }
 
+function checkoutReadyState(state) {
+	const delivery = normalizeDelivery({
+		...checkoutDelivery(state),
+		email: checkoutDelivery(state).email || state.userEmail || '',
+		country: checkoutDelivery(state).country || countryNameFromCode(state.countryCode) || ''
+	});
+	return normalizeState({
+		...state,
+		view: 'checkout',
+		delivery
+	});
+}
+
 function checkoutMinimumAmount() {
 	const minimum = Number(SHOP_CONFIG.minimumCheckoutAmount);
 	return Number.isFinite(minimum) && minimum > 0 ? minimum : 0;
@@ -127,12 +140,8 @@ function renderCheckout(state) {
 	const total = cartTotal(state);
 	const items = cartItems(state);
 	const hasPhysicalItems = items.some((item) => item.product.digital !== true);
-	const delivery = normalizeDelivery({
-		...checkoutDelivery(state),
-		email: checkoutDelivery(state).email || state.userEmail || '',
-		country: checkoutDelivery(state).country || countryNameFromCode(state.countryCode) || ''
-	});
-	const checkoutState = normalizeState({ ...state, delivery });
+	const checkoutState = checkoutReadyState(state);
+	const delivery = checkoutState.delivery;
 	const minimumMessage = minimumCheckoutMessage(state, subtotal);
 	const requiredMessage = checkoutRequiredMessage(checkoutState, hasPhysicalItems);
 	const blockedMessage = minimumMessage || requiredMessage;
@@ -164,7 +173,7 @@ function renderCheckout(state) {
 		portalAction: { type: 'navigate', href: '/' },
 		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
 		cartAction: stateAction(state, { view: 'cart' }),
-		deliveryForm: renderDeliveryForm(state),
+		deliveryForm: renderDeliveryForm(checkoutState),
 		useSavedDeliveryAction: state.savedDelivery
 			? stateAction(state, { delivery: state.savedDelivery, checkoutStatus: 'details_saved' }, 'Saved delivery profile loaded')
 			: null,
@@ -200,6 +209,6 @@ function renderCheckout(state) {
 			? { type: 'notify', message: minimumMessage, level: 'warning' }
 			: requiredMessage
 				? { type: 'notify', message: requiredMessage, level: 'warning' }
-			: stockManagedPaymentAction(state, paymentRequest)
+			: stockManagedPaymentAction(checkoutState, paymentRequest)
 	};
 }

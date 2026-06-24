@@ -10,7 +10,7 @@ function renderCart(state) {
 		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'dark' : state.theme === 'dark' ? 'light' : 'auto' }),
 		portalAction: { type: 'navigate', href: '/' },
 		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
-		checkoutAction: stateAction(state, { view: 'checkout' }),
+		checkoutAction: stateAction(checkoutReadyState(state), {}),
 		clearAction: stateAction(state, { cart: {}, checkoutStatus: 'draft' }, 'Cart cleared'),
 		subtotal: formatMoney(cartSubtotal(state), state.settings.currency),
 		items: items.map((item) => ({
