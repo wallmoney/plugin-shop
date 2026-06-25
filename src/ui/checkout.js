@@ -210,6 +210,28 @@ function checkoutRequiredMessage(state, hasPhysicalItems) {
 	return missing.length ? `Add ${missing.join(', ')} before checkout.` : '';
 }
 
+function renderCheckoutField(field, storageActionId) {
+	const value = escapeHtml(field.value || '');
+	const required = field.required ? 'required' : '';
+	const common = `class="wm-input" name="${escapeHtml(field.name)}" data-plugin-storage-action="${escapeHtml(storageActionId)}" data-plugin-field="${escapeHtml(field.name)}" ${required}`;
+	if (field.type === 'select') {
+		return `<label>
+			<span class="wm-product-meta">${escapeHtml(field.label || field.name)}</span>
+			<select ${common}>
+				<option value="">${escapeHtml(field.placeholder || field.label || '')}</option>
+				${(field.options || []).map((option) => {
+					const optionValue = option.name || option.label || option.value || option.code || '';
+					return `<option value="${escapeHtml(optionValue)}" ${optionValue === field.value ? 'selected' : ''}>${escapeHtml(optionValue)}</option>`;
+				}).join('')}
+			</select>
+		</label>`;
+	}
+	return `<label class="${field.name === 'delivery.notes' || field.name === 'delivery.address' || field.name === 'delivery.address2' ? 'wm-span-2' : ''}">
+		<span class="wm-product-meta">${escapeHtml(field.label || field.name)}</span>
+		<input ${common} type="${escapeHtml(field.type || 'text')}" value="${value}" placeholder="${escapeHtml(field.placeholder || field.label || '')}" />
+	</label>`;
+}
+
 function emptyDelivery() {
 	return defaultState().delivery;
 }
@@ -250,116 +272,76 @@ function renderCheckout(state) {
 		return renderCart(state);
 	}
 
-	return {
-		type: 'section',
-		title: hasPhysicalItems ? 'Delivery details' : 'Contact details',
-		description: hasPhysicalItems
-			? 'These details are sent to the shop admin only after successful payment.'
-			: 'Digital orders only need an email address and Core ID.',
-		children: [
-			...(hasPhysicalItems && savedDeliveryProfileOptions(checkoutState).length
-				? [
-					{
-						type: 'select',
-						label: 'Saved address',
-						value: checkoutState.selectedDeliveryProfileId,
-						options: savedDeliveryProfileOptions(checkoutState).map((profile) => ({
-							label: profile.description ? `${profile.label} - ${profile.description}` : profile.label,
-							value: profile.id,
-							action: profile.selectAction
-						}))
-					}
-				]
-				: []),
-			renderDeliveryForm(checkoutState),
-			...(hasPhysicalItems
-				? [
-					{
-						type: 'buttonRow',
-						buttons: [
-							{
-								label: checkoutState.saveDelivery ? 'Saving delivery' : 'Save delivery',
-								variant: checkoutState.saveDelivery ? 'primary' : 'secondary',
-								action: stateAction(checkoutState, { saveDelivery: true })
-							},
-							{
-								label: 'This order only',
-								variant: checkoutState.saveDelivery ? 'secondary' : 'primary',
-								action: stateAction(checkoutState, { saveDelivery: false, selectedDeliveryProfileId: '' })
-							},
-							{
-								label: 'Clear form',
-								variant: 'ghost',
-								action: stateAction(state, { delivery: { ...emptyDelivery(), email: state.userEmail || '' }, checkoutStatus: 'draft' }, 'Delivery form cleared')
-							},
-							...(checkoutState.savedDelivery
-								? [
-									{
-										label: 'Remove saved delivery',
-										variant: 'ghost',
-										action: stateAction(checkoutState, {
-											savedDelivery: null,
-											savedDeliveries: [],
-											selectedDeliveryProfileId: '',
-											saveDelivery: false,
-											checkoutStatus: 'draft'
-										}, 'Saved delivery profile removed')
-									}
-								]
-								: [])
-						]
-					}
-				]
-				: []),
-			{
-				type: 'section',
-				title: 'Order summary',
-				children: [
-					{
-						type: 'badgeGrid',
-						items: [
-							{ label: 'Subtotal', value: formatMoney(subtotal, state.settings.currency), tone: 'muted' },
-							...(deliveryFee > 0 ? [{ label: 'Delivery', value: formatMoney(deliveryFee, state.settings.currency), tone: 'muted' }] : []),
-							{ label: 'Total', value: formatMoney(total, state.settings.currency), tone: 'success' },
-							{ label: 'Reference', value: orderReference(state), tone: 'muted' }
-						]
-					},
-					{
-						type: 'list',
-						items: [
-							{ label: 'Core ID', value: state.coreId || 'Not provided' },
-							{ label: 'Collector', value: collectorAccount() },
-							...(hasPhysicalItems ? [{ label: 'Delivery', value: deliverySummary(delivery) }] : []),
-							...items.map((item) => ({
-								label: `${item.product.name} × ${item.quantity}`,
-								value: formatMoney(item.product.price * item.quantity, state.settings.currency)
-							}))
-						]
-					},
-					...(blockedMessage ? [{ type: 'text', tone: requiredMessage || minimumMessage ? 'warning' : 'danger', text: blockedMessage }] : []),
-					{
-						type: 'buttonRow',
-						buttons: [
-							{ label: 'Back to cart', variant: 'secondary', action: stateAction(state, { view: 'cart' }) },
-							{
-								label: blockedMessage ? 'Cannot pay yet' : 'Pay with Wall Money',
-								variant: 'primary',
-								action: developmentMessage
-									? { type: 'notify', message: developmentMessage, level: 'error' }
-									: workerDomainMessage
-										? { type: 'notify', message: workerDomainMessage, level: 'error' }
-									: collectionMessage
-										? { type: 'notify', message: collectionMessage, level: 'error' }
-									: minimumMessage
-										? { type: 'notify', message: minimumMessage, level: 'warning' }
-									: requiredMessage
-										? { type: 'notify', message: requiredMessage, level: 'warning' }
-									: stockManagedPaymentAction(finalCheckoutState, paymentRequest)
-							}
-						]
-					}
-				]
-			}
-		]
-	};
+	const actions = {};
+	const deliveryForm = renderDeliveryForm(checkoutState);
+	const storageActionId = addFrameAction(actions, deliveryForm.autoSaveAction || deliveryForm.action);
+	const profiles = savedDeliveryProfileOptions(checkoutState);
+	const payAction = developmentMessage
+		? { type: 'notify', message: developmentMessage, level: 'error' }
+		: workerDomainMessage
+			? { type: 'notify', message: workerDomainMessage, level: 'error' }
+		: collectionMessage
+			? { type: 'notify', message: collectionMessage, level: 'error' }
+		: minimumMessage
+			? { type: 'notify', message: minimumMessage, level: 'warning' }
+		: requiredMessage
+			? { type: 'notify', message: requiredMessage, level: 'warning' }
+		: stockManagedPaymentAction(finalCheckoutState, paymentRequest);
+
+	return pluginFrame('Checkout', `
+		<div class="wm-page">
+			<header class="wm-header wm-shell">
+				<button type="button" class="wm-brand" ${actionAttr(actions, stateAction(state, { view: 'products', category: 'all', page: 1 }))}>
+					${shopLogoUrl() ? `<img class="wm-logo" src="${escapeHtml(shopLogoUrl())}" alt="" />` : ''}
+					<span>${escapeHtml(SHOP_CONFIG.name)}</span>
+				</button>
+				<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'cart' }))}>Cart ${cartCount(state)}</button>
+			</header>
+			<main class="wm-checkout">
+				<section class="wm-card">
+					<h1 style="margin:0;font-size:1.5rem;font-weight:950">${hasPhysicalItems ? 'Delivery details' : 'Contact details'}</h1>
+					<p class="wm-muted">${hasPhysicalItems ? 'These details are sent to the shop admin only after successful payment.' : 'Digital orders only need an email address and Core ID.'}</p>
+					${hasPhysicalItems && profiles.length ? `
+						<label>
+							<span class="wm-product-meta">Saved address</span>
+							<select class="wm-input" onchange="this.selectedOptions[0] && this.selectedOptions[0].dataset.pluginAction && parent.postMessage({source:'mota-plugin-frame',type:'action',actionId:this.selectedOptions[0].dataset.pluginAction}, '*')">
+								<option value="">Select saved address</option>
+								${profiles.map((profile) => `<option value="${escapeHtml(profile.id)}" data-plugin-action="${addFrameAction(actions, profile.selectAction)}" ${profile.id === checkoutState.selectedDeliveryProfileId ? 'selected' : ''}>${escapeHtml(profile.description ? `${profile.label} - ${profile.description}` : profile.label)}</option>`).join('')}
+							</select>
+						</label>
+					` : ''}
+					<form class="wm-form-grid">
+						${deliveryForm.fields.map((field) => renderCheckoutField(field, storageActionId)).join('')}
+					</form>
+					${hasPhysicalItems ? `
+						<div class="wm-inline-actions">
+							${frameButton(actions, checkoutState.saveDelivery ? 'Saving delivery' : 'Save delivery', stateAction(checkoutState, { saveDelivery: true }), checkoutState.saveDelivery ? 'primary' : 'secondary')}
+							${frameButton(actions, 'This order only', stateAction(checkoutState, { saveDelivery: false, selectedDeliveryProfileId: '' }), checkoutState.saveDelivery ? 'secondary' : 'primary')}
+							${frameButton(actions, 'Clear form', stateAction(state, { delivery: { ...emptyDelivery(), email: state.userEmail || '' }, checkoutStatus: 'draft' }, 'Delivery form cleared'), 'ghost')}
+							${checkoutState.savedDelivery ? frameButton(actions, 'Remove saved delivery', stateAction(checkoutState, {
+								savedDelivery: null,
+								savedDeliveries: [],
+								selectedDeliveryProfileId: '',
+								saveDelivery: false,
+								checkoutStatus: 'draft'
+							}, 'Saved delivery profile removed'), 'ghost') : ''}
+						</div>
+					` : ''}
+				</section>
+				<aside class="wm-card">
+					<h2 style="margin:0;font-size:1.25rem;font-weight:950">Order summary</h2>
+					${items.map((item) => `<div class="wm-summary-line"><span>${escapeHtml(item.product.name)} × ${item.quantity}</span><strong>${escapeHtml(formatMoney(item.product.price * item.quantity, state.settings.currency))}</strong></div>`).join('')}
+					<div class="wm-total"><span>Total</span><span>${escapeHtml(formatMoney(total, state.settings.currency))}</span></div>
+					<p class="wm-muted">Core ID: ${escapeHtml(state.coreId || 'Not provided')}</p>
+					<p class="wm-muted">Collector: ${escapeHtml(collectorAccount())}</p>
+					${hasPhysicalItems ? `<p class="wm-muted">Delivery: ${escapeHtml(deliverySummary(delivery))}</p>` : ''}
+					${blockedMessage ? `<p class="wm-warning">${escapeHtml(blockedMessage)}</p>` : ''}
+					<div class="wm-inline-actions">
+						${frameButton(actions, 'Back to cart', stateAction(state, { view: 'cart' }), 'secondary')}
+						${frameButton(actions, blockedMessage ? 'Cannot pay yet' : 'Pay with Wall Money', payAction)}
+					</div>
+				</aside>
+			</main>
+		</div>
+	`, actions);
 }

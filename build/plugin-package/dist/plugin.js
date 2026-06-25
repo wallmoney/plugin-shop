@@ -827,29 +827,43 @@ function shopLogoUrl() {
 	return context && typeof context.iconUrl === 'string' ? context.iconUrl : '';
 }
 
-function renderHero(state) {
+function escapeHtml(value) {
+	return String(value ?? '')
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+}
+
+function addFrameAction(actions, action) {
+	const id = `action-${Object.keys(actions).length + 1}`;
+	actions[id] = action;
+	return id;
+}
+
+function actionAttr(actions, action) {
+	return `data-plugin-action="${addFrameAction(actions, action)}"`;
+}
+
+function frameButton(actions, label, action, variant = 'primary', extraClass = '') {
+	return `<button type="button" class="wm-btn wm-btn-${variant} ${extraClass}" ${actionAttr(actions, action)}>${escapeHtml(label)}</button>`;
+}
+
+function pluginFrame(title, body, actions, options = {}) {
 	return {
-		type: 'section',
-		title: 'Open marketplace, IPFS-native listings',
-		description: 'A dark, card-driven marketplace flow inspired by Plebeian Market: browse, filter, cart, checkout, and pay through Wall Money.',
-		children: [
-			{
-				type: 'badgeGrid',
-				items: [
-					{ label: 'Cart', value: `${cartCount(state)} item${cartCount(state) === 1 ? '' : 's'}`, tone: cartCount(state) ? 'success' : 'muted' },
-					{ label: 'Catalog', value: catalogProvider(state) === 'd1' ? 'D1 database' : catalogSettings(state).catalogRef, tone: 'muted' }
-				]
-			},
-			{
-				type: 'buttonRow',
-				buttons: [
-					{ label: 'Products', variant: state.view === 'products' ? 'primary' : 'secondary', action: stateAction(state, { view: 'products' }) },
-					{ label: `Cart (${cartCount(state)})`, variant: state.view === 'cart' ? 'primary' : 'secondary', action: stateAction(state, { view: 'cart' }) },
-					{ label: 'Checkout', variant: state.view === 'checkout' ? 'primary' : 'secondary', action: stateAction(checkoutReadyState(state), {}) },
-					{ label: 'Orders', variant: state.view === 'orders' ? 'primary' : 'secondary', action: stateAction(state, { view: 'orders' }) }
-				]
-			}
-		]
+		type: 'pluginFrame',
+		title,
+		minHeight: options.minHeight || 820,
+		actions,
+		html: `<style>
+			:root{color-scheme:dark light;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+			*{box-sizing:border-box}body{margin:0;background:#f6f4ee;color:#0c0a09}button,input,select{font:inherit}
+			.wm-shop{min-height:100vh;background:#f6f4ee;color:#0c0a09}.wm-shell{max-width:1680px;margin:0 auto}.wm-header{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1.25rem 1.5rem}.wm-brand{display:inline-flex;align-items:center;gap:.65rem;border:0;background:transparent;color:inherit;font-size:1.5rem;font-weight:900;letter-spacing:-.03em;cursor:pointer}.wm-logo{width:2rem;height:2rem;border-radius:.75rem;object-fit:cover}.wm-actions{display:flex;align-items:center;gap:.75rem}.wm-icon-btn,.wm-chip{border:1px solid rgba(120,113,108,.25);background:#fff;color:#292524;border-radius:999px;box-shadow:0 10px 30px rgba(28,25,23,.08);font-weight:800}.wm-chip{padding:.6rem 1rem}.wm-layout{display:flex;min-height:100vh}.wm-sidebar{width:15rem;flex:0 0 15rem;border-right:1px solid #e7e5e4;background:rgba(251,250,247,.96);padding:1.25rem}.wm-subtitle{margin:.5rem 0 0;color:#57534e;font-size:.9rem;font-weight:650;line-height:1.55}.wm-nav{display:flex;flex-direction:column;gap:.5rem;margin-top:1.5rem}.wm-nav button{border:0;border-radius:1rem;background:transparent;color:#57534e;text-align:left;padding:.85rem 1rem;font-weight:900;cursor:pointer}.wm-nav button.is-active{background:#fff;color:#0c0a09;box-shadow:0 18px 40px rgba(28,25,23,.12)}.wm-main{min-width:0;flex:1;padding:1.5rem 2.5rem}.wm-main-head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;border-bottom:1px solid #e7e5e4;padding-bottom:1.5rem}.wm-kicker{margin:0;color:#78716c;font-size:.9rem;font-weight:750}.wm-title{margin:.25rem 0 0;font-size:clamp(2rem,4vw,3.5rem);line-height:.95;font-weight:950;letter-spacing:-.045em}.wm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2rem 1rem;margin-top:2rem}.wm-product{text-align:left}.wm-product-media{position:relative;aspect-ratio:1;overflow:hidden;border-radius:1.75rem;background:#fff;box-shadow:0 8px 30px rgba(28,25,23,.08);border:1px solid rgba(214,211,209,.7)}.wm-product-media img{width:100%;height:100%;object-fit:cover;display:block}.wm-empty-icon{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:3rem}.wm-badge{position:absolute;left:.75rem;top:.75rem;border-radius:999px;background:#fff;color:#1c1917;padding:.3rem .75rem;font-size:.75rem;font-weight:900}.wm-product button.wm-product-open{display:block;width:100%;border:0;background:transparent;text-align:left;color:inherit;cursor:pointer}.wm-product-meta{margin:.75rem 0 0;color:#78716c;font-size:.85rem;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wm-product-name{margin:.25rem 0 0;min-height:2.5rem;font-size:1rem;line-height:1.25;font-weight:950}.wm-product-pack,.wm-product-price{margin:.3rem 0 0}.wm-product-pack{color:#78716c;font-size:.85rem;font-weight:750}.wm-product-price{font-weight:950}.wm-btn{min-height:2.65rem;border-radius:999px;padding:.65rem 1rem;border:0;font-size:.9rem;font-weight:950;cursor:pointer;transition:transform .15s ease,background .15s ease}.wm-btn:hover{transform:translateY(-1px)}.wm-btn-primary{background:#6d28d9;color:#fff}.wm-btn-secondary{background:#fff;color:#292524;border:1px solid #d6d3d1}.wm-btn-ghost{background:transparent;color:#57534e}.wm-product>.wm-btn{width:100%;margin-top:.75rem}.wm-page{min-height:100vh;background:#f6f4ee;padding:1.25rem}.wm-card{background:#fff;border:1px solid #e7e5e4;border-radius:2rem;box-shadow:0 18px 50px rgba(28,25,23,.08);padding:1.25rem}.wm-cart{max-width:48rem;margin:2.5rem auto 0}.wm-row{display:grid;grid-template-columns:7rem minmax(0,1fr) auto;gap:1rem;margin-top:1.25rem}.wm-row-media{aspect-ratio:1;overflow:hidden;border-radius:1.5rem;background:#f5f5f4}.wm-row-media img{width:100%;height:100%;object-fit:cover}.wm-muted{color:#78716c}.wm-total{display:flex;justify-content:space-between;gap:1rem;border-top:1px solid #e7e5e4;margin-top:2rem;padding-top:1.25rem;font-size:1.1rem;font-weight:950}.wm-inline-actions{display:flex;flex-wrap:wrap;gap:.65rem;margin-top:1rem}.wm-qty{display:inline-flex;align-items:center;border:1px solid #d6d3d1;border-radius:999px;background:#fff}.wm-qty button{border:0;background:transparent;padding:.45rem .75rem;font-weight:950;cursor:pointer}.wm-qty span{min-width:2rem;text-align:center;font-weight:900}.wm-detail{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(24rem,.95fr);gap:2rem;max-width:80rem;margin:0 auto;padding:1.5rem}.wm-detail-media{overflow:hidden;border-radius:2.25rem;background:#fff;box-shadow:0 8px 30px rgba(28,25,23,.08);border:1px solid #e7e5e4}.wm-detail-media img{width:100%;aspect-ratio:1;object-fit:cover;display:block}.wm-detail-copy{padding-top:3rem}.wm-price{font-size:2rem;font-weight:950}.wm-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin-top:1.5rem}.wm-input{width:100%;border:1px solid #d6d3d1;background:#fafaf9;border-radius:1rem;padding:.85rem 1rem;font-weight:750;color:#0c0a09}.wm-span-2{grid-column:span 2}.wm-checkout{display:grid;grid-template-columns:minmax(0,1fr) 24rem;gap:1.5rem;max-width:72rem;margin:2.5rem auto 0}.wm-summary-line{display:flex;justify-content:space-between;gap:1rem;margin-top:.75rem}.wm-warning{border:1px solid rgba(245,158,11,.35);background:#fef3c7;color:#78350f;border-radius:1rem;padding:.75rem;margin-top:1rem;font-weight:850}.wm-success{text-align:center;max-width:48rem;margin:4rem auto 0}.wm-success-mark{display:flex;align-items:center;justify-content:center;width:3.5rem;height:3.5rem;margin:0 auto;border-radius:999px;background:#dcfce7;color:#166534;font-size:2rem;font-weight:950}
+			@media (min-width:640px){.wm-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media (min-width:1280px){.wm-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}@media (min-width:1536px){.wm-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
+			@media (prefers-color-scheme:dark){body,.wm-shop,.wm-page{background:#020617;color:#f8fafc}.wm-sidebar{background:rgba(15,23,42,.96);border-right-color:#1e293b}.wm-subtitle,.wm-kicker,.wm-product-meta,.wm-product-pack,.wm-muted{color:#cbd5e1}.wm-main-head,.wm-total{border-color:#1e293b}.wm-nav button{color:#cbd5e1}.wm-nav button.is-active{background:#f8fafc;color:#020617}.wm-card,.wm-chip,.wm-icon-btn,.wm-btn-secondary,.wm-qty{background:#0f172a;color:#f8fafc;border-color:#334155;box-shadow:none}.wm-product-media,.wm-detail-media,.wm-row-media{background:#1e293b;border-color:#334155}.wm-input{background:#0f172a;border-color:#334155;color:#fff}.wm-warning{background:rgba(245,158,11,.14);color:#fde68a}}
+			@media (max-width:900px){.wm-layout{display:block}.wm-sidebar{width:auto;border-right:0;border-bottom:1px solid #e7e5e4}.wm-nav{flex-direction:row;overflow-x:auto}.wm-main{padding:1.25rem}.wm-main-head{align-items:flex-start;flex-direction:column}.wm-detail,.wm-checkout{display:block;padding:1.25rem}.wm-detail-copy,.wm-checkout aside{margin-top:1.5rem;padding-top:0}.wm-row{grid-template-columns:5.5rem minmax(0,1fr)}.wm-row>strong{grid-column:2}.wm-form-grid{grid-template-columns:1fr}.wm-span-2{grid-column:auto}}
+		</style>${body}`
 	};
 }
 
@@ -911,206 +925,192 @@ function productPrice(state, product) {
 	return formatMoney(product.price, state.settings.currency);
 }
 
-function productCardNode(state, product) {
-	return {
-		id: product.id,
-		name: product.name,
-		vendor: product.vendor || SHOP_CONFIG.name,
-		icon: product.icon,
-		imageUrl: productImageUrl(state, product),
-		badge: product.badge,
-		packLabel: product.packLabel || 'Standard pack',
-		price: productPrice(state, product),
-		digital: product.digital === true,
-		action: stateAction(state, {
-			view: 'product',
-			category: product.category,
-			selectedProductId: product.id,
-			productQuantities: {
-				...state.productQuantities,
-				[product.id]: productQuantity(state, product.id)
-			}
-		}),
-		addAction: stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`)
-	};
+function productOpenAction(state, product) {
+	return stateAction(state, {
+		view: 'product',
+		category: product.category,
+		selectedProductId: product.id,
+		productQuantities: {
+			...state.productQuantities,
+			[product.id]: productQuantity(state, product.id)
+		}
+	});
+}
+
+function renderProductImage(state, product) {
+	const image = productImageUrl(state, product);
+	return image
+		? `<img src="${escapeHtml(image)}" alt="${escapeHtml(product.name)}" loading="lazy" />`
+		: `<div class="wm-empty-icon">${escapeHtml(product.icon || '•')}</div>`;
 }
 
 function renderProducts(state) {
+	const actions = {};
 	const products = filteredProducts(state);
 	const pageSize = Math.max(1, Number(SHOP_CONFIG.pageSize) || 8);
 	const totalPages = Math.max(1, Math.ceil(products.length / pageSize));
 	const currentPage = Math.min(Math.max(1, state.page || 1), totalPages);
 	const visibleProducts = products.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-	return {
-		type: 'stack',
-		gap: 'lg',
-		children: [
-			renderHero(state),
-			{
-				type: 'section',
-				title: categoryTitle(state),
-				description: SHOP_CONFIG.tagline,
-				children: [
-					{
-						type: 'buttonRow',
-						buttons: allCategories(state).map((category) => ({
-							label: category.label,
-							variant: state.category === category.id ? 'primary' : 'secondary',
-							action: stateAction(state, {
+	const logo = shopLogoUrl();
+
+	return pluginFrame(SHOP_CONFIG.name, `
+		<div class="wm-shop">
+			<div class="wm-shell wm-layout">
+				<aside class="wm-sidebar">
+					<button type="button" class="wm-brand" ${actionAttr(actions, stateAction(state, { view: 'products', category: 'all', page: 1 }))}>
+						${logo ? `<img class="wm-logo" src="${escapeHtml(logo)}" alt="" />` : ''}
+						<span>${escapeHtml(SHOP_CONFIG.name)}</span>
+					</button>
+					<p class="wm-subtitle">${escapeHtml(SHOP_CONFIG.tagline || '')}</p>
+					<nav class="wm-nav" aria-label="Shop categories">
+						${allCategories(state).map((category) => `
+							<button type="button" class="${state.category === category.id ? 'is-active' : ''}" ${actionAttr(actions, stateAction(state, {
 								category: category.id,
 								view: 'products',
 								page: 1,
 								selectedProductId: (category.id === 'all' ? catalogProducts(state)[0] : productsByCategory(category.id, state)[0])?.id || state.selectedProductId
-							})
-						}))
-					},
-					...visibleProducts.map((product) => ({
-						type: 'section',
-						title: product.name,
-						description: product.description || product.packLabel || product.vendor || SHOP_CONFIG.name,
-						children: [
-							{
-								type: 'badgeGrid',
-								items: [
-									{ label: 'Vendor', value: product.vendor || SHOP_CONFIG.name, tone: 'muted' },
-									{ label: 'Pack', value: product.packLabel || 'Standard pack', tone: 'muted' },
-									{ label: 'Price', value: productPrice(state, product), tone: 'success' },
-									...(product.digital ? [{ label: 'Delivery', value: 'Digital', tone: 'success' }] : [])
-								]
-							},
-							{
-								type: 'buttonRow',
-								buttons: [
-									{ label: 'View details', variant: 'secondary', action: productCardNode(state, product).action },
-									{ label: 'Add to cart', variant: 'primary', action: productCardNode(state, product).addAction }
-								]
-							}
-						]
-					})),
-					{
-						type: 'buttonRow',
-						align: 'between',
-						buttons: [
-							...(currentPage > 1 ? [{ label: 'Previous', variant: 'secondary', action: stateAction(state, { page: currentPage - 1 }) }] : []),
-							...(currentPage < totalPages ? [{ label: 'Next', variant: 'secondary', action: stateAction(state, { page: currentPage + 1 }) }] : [])
-						]
-					},
-					{ type: 'text', tone: 'muted', text: `Page ${currentPage} of ${totalPages}. ${products.length} product${products.length === 1 ? '' : 's'} available.` }
-				]
-			}
-		]
-	};
+							}))}>${escapeHtml(category.label)}</button>
+						`).join('')}
+					</nav>
+				</aside>
+				<main class="wm-main">
+					<div class="wm-main-head">
+						<div>
+							<p class="wm-kicker">Browse category</p>
+							<h1 class="wm-title">${escapeHtml(categoryTitle(state))}</h1>
+						</div>
+						<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'cart' }))}>Cart <span>${cartCount(state)}</span></button>
+					</div>
+					<div class="wm-grid">
+						${visibleProducts.map((product) => `
+							<article class="wm-product">
+								<div class="wm-product-media">
+									${renderProductImage(state, product)}
+									${product.badge ? `<span class="wm-badge">${escapeHtml(product.badge)}</span>` : ''}
+								</div>
+								<button type="button" class="wm-product-open" ${actionAttr(actions, productOpenAction(state, product))}>
+									<p class="wm-product-meta">${escapeHtml(product.vendor || SHOP_CONFIG.name)}</p>
+									<h2 class="wm-product-name">${escapeHtml(product.name)}</h2>
+									<p class="wm-product-pack">${escapeHtml(product.packLabel || 'Standard pack')}</p>
+									<p class="wm-product-price">${escapeHtml(productPrice(state, product))}</p>
+								</button>
+								${frameButton(actions, 'Add to cart', stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`))}
+							</article>
+						`).join('')}
+					</div>
+					${totalPages > 1 ? `
+						<div class="wm-inline-actions">
+							${currentPage > 1 ? frameButton(actions, 'Previous', stateAction(state, { page: currentPage - 1 }), 'secondary') : ''}
+							${currentPage < totalPages ? frameButton(actions, 'Next', stateAction(state, { page: currentPage + 1 }), 'secondary') : ''}
+						</div>
+					` : ''}
+				</main>
+			</div>
+		</div>
+	`, actions);
 }
 
 function renderProductDetail(state) {
 	const product = selectedProduct(state);
 	if (!product) return renderProducts(state);
-	const related = catalogProducts(state)
-		.filter((item) => item.id !== product.id && item.category === product.category)
-		.concat(catalogProducts(state).filter((item) => item.id !== product.id && item.category !== product.category))
-		.slice(0, 3);
-	return {
-		type: 'section',
-		title: product.name,
-		description: product.description,
-		children: [
-			{
-				type: 'badgeGrid',
-				items: [
-					{ label: 'Vendor', value: product.vendor || SHOP_CONFIG.name, tone: 'muted' },
-					{ label: 'Pack', value: product.packLabel || 'Standard pack', tone: 'muted' },
-					{ label: 'Price', value: productPrice(state, product), tone: 'success' },
-					{ label: 'Quantity', value: String(productQuantity(state, product.id)), tone: 'muted' }
-				]
-			},
-			{
-				type: 'buttonRow',
-				buttons: [
-					{ label: 'Back to products', variant: 'secondary', action: stateAction(state, { view: 'products', category: product.category }) },
-					{ label: '-', variant: 'secondary', action: stateAction(decrementProductQuantity(state, product.id), {}) },
-					{ label: '+', variant: 'secondary', action: stateAction(incrementProductQuantity(state, product.id), {}) },
-					{ label: 'Add to cart', variant: 'primary', action: stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`) },
-					{ label: 'Buy now', variant: 'primary', action: stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), { view: 'cart' }) }
-				]
-			},
-			...(related.length
-				? [
-					{
-						type: 'section',
-						title: 'Related products',
-						children: related.map((item) => ({
-							type: 'button',
-							label: item.name,
-							variant: 'secondary',
-							action: productCardNode(state, item).action
-						}))
-					}
-				]
-				: [])
-		]
-	};
+	const actions = {};
+	const logo = shopLogoUrl();
+	return pluginFrame(product.name, `
+		<div class="wm-page">
+			<header class="wm-header wm-shell">
+				<button type="button" class="wm-brand" ${actionAttr(actions, stateAction(state, { view: 'products', category: 'all', page: 1 }))}>
+					${logo ? `<img class="wm-logo" src="${escapeHtml(logo)}" alt="" />` : ''}
+					<span>${escapeHtml(SHOP_CONFIG.name)}</span>
+				</button>
+				<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'cart' }))}>Cart ${cartCount(state)}</button>
+			</header>
+			<main class="wm-detail">
+				<section>
+					${frameButton(actions, 'Back to products', stateAction(state, { view: 'products', category: product.category }), 'secondary')}
+					<div class="wm-detail-media" style="margin-top:1rem">${renderProductImage(state, product)}</div>
+				</section>
+				<section class="wm-detail-copy">
+					<p class="wm-product-meta">${escapeHtml(product.vendor || SHOP_CONFIG.name)}</p>
+					<h1 class="wm-title">${escapeHtml(product.name)}</h1>
+					${product.badge ? `<p><span class="wm-badge" style="position:static;display:inline-flex;margin-top:1rem">${escapeHtml(product.badge)}</span></p>` : ''}
+					<p class="wm-price">${escapeHtml(productPrice(state, product))}</p>
+					<p class="wm-product-meta">Pack</p>
+					<p><span class="wm-btn wm-btn-secondary">${escapeHtml(product.packLabel || 'Standard pack')}</span></p>
+					<p class="wm-product-meta">Quantity</p>
+					<div class="wm-qty">
+						<button type="button" ${actionAttr(actions, stateAction(decrementProductQuantity(state, product.id), {}))}>−</button>
+						<span>${productQuantity(state, product.id)}</span>
+						<button type="button" ${actionAttr(actions, stateAction(incrementProductQuantity(state, product.id), {}))}>+</button>
+					</div>
+					<div class="wm-inline-actions">
+						${frameButton(actions, 'Add to cart', stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`), 'secondary')}
+						${frameButton(actions, 'Buy now', stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), { view: 'cart' }))}
+					</div>
+					<div style="margin-top:2rem;border-top:1px solid rgba(148,163,184,.25);padding-top:1.5rem">
+						<p class="wm-product-meta">Product description</p>
+						<p style="line-height:1.8">${escapeHtml(product.description || '')}</p>
+					</div>
+				</section>
+			</main>
+		</div>
+	`, actions);
 }
 
 
 // src/ui/cart.js
 function renderCart(state) {
+	const actions = {};
 	const items = cartItems(state);
-	return {
-		type: 'section',
-		title: 'Cart',
-		description: `${cartCount(state)} item${cartCount(state) === 1 ? '' : 's'} • ${formatMoney(cartSubtotal(state), state.settings.currency)}`,
-		children: items.length
-			? [
-				...items.map((item) => ({
-					type: 'section',
-					title: item.product.name,
-					description: item.product.packLabel || item.product.vendor || SHOP_CONFIG.name,
-					children: [
-						{
-							type: 'badgeGrid',
-							items: [
-								{ label: 'Quantity', value: String(item.quantity), tone: 'muted' },
-								{ label: 'Price', value: formatMoney(item.product.price, state.settings.currency), tone: 'muted' },
-								{ label: 'Line total', value: formatMoney(item.product.price * item.quantity, state.settings.currency), tone: 'success' }
-							]
-						},
-						{
-							type: 'buttonRow',
-							buttons: [
-								{
-									label: 'View',
-									variant: 'secondary',
-									action: stateAction(state, {
-										view: 'product',
-										category: item.product.category,
-										selectedProductId: item.product.id,
-										productQuantities: {
-											...state.productQuantities,
-											[item.product.id]: Math.max(1, item.quantity)
-										}
-									})
-								},
-								{ label: '-', variant: 'secondary', action: stateAction(removeOneFromCart(state, item.product.id), {}) },
-								{ label: '+', variant: 'secondary', action: stateAction(addToCart(state, item.product.id), {}) },
-								{ label: 'Remove', variant: 'ghost', action: stateAction(removeProductFromCart(state, item.product.id), {}) }
-							]
-						}
-					]
-				})),
-				{
-					type: 'buttonRow',
-					buttons: [
-						{ label: 'Continue shopping', variant: 'secondary', action: stateAction(state, { view: 'products', category: 'all', page: 1 }) },
-						{ label: 'Clear cart', variant: 'ghost', action: stateAction(state, { cart: {}, checkoutStatus: 'draft' }, 'Cart cleared') },
-						{ label: 'Checkout', variant: 'primary', action: stateAction(checkoutReadyState(state), {}) }
-					]
-				}
-			]
-			: [
-				{ type: 'text', tone: 'muted', text: 'Your cart is empty.' },
-				{ type: 'button', label: 'Browse products', variant: 'primary', action: stateAction(state, { view: 'products', category: 'all', page: 1 }) }
-			]
-	};
+	const logo = shopLogoUrl();
+	return pluginFrame('Cart', `
+		<div class="wm-page">
+			<header class="wm-header wm-shell">
+				<button type="button" class="wm-brand" ${actionAttr(actions, stateAction(state, { view: 'products', category: 'all', page: 1 }))}>
+					${logo ? `<img class="wm-logo" src="${escapeHtml(logo)}" alt="" />` : ''}
+					<span>${escapeHtml(SHOP_CONFIG.name)}</span>
+				</button>
+			</header>
+			<section class="wm-card wm-cart">
+				<div class="wm-main-head">
+					<div>
+						<h1 class="wm-title" style="font-size:2rem">Cart</h1>
+						<p class="wm-kicker">${cartCount(state)} item${cartCount(state) === 1 ? '' : 's'}</p>
+					</div>
+					<strong>${escapeHtml(formatMoney(cartSubtotal(state), state.settings.currency))}</strong>
+				</div>
+				${items.length ? `
+					${items.map((item) => `
+						<div class="wm-row">
+							<div class="wm-row-media">${renderProductImage(state, item.product)}</div>
+							<div>
+								<p class="wm-product-meta">${escapeHtml(item.product.vendor || SHOP_CONFIG.name)}</p>
+								<h2 class="wm-product-name">${escapeHtml(item.product.name)}</h2>
+								<p class="wm-product-pack">${escapeHtml(item.product.packLabel || 'Standard pack')}</p>
+								<div class="wm-qty" style="margin-top:.8rem">
+									<button type="button" ${actionAttr(actions, stateAction(removeProductFromCart(state, item.product.id), {}))}>×</button>
+									<button type="button" ${actionAttr(actions, stateAction(removeOneFromCart(state, item.product.id), {}))}>−</button>
+									<span>${item.quantity}</span>
+									<button type="button" ${actionAttr(actions, stateAction(addToCart(state, item.product.id), {}))}>+</button>
+								</div>
+							</div>
+							<strong>${escapeHtml(formatMoney(item.product.price * item.quantity, state.settings.currency))}</strong>
+						</div>
+					`).join('')}
+					<div class="wm-total"><span>Subtotal</span><span>${escapeHtml(formatMoney(cartSubtotal(state), state.settings.currency))}</span></div>
+					<div class="wm-inline-actions">
+						${frameButton(actions, 'Continue shopping', stateAction(state, { view: 'products', category: 'all', page: 1 }), 'secondary')}
+						${frameButton(actions, 'Clear cart', stateAction(state, { cart: {}, checkoutStatus: 'draft' }, 'Cart cleared'), 'ghost')}
+						${frameButton(actions, 'Continue to checkout', stateAction(checkoutReadyState(state), {}))}
+					</div>
+				` : `
+					<div style="padding:2rem;text-align:center">
+						<p style="font-weight:950">Your cart is empty.</p>
+						${frameButton(actions, 'Browse products', stateAction(state, { view: 'products', category: 'all', page: 1 }))}
+					</div>
+				`}
+			</section>
+		</div>
+	`, actions);
 }
 
 
@@ -1327,6 +1327,28 @@ function checkoutRequiredMessage(state, hasPhysicalItems) {
 	return missing.length ? `Add ${missing.join(', ')} before checkout.` : '';
 }
 
+function renderCheckoutField(field, storageActionId) {
+	const value = escapeHtml(field.value || '');
+	const required = field.required ? 'required' : '';
+	const common = `class="wm-input" name="${escapeHtml(field.name)}" data-plugin-storage-action="${escapeHtml(storageActionId)}" data-plugin-field="${escapeHtml(field.name)}" ${required}`;
+	if (field.type === 'select') {
+		return `<label>
+			<span class="wm-product-meta">${escapeHtml(field.label || field.name)}</span>
+			<select ${common}>
+				<option value="">${escapeHtml(field.placeholder || field.label || '')}</option>
+				${(field.options || []).map((option) => {
+					const optionValue = option.name || option.label || option.value || option.code || '';
+					return `<option value="${escapeHtml(optionValue)}" ${optionValue === field.value ? 'selected' : ''}>${escapeHtml(optionValue)}</option>`;
+				}).join('')}
+			</select>
+		</label>`;
+	}
+	return `<label class="${field.name === 'delivery.notes' || field.name === 'delivery.address' || field.name === 'delivery.address2' ? 'wm-span-2' : ''}">
+		<span class="wm-product-meta">${escapeHtml(field.label || field.name)}</span>
+		<input ${common} type="${escapeHtml(field.type || 'text')}" value="${value}" placeholder="${escapeHtml(field.placeholder || field.label || '')}" />
+	</label>`;
+}
+
 function emptyDelivery() {
 	return defaultState().delivery;
 }
@@ -1367,118 +1389,78 @@ function renderCheckout(state) {
 		return renderCart(state);
 	}
 
-	return {
-		type: 'section',
-		title: hasPhysicalItems ? 'Delivery details' : 'Contact details',
-		description: hasPhysicalItems
-			? 'These details are sent to the shop admin only after successful payment.'
-			: 'Digital orders only need an email address and Core ID.',
-		children: [
-			...(hasPhysicalItems && savedDeliveryProfileOptions(checkoutState).length
-				? [
-					{
-						type: 'select',
-						label: 'Saved address',
-						value: checkoutState.selectedDeliveryProfileId,
-						options: savedDeliveryProfileOptions(checkoutState).map((profile) => ({
-							label: profile.description ? `${profile.label} - ${profile.description}` : profile.label,
-							value: profile.id,
-							action: profile.selectAction
-						}))
-					}
-				]
-				: []),
-			renderDeliveryForm(checkoutState),
-			...(hasPhysicalItems
-				? [
-					{
-						type: 'buttonRow',
-						buttons: [
-							{
-								label: checkoutState.saveDelivery ? 'Saving delivery' : 'Save delivery',
-								variant: checkoutState.saveDelivery ? 'primary' : 'secondary',
-								action: stateAction(checkoutState, { saveDelivery: true })
-							},
-							{
-								label: 'This order only',
-								variant: checkoutState.saveDelivery ? 'secondary' : 'primary',
-								action: stateAction(checkoutState, { saveDelivery: false, selectedDeliveryProfileId: '' })
-							},
-							{
-								label: 'Clear form',
-								variant: 'ghost',
-								action: stateAction(state, { delivery: { ...emptyDelivery(), email: state.userEmail || '' }, checkoutStatus: 'draft' }, 'Delivery form cleared')
-							},
-							...(checkoutState.savedDelivery
-								? [
-									{
-										label: 'Remove saved delivery',
-										variant: 'ghost',
-										action: stateAction(checkoutState, {
-											savedDelivery: null,
-											savedDeliveries: [],
-											selectedDeliveryProfileId: '',
-											saveDelivery: false,
-											checkoutStatus: 'draft'
-										}, 'Saved delivery profile removed')
-									}
-								]
-								: [])
-						]
-					}
-				]
-				: []),
-			{
-				type: 'section',
-				title: 'Order summary',
-				children: [
-					{
-						type: 'badgeGrid',
-						items: [
-							{ label: 'Subtotal', value: formatMoney(subtotal, state.settings.currency), tone: 'muted' },
-							...(deliveryFee > 0 ? [{ label: 'Delivery', value: formatMoney(deliveryFee, state.settings.currency), tone: 'muted' }] : []),
-							{ label: 'Total', value: formatMoney(total, state.settings.currency), tone: 'success' },
-							{ label: 'Reference', value: orderReference(state), tone: 'muted' }
-						]
-					},
-					{
-						type: 'list',
-						items: [
-							{ label: 'Core ID', value: state.coreId || 'Not provided' },
-							{ label: 'Collector', value: collectorAccount() },
-							...(hasPhysicalItems ? [{ label: 'Delivery', value: deliverySummary(delivery) }] : []),
-							...items.map((item) => ({
-								label: `${item.product.name} × ${item.quantity}`,
-								value: formatMoney(item.product.price * item.quantity, state.settings.currency)
-							}))
-						]
-					},
-					...(blockedMessage ? [{ type: 'text', tone: requiredMessage || minimumMessage ? 'warning' : 'danger', text: blockedMessage }] : []),
-					{
-						type: 'buttonRow',
-						buttons: [
-							{ label: 'Back to cart', variant: 'secondary', action: stateAction(state, { view: 'cart' }) },
-							{
-								label: blockedMessage ? 'Cannot pay yet' : 'Pay with Wall Money',
-								variant: 'primary',
-								action: developmentMessage
-									? { type: 'notify', message: developmentMessage, level: 'error' }
-									: workerDomainMessage
-										? { type: 'notify', message: workerDomainMessage, level: 'error' }
-									: collectionMessage
-										? { type: 'notify', message: collectionMessage, level: 'error' }
-									: minimumMessage
-										? { type: 'notify', message: minimumMessage, level: 'warning' }
-									: requiredMessage
-										? { type: 'notify', message: requiredMessage, level: 'warning' }
-									: stockManagedPaymentAction(finalCheckoutState, paymentRequest)
-							}
-						]
-					}
-				]
-			}
-		]
-	};
+	const actions = {};
+	const deliveryForm = renderDeliveryForm(checkoutState);
+	const storageActionId = addFrameAction(actions, deliveryForm.autoSaveAction || deliveryForm.action);
+	const profiles = savedDeliveryProfileOptions(checkoutState);
+	const payAction = developmentMessage
+		? { type: 'notify', message: developmentMessage, level: 'error' }
+		: workerDomainMessage
+			? { type: 'notify', message: workerDomainMessage, level: 'error' }
+		: collectionMessage
+			? { type: 'notify', message: collectionMessage, level: 'error' }
+		: minimumMessage
+			? { type: 'notify', message: minimumMessage, level: 'warning' }
+		: requiredMessage
+			? { type: 'notify', message: requiredMessage, level: 'warning' }
+		: stockManagedPaymentAction(finalCheckoutState, paymentRequest);
+
+	return pluginFrame('Checkout', `
+		<div class="wm-page">
+			<header class="wm-header wm-shell">
+				<button type="button" class="wm-brand" ${actionAttr(actions, stateAction(state, { view: 'products', category: 'all', page: 1 }))}>
+					${shopLogoUrl() ? `<img class="wm-logo" src="${escapeHtml(shopLogoUrl())}" alt="" />` : ''}
+					<span>${escapeHtml(SHOP_CONFIG.name)}</span>
+				</button>
+				<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'cart' }))}>Cart ${cartCount(state)}</button>
+			</header>
+			<main class="wm-checkout">
+				<section class="wm-card">
+					<h1 style="margin:0;font-size:1.5rem;font-weight:950">${hasPhysicalItems ? 'Delivery details' : 'Contact details'}</h1>
+					<p class="wm-muted">${hasPhysicalItems ? 'These details are sent to the shop admin only after successful payment.' : 'Digital orders only need an email address and Core ID.'}</p>
+					${hasPhysicalItems && profiles.length ? `
+						<label>
+							<span class="wm-product-meta">Saved address</span>
+							<select class="wm-input" onchange="this.selectedOptions[0] && this.selectedOptions[0].dataset.pluginAction && parent.postMessage({source:'mota-plugin-frame',type:'action',actionId:this.selectedOptions[0].dataset.pluginAction}, '*')">
+								<option value="">Select saved address</option>
+								${profiles.map((profile) => `<option value="${escapeHtml(profile.id)}" data-plugin-action="${addFrameAction(actions, profile.selectAction)}" ${profile.id === checkoutState.selectedDeliveryProfileId ? 'selected' : ''}>${escapeHtml(profile.description ? `${profile.label} - ${profile.description}` : profile.label)}</option>`).join('')}
+							</select>
+						</label>
+					` : ''}
+					<form class="wm-form-grid">
+						${deliveryForm.fields.map((field) => renderCheckoutField(field, storageActionId)).join('')}
+					</form>
+					${hasPhysicalItems ? `
+						<div class="wm-inline-actions">
+							${frameButton(actions, checkoutState.saveDelivery ? 'Saving delivery' : 'Save delivery', stateAction(checkoutState, { saveDelivery: true }), checkoutState.saveDelivery ? 'primary' : 'secondary')}
+							${frameButton(actions, 'This order only', stateAction(checkoutState, { saveDelivery: false, selectedDeliveryProfileId: '' }), checkoutState.saveDelivery ? 'secondary' : 'primary')}
+							${frameButton(actions, 'Clear form', stateAction(state, { delivery: { ...emptyDelivery(), email: state.userEmail || '' }, checkoutStatus: 'draft' }, 'Delivery form cleared'), 'ghost')}
+							${checkoutState.savedDelivery ? frameButton(actions, 'Remove saved delivery', stateAction(checkoutState, {
+								savedDelivery: null,
+								savedDeliveries: [],
+								selectedDeliveryProfileId: '',
+								saveDelivery: false,
+								checkoutStatus: 'draft'
+							}, 'Saved delivery profile removed'), 'ghost') : ''}
+						</div>
+					` : ''}
+				</section>
+				<aside class="wm-card">
+					<h2 style="margin:0;font-size:1.25rem;font-weight:950">Order summary</h2>
+					${items.map((item) => `<div class="wm-summary-line"><span>${escapeHtml(item.product.name)} × ${item.quantity}</span><strong>${escapeHtml(formatMoney(item.product.price * item.quantity, state.settings.currency))}</strong></div>`).join('')}
+					<div class="wm-total"><span>Total</span><span>${escapeHtml(formatMoney(total, state.settings.currency))}</span></div>
+					<p class="wm-muted">Core ID: ${escapeHtml(state.coreId || 'Not provided')}</p>
+					<p class="wm-muted">Collector: ${escapeHtml(collectorAccount())}</p>
+					${hasPhysicalItems ? `<p class="wm-muted">Delivery: ${escapeHtml(deliverySummary(delivery))}</p>` : ''}
+					${blockedMessage ? `<p class="wm-warning">${escapeHtml(blockedMessage)}</p>` : ''}
+					<div class="wm-inline-actions">
+						${frameButton(actions, 'Back to cart', stateAction(state, { view: 'cart' }), 'secondary')}
+						${frameButton(actions, blockedMessage ? 'Cannot pay yet' : 'Pay with Wall Money', payAction)}
+					</div>
+				</aside>
+			</main>
+		</div>
+	`, actions);
 }
 
 
@@ -1526,34 +1508,34 @@ function renderOrders(state) {
 
 // src/ui/success.js
 function renderSuccess(state) {
+	const actions = {};
 	const order = state.lastOrder;
-	return {
-		type: 'section',
-		title: 'Payment successful',
-		description: 'Your order was paid and sent to the shop admin.',
-		children: [
-			...(order
-				? [
-					{
-						type: 'badgeGrid',
-						items: [
-							{ label: 'Status', value: order.status || 'paid', tone: 'success' },
-							{ label: 'Total', value: formatMoney(order.total, order.currency), tone: 'success' },
-							{ label: 'Paid', value: order.paidAt || 'Recorded', tone: 'muted' }
-						]
-					},
-					{
-						type: 'list',
-						items: [
-							{ label: 'Delivery', value: order.delivery || 'Not saved' },
-							{ label: 'Reference', value: order.reference || 'Not available' }
-						]
-					}
-				]
-				: []),
-			{ type: 'button', label: 'Continue shopping', variant: 'primary', action: stateAction(state, { view: 'products', category: 'all', page: 1 }) }
-		]
-	};
+	const logo = shopLogoUrl();
+	return pluginFrame('Payment successful', `
+		<div class="wm-page">
+			<header class="wm-header wm-shell">
+				<button type="button" class="wm-brand" ${actionAttr(actions, stateAction(state, { view: 'products', category: 'all', page: 1 }))}>
+					${logo ? `<img class="wm-logo" src="${escapeHtml(logo)}" alt="" />` : ''}
+					<span>${escapeHtml(SHOP_CONFIG.name)}</span>
+				</button>
+			</header>
+			<section class="wm-card wm-success">
+				<div class="wm-success-mark">✓</div>
+				<h1 class="wm-title" style="font-size:2.25rem;margin-top:1.25rem">Payment successful</h1>
+				<p class="wm-muted">Your order was paid and sent to the shop admin.</p>
+				${order ? `
+					<div class="wm-card" style="max-width:24rem;margin:1.5rem auto 0;text-align:left">
+						<div class="wm-summary-line"><span class="wm-muted">Total</span><strong>${escapeHtml(formatMoney(order.total, order.currency))}</strong></div>
+						${order.paidAt ? `<div class="wm-summary-line"><span class="wm-muted">Paid</span><strong>${escapeHtml(order.paidAt)}</strong></div>` : ''}
+						${order.reference ? `<div class="wm-summary-line"><span class="wm-muted">Reference</span><strong>${escapeHtml(order.reference)}</strong></div>` : ''}
+					</div>
+				` : ''}
+				<div class="wm-inline-actions" style="justify-content:center">
+					${frameButton(actions, 'Continue shopping', stateAction(state, { view: 'products', category: 'all', page: 1 }))}
+				</div>
+			</section>
+		</div>
+	`, actions);
 }
 
 

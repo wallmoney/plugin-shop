@@ -8,142 +8,133 @@ function productPrice(state, product) {
 	return formatMoney(product.price, state.settings.currency);
 }
 
-function productCardNode(state, product) {
-	return {
-		id: product.id,
-		name: product.name,
-		vendor: product.vendor || SHOP_CONFIG.name,
-		icon: product.icon,
-		imageUrl: productImageUrl(state, product),
-		badge: product.badge,
-		packLabel: product.packLabel || 'Standard pack',
-		price: productPrice(state, product),
-		digital: product.digital === true,
-		action: stateAction(state, {
-			view: 'product',
-			category: product.category,
-			selectedProductId: product.id,
-			productQuantities: {
-				...state.productQuantities,
-				[product.id]: productQuantity(state, product.id)
-			}
-		}),
-		addAction: stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`)
-	};
+function productOpenAction(state, product) {
+	return stateAction(state, {
+		view: 'product',
+		category: product.category,
+		selectedProductId: product.id,
+		productQuantities: {
+			...state.productQuantities,
+			[product.id]: productQuantity(state, product.id)
+		}
+	});
+}
+
+function renderProductImage(state, product) {
+	const image = productImageUrl(state, product);
+	return image
+		? `<img src="${escapeHtml(image)}" alt="${escapeHtml(product.name)}" loading="lazy" />`
+		: `<div class="wm-empty-icon">${escapeHtml(product.icon || '•')}</div>`;
 }
 
 function renderProducts(state) {
+	const actions = {};
 	const products = filteredProducts(state);
 	const pageSize = Math.max(1, Number(SHOP_CONFIG.pageSize) || 8);
 	const totalPages = Math.max(1, Math.ceil(products.length / pageSize));
 	const currentPage = Math.min(Math.max(1, state.page || 1), totalPages);
 	const visibleProducts = products.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-	return {
-		type: 'stack',
-		gap: 'lg',
-		children: [
-			renderHero(state),
-			{
-				type: 'section',
-				title: categoryTitle(state),
-				description: SHOP_CONFIG.tagline,
-				children: [
-					{
-						type: 'buttonRow',
-						buttons: allCategories(state).map((category) => ({
-							label: category.label,
-							variant: state.category === category.id ? 'primary' : 'secondary',
-							action: stateAction(state, {
+	const logo = shopLogoUrl();
+
+	return pluginFrame(SHOP_CONFIG.name, `
+		<div class="wm-shop">
+			<div class="wm-shell wm-layout">
+				<aside class="wm-sidebar">
+					<button type="button" class="wm-brand" ${actionAttr(actions, stateAction(state, { view: 'products', category: 'all', page: 1 }))}>
+						${logo ? `<img class="wm-logo" src="${escapeHtml(logo)}" alt="" />` : ''}
+						<span>${escapeHtml(SHOP_CONFIG.name)}</span>
+					</button>
+					<p class="wm-subtitle">${escapeHtml(SHOP_CONFIG.tagline || '')}</p>
+					<nav class="wm-nav" aria-label="Shop categories">
+						${allCategories(state).map((category) => `
+							<button type="button" class="${state.category === category.id ? 'is-active' : ''}" ${actionAttr(actions, stateAction(state, {
 								category: category.id,
 								view: 'products',
 								page: 1,
 								selectedProductId: (category.id === 'all' ? catalogProducts(state)[0] : productsByCategory(category.id, state)[0])?.id || state.selectedProductId
-							})
-						}))
-					},
-					...visibleProducts.map((product) => ({
-						type: 'section',
-						title: product.name,
-						description: product.description || product.packLabel || product.vendor || SHOP_CONFIG.name,
-						children: [
-							{
-								type: 'badgeGrid',
-								items: [
-									{ label: 'Vendor', value: product.vendor || SHOP_CONFIG.name, tone: 'muted' },
-									{ label: 'Pack', value: product.packLabel || 'Standard pack', tone: 'muted' },
-									{ label: 'Price', value: productPrice(state, product), tone: 'success' },
-									...(product.digital ? [{ label: 'Delivery', value: 'Digital', tone: 'success' }] : [])
-								]
-							},
-							{
-								type: 'buttonRow',
-								buttons: [
-									{ label: 'View details', variant: 'secondary', action: productCardNode(state, product).action },
-									{ label: 'Add to cart', variant: 'primary', action: productCardNode(state, product).addAction }
-								]
-							}
-						]
-					})),
-					{
-						type: 'buttonRow',
-						align: 'between',
-						buttons: [
-							...(currentPage > 1 ? [{ label: 'Previous', variant: 'secondary', action: stateAction(state, { page: currentPage - 1 }) }] : []),
-							...(currentPage < totalPages ? [{ label: 'Next', variant: 'secondary', action: stateAction(state, { page: currentPage + 1 }) }] : [])
-						]
-					},
-					{ type: 'text', tone: 'muted', text: `Page ${currentPage} of ${totalPages}. ${products.length} product${products.length === 1 ? '' : 's'} available.` }
-				]
-			}
-		]
-	};
+							}))}>${escapeHtml(category.label)}</button>
+						`).join('')}
+					</nav>
+				</aside>
+				<main class="wm-main">
+					<div class="wm-main-head">
+						<div>
+							<p class="wm-kicker">Browse category</p>
+							<h1 class="wm-title">${escapeHtml(categoryTitle(state))}</h1>
+						</div>
+						<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'cart' }))}>Cart <span>${cartCount(state)}</span></button>
+					</div>
+					<div class="wm-grid">
+						${visibleProducts.map((product) => `
+							<article class="wm-product">
+								<div class="wm-product-media">
+									${renderProductImage(state, product)}
+									${product.badge ? `<span class="wm-badge">${escapeHtml(product.badge)}</span>` : ''}
+								</div>
+								<button type="button" class="wm-product-open" ${actionAttr(actions, productOpenAction(state, product))}>
+									<p class="wm-product-meta">${escapeHtml(product.vendor || SHOP_CONFIG.name)}</p>
+									<h2 class="wm-product-name">${escapeHtml(product.name)}</h2>
+									<p class="wm-product-pack">${escapeHtml(product.packLabel || 'Standard pack')}</p>
+									<p class="wm-product-price">${escapeHtml(productPrice(state, product))}</p>
+								</button>
+								${frameButton(actions, 'Add to cart', stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`))}
+							</article>
+						`).join('')}
+					</div>
+					${totalPages > 1 ? `
+						<div class="wm-inline-actions">
+							${currentPage > 1 ? frameButton(actions, 'Previous', stateAction(state, { page: currentPage - 1 }), 'secondary') : ''}
+							${currentPage < totalPages ? frameButton(actions, 'Next', stateAction(state, { page: currentPage + 1 }), 'secondary') : ''}
+						</div>
+					` : ''}
+				</main>
+			</div>
+		</div>
+	`, actions);
 }
 
 function renderProductDetail(state) {
 	const product = selectedProduct(state);
 	if (!product) return renderProducts(state);
-	const related = catalogProducts(state)
-		.filter((item) => item.id !== product.id && item.category === product.category)
-		.concat(catalogProducts(state).filter((item) => item.id !== product.id && item.category !== product.category))
-		.slice(0, 3);
-	return {
-		type: 'section',
-		title: product.name,
-		description: product.description,
-		children: [
-			{
-				type: 'badgeGrid',
-				items: [
-					{ label: 'Vendor', value: product.vendor || SHOP_CONFIG.name, tone: 'muted' },
-					{ label: 'Pack', value: product.packLabel || 'Standard pack', tone: 'muted' },
-					{ label: 'Price', value: productPrice(state, product), tone: 'success' },
-					{ label: 'Quantity', value: String(productQuantity(state, product.id)), tone: 'muted' }
-				]
-			},
-			{
-				type: 'buttonRow',
-				buttons: [
-					{ label: 'Back to products', variant: 'secondary', action: stateAction(state, { view: 'products', category: product.category }) },
-					{ label: '-', variant: 'secondary', action: stateAction(decrementProductQuantity(state, product.id), {}) },
-					{ label: '+', variant: 'secondary', action: stateAction(incrementProductQuantity(state, product.id), {}) },
-					{ label: 'Add to cart', variant: 'primary', action: stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`) },
-					{ label: 'Buy now', variant: 'primary', action: stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), { view: 'cart' }) }
-				]
-			},
-			...(related.length
-				? [
-					{
-						type: 'section',
-						title: 'Related products',
-						children: related.map((item) => ({
-							type: 'button',
-							label: item.name,
-							variant: 'secondary',
-							action: productCardNode(state, item).action
-						}))
-					}
-				]
-				: [])
-		]
-	};
+	const actions = {};
+	const logo = shopLogoUrl();
+	return pluginFrame(product.name, `
+		<div class="wm-page">
+			<header class="wm-header wm-shell">
+				<button type="button" class="wm-brand" ${actionAttr(actions, stateAction(state, { view: 'products', category: 'all', page: 1 }))}>
+					${logo ? `<img class="wm-logo" src="${escapeHtml(logo)}" alt="" />` : ''}
+					<span>${escapeHtml(SHOP_CONFIG.name)}</span>
+				</button>
+				<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'cart' }))}>Cart ${cartCount(state)}</button>
+			</header>
+			<main class="wm-detail">
+				<section>
+					${frameButton(actions, 'Back to products', stateAction(state, { view: 'products', category: product.category }), 'secondary')}
+					<div class="wm-detail-media" style="margin-top:1rem">${renderProductImage(state, product)}</div>
+				</section>
+				<section class="wm-detail-copy">
+					<p class="wm-product-meta">${escapeHtml(product.vendor || SHOP_CONFIG.name)}</p>
+					<h1 class="wm-title">${escapeHtml(product.name)}</h1>
+					${product.badge ? `<p><span class="wm-badge" style="position:static;display:inline-flex;margin-top:1rem">${escapeHtml(product.badge)}</span></p>` : ''}
+					<p class="wm-price">${escapeHtml(productPrice(state, product))}</p>
+					<p class="wm-product-meta">Pack</p>
+					<p><span class="wm-btn wm-btn-secondary">${escapeHtml(product.packLabel || 'Standard pack')}</span></p>
+					<p class="wm-product-meta">Quantity</p>
+					<div class="wm-qty">
+						<button type="button" ${actionAttr(actions, stateAction(decrementProductQuantity(state, product.id), {}))}>−</button>
+						<span>${productQuantity(state, product.id)}</span>
+						<button type="button" ${actionAttr(actions, stateAction(incrementProductQuantity(state, product.id), {}))}>+</button>
+					</div>
+					<div class="wm-inline-actions">
+						${frameButton(actions, 'Add to cart', stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`), 'secondary')}
+						${frameButton(actions, 'Buy now', stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), { view: 'cart' }))}
+					</div>
+					<div style="margin-top:2rem;border-top:1px solid rgba(148,163,184,.25);padding-top:1.5rem">
+						<p class="wm-product-meta">Product description</p>
+						<p style="line-height:1.8">${escapeHtml(product.description || '')}</p>
+					</div>
+				</section>
+			</main>
+		</div>
+	`, actions);
 }
