@@ -22,14 +22,12 @@ function stockPayload(state, type, result) {
 	};
 }
 
-function stockWebhookHeaders(config) {
-	return config.authHeader ? { authorization: config.authHeader } : undefined;
-}
-
 function stockManagedPaymentAction(state, paymentRequest) {
 	const config = SHOP_CONFIG.stockManagement || {};
 	const provider = config.provider || 'none';
-	if (provider === 'none' || provider !== 'webhook' || !config.webhookUrl) {
+	const paymentConfig = SHOP_CONFIG.orderPayment || {};
+	const paymentWebhookUrl = paymentConfig.webhookUrl || '';
+	if (!paymentWebhookUrl && (provider === 'none' || provider !== 'api' || !config.apiUrl)) {
 		return {
 			type: 'payment',
 			request: paymentRequest
@@ -39,9 +37,14 @@ function stockManagedPaymentAction(state, paymentRequest) {
 	return {
 		type: 'stockCheckedPayment',
 		check: {
-			url: config.webhookUrl,
-			headers: stockWebhookHeaders(config),
-			body: stockPayload(state, 'shop.stock.validate')
+			url: paymentWebhookUrl || config.apiUrl,
+			body: paymentWebhookUrl
+				? orderPreparePayload(state, {
+					request: paymentRequest,
+					sessionId: null,
+					executedAt: null
+				})
+				: stockPayload(state, 'shop.stock.validate')
 		},
 		storageKey: STATE_KEY,
 		cart: state.cart,
@@ -53,16 +56,15 @@ async function sendStockAdjustment(hostApi, state, result) {
 	const config = SHOP_CONFIG.stockManagement || {};
 	const provider = config.provider || 'none';
 	if (provider === 'none') return { ok: true, adjusted: false, reason: 'Stock management disabled.' };
-	if (provider !== 'webhook') return { ok: true, adjusted: false, reason: `Unsupported stock provider: ${provider}` };
-	if (!config.webhookUrl) return { ok: true, adjusted: false, reason: 'Stock webhook is not configured.' };
+	if (provider !== 'api') return { ok: true, adjusted: false, reason: `Unsupported stock provider: ${provider}` };
+	if (!config.apiUrl) return { ok: true, adjusted: false, reason: 'Stock API endpoint is not configured.' };
 
 	const response = await hostApi.network.postJson({
-		url: config.webhookUrl,
-		headers: stockWebhookHeaders(config),
+		url: config.apiUrl,
 		body: stockPayload(state, 'shop.stock.decrement', result)
 	});
 	if (!response.ok) {
-		throw new Error(`Stock webhook failed (${response.status}).`);
+		throw new Error(`Stock API failed (${response.status}).`);
 	}
-	return { ok: true, adjusted: true, provider: 'webhook' };
+	return { ok: true, adjusted: true, provider: 'api' };
 }

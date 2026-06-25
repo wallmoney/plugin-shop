@@ -1,11 +1,6 @@
 <script lang="ts">
+	import { previewCatalog } from '$lib/previewCatalog';
 	import RetryingImage from '$lib/RetryingImage.svelte';
-	import categories from '../../data/categories.json';
-	import redTea from '../../data/inventory/red-tea.json';
-	import turkishTea from '../../data/inventory/turkish-tea.json';
-	import coffee from '../../data/inventory/coffee.json';
-	import redRose from '../../data/inventory/red-rose.json';
-	import tulip from '../../data/inventory/tulip.json';
 
 	type Category = { id: string; label: string; helper: string; order: number };
 	type Product = {
@@ -28,12 +23,12 @@
 		title: 'WM Shop',
 		subtitle: 'Decentralized shopping listed as WM plugin.',
 		currency: 'USD',
-		gatewayUrl: 'https://ipf.sk',
 		minimumCheckoutAmount: 50,
 		deliveryFee: 0
 	};
-	const productList = [redTea, turkishTea, coffee, redRose, tulip] as Product[];
-	const categoryList = [{ id: 'all', label: 'All', helper: 'Every listing', order: 0 }, ...(categories as Category[])].sort((a, b) => a.order - b.order);
+	const catalogData = previewCatalog as { categories: Category[]; products: Product[] };
+	const productList = catalogData.products;
+	const categoryList = [{ id: 'all', label: 'All', helper: 'Every listing', order: 0 }, ...catalogData.categories].sort((a, b) => a.order - b.order);
 	const products = [...productList].sort((a, b) => a.order - b.order);
 
 	let view = $state<View>('products');
@@ -57,7 +52,7 @@
 	);
 
 	function imageUrl(product: Product): string {
-		return `${shop.gatewayUrl}/ipfs/${product.cid}`;
+		return `https://ipf.sk/ipfs/${product.cid}`;
 	}
 
 	function money(value: number): string {

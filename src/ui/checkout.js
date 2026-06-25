@@ -8,13 +8,6 @@ function renderDeliveryForm(state) {
 		email: initialDelivery.email || state.userEmail || '',
 		country: selectedCountry
 	};
-	const next = normalizeState({
-		...state,
-		delivery: deliveryDraft,
-		savedDelivery: state.saveDelivery ? deliveryDraft : state.savedDelivery,
-		view: 'checkout',
-		checkoutStatus: 'details_saved'
-	});
 	const fields = [
 		{ name: 'delivery.email', label: 'Email', type: 'email', value: deliveryDraft.email, placeholder: 'marsellus@wallace.pulp', required: true }
 	];
@@ -52,21 +45,24 @@ function renderDeliveryForm(state) {
 	return {
 		type: 'form',
 		fields,
-		submitLabel: state.saveDelivery ? 'Save delivery details locally' : 'Use for this order only',
-		action: {
+		submitLabel: '',
+		showSubmit: false,
+		autoSaveAction: {
 			type: 'storage',
 			key: STATE_KEY,
-			value: next,
-			message: state.saveDelivery ? 'Delivery details saved for future orders' : 'Delivery details saved for this checkout',
-			level: 'success'
+			value: checkoutReadyState(state),
+			mergeFormValues: true,
+			saveValidDeliveryProfile: state.saveDelivery && hasPhysicalItems
 		}
 	};
 }
 
 function checkoutDelivery(state) {
 	const delivery = state.delivery || emptyDelivery();
-	if (state.saveDelivery && state.savedDelivery) return state.savedDelivery;
-	if (state.savedDelivery && !delivery.name && !delivery.address) return state.savedDelivery;
+	const profiles = normalizeSavedDeliveries(state.savedDeliveries, state.savedDelivery);
+	const selectedProfile = profiles.find((profile) => deliveryProfileId(profile) === state.selectedDeliveryProfileId);
+	if (selectedProfile) return selectedProfile;
+	if (profiles.length && !delivery.name && !delivery.address) return profiles[0];
 	return delivery;
 }
 
@@ -83,9 +79,92 @@ function checkoutReadyState(state) {
 	});
 }
 
+function checkoutStateWithSavedProfile(state, hasPhysicalItems) {
+	const checkoutState = checkoutReadyState(state);
+	if (!checkoutState.saveDelivery || !hasPhysicalItems) return checkoutState;
+	if (checkoutRequiredMessage(checkoutState, hasPhysicalItems)) return checkoutState;
+	const savedDeliveries = upsertSavedDeliveryProfile(checkoutState.savedDeliveries, checkoutState.delivery);
+	return normalizeState({
+		...checkoutState,
+		savedDeliveries,
+		savedDelivery: savedDeliveries[0] || null,
+		selectedDeliveryProfileId: deliveryProfileId(checkoutState.delivery),
+		checkoutStatus: 'details_saved'
+	});
+}
+
+function savedDeliveryProfileOptions(state) {
+	const profiles = normalizeSavedDeliveries(state.savedDeliveries, state.savedDelivery);
+	return profiles.map((profile) => {
+		const id = deliveryProfileId(profile);
+		const nextProfiles = removeSavedDeliveryProfile(profiles, id);
+		const selected = id === state.selectedDeliveryProfileId;
+		return {
+			id,
+			label: deliveryProfileLabel(profile),
+			description: [profile.city, profile.zip, profile.country].filter(Boolean).join(', '),
+			selected,
+			selectAction: stateAction(state, {
+				delivery: profile,
+				selectedDeliveryProfileId: id,
+				saveDelivery: true,
+				checkoutStatus: 'details_saved'
+			}, 'Saved delivery profile loaded'),
+			removeAction: stateAction(state, {
+				savedDeliveries: nextProfiles,
+				savedDelivery: nextProfiles[0] || null,
+				selectedDeliveryProfileId: selected ? '' : state.selectedDeliveryProfileId,
+				delivery: selected ? { ...emptyDelivery(), email: state.userEmail || state.delivery.email || '' } : state.delivery,
+				checkoutStatus: 'draft'
+			}, 'Saved delivery profile removed')
+		};
+	});
+}
+
 function checkoutMinimumAmount() {
 	const minimum = Number(SHOP_CONFIG.minimumCheckoutAmount);
 	return Number.isFinite(minimum) && minimum > 0 ? minimum : 0;
+}
+
+function shopDevModeEnabled() {
+	const value = SHOP_CONFIG.DEV_MODE;
+	if (value === true || value === 1) return true;
+	if (typeof value === 'string') {
+		const normalized = value.trim().toLowerCase();
+		return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on';
+	}
+	return false;
+}
+
+function isHttpsUrl(value) {
+	if (!value) return true;
+	try {
+		const url = new URL(value);
+		return url.protocol === 'https:';
+	} catch {
+		return false;
+	}
+}
+
+function productionEndpointMessage() {
+	if (shopDevModeEnabled()) return '';
+	const fulfillment = SHOP_CONFIG.orderFulfillment || {};
+	const email = SHOP_CONFIG.orderEmail || {};
+	const payment = SHOP_CONFIG.orderPayment || {};
+	const stock = SHOP_CONFIG.stockManagement || {};
+	const catalogD1 = SHOP_CONFIG.catalogD1 || {};
+	const urls = [
+		fulfillment.webhookUrl || email.webhookUrl || '',
+		payment.webhookUrl || '',
+		stock.provider === 'api' ? stock.apiUrl || '' : '',
+		SHOP_CONFIG.defaultCatalogProvider === 'd1' ? catalogD1.apiUrl || '' : ''
+	].filter(Boolean);
+	const invalid = urls.find((url) => !isHttpsUrl(url));
+	return invalid ? 'Worker endpoints must use valid HTTPS URLs in production.' : '';
+}
+
+function devModeMessage() {
+	return shopDevModeEnabled() ? 'Dev mode is enabled, disable it for production.' : '';
 }
 
 function isValidEmail(value) {
@@ -108,6 +187,7 @@ function minimumCheckoutMessage(state, total) {
 
 function checkoutRequiredMessage(state, hasPhysicalItems) {
 	const delivery = state.delivery || {};
+	if (!state.coreId) return 'Core ID is required before checkout.';
 	if (!delivery.email) return hasPhysicalItems ? 'Enter delivery details before checkout.' : 'Enter email address before checkout.';
 	if (!isValidEmail(delivery.email)) return 'Enter a valid email before checkout.';
 	if (!hasPhysicalItems) return '';
@@ -143,8 +223,12 @@ function renderCheckout(state) {
 	const checkoutState = checkoutReadyState(state);
 	const delivery = checkoutState.delivery;
 	const minimumMessage = minimumCheckoutMessage(state, subtotal);
+	const collectionMessage = orderCollectionMessage(checkoutState);
+	const developmentMessage = devModeMessage();
+	const workerDomainMessage = productionEndpointMessage();
 	const requiredMessage = checkoutRequiredMessage(checkoutState, hasPhysicalItems);
-	const blockedMessage = minimumMessage || requiredMessage;
+	const blockedMessage = developmentMessage || workerDomainMessage || collectionMessage || minimumMessage || requiredMessage;
+	const finalCheckoutState = checkoutStateWithSavedProfile(checkoutState, hasPhysicalItems);
 	const paymentRequest = {
 		label: `${SHOP_CONFIG.name} order`,
 		amount: total.toFixed(2),
@@ -155,7 +239,11 @@ function renderCheckout(state) {
 			amount: total.toFixed(2),
 			platform: 'platform',
 			description: `${SHOP_CONFIG.name} order (${cartCount(state)} items)`,
-			descriptionExp: orderReference(state)
+			descriptionExp: orderReference(state),
+			referenceId: orderReference(state),
+			webhookUrl: SHOP_CONFIG.orderPayment && SHOP_CONFIG.orderPayment.webhookUrl
+				? SHOP_CONFIG.orderPayment.webhookUrl
+				: undefined
 		}
 	};
 	if (!items.length) {
@@ -165,7 +253,7 @@ function renderCheckout(state) {
 	return {
 		type: 'shopCheckout',
 		shopTitle: SHOP_CONFIG.name,
-		shopLogoUrl: SHOP_CONFIG.logoUrl,
+		shopLogoUrl: shopLogoUrl(),
 		coreId: state.coreId,
 		cartCount: cartCount(state),
 		theme: state.theme,
@@ -174,16 +262,35 @@ function renderCheckout(state) {
 		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
 		cartAction: stateAction(state, { view: 'cart' }),
 		deliveryForm: renderDeliveryForm(checkoutState),
-		useSavedDeliveryAction: state.savedDelivery
-			? stateAction(state, { delivery: state.savedDelivery, checkoutStatus: 'details_saved' }, 'Saved delivery profile loaded')
+		useSavedDeliveryAction: checkoutState.savedDelivery
+			? stateAction(checkoutState, {
+				delivery: checkoutState.savedDelivery,
+				selectedDeliveryProfileId: deliveryProfileId(checkoutState.savedDelivery),
+				saveDelivery: true,
+				checkoutStatus: 'details_saved'
+			}, 'Saved delivery profile loaded')
 			: null,
 		clearDeliveryAction: stateAction(state, { delivery: { ...emptyDelivery(), email: state.userEmail || '' }, checkoutStatus: 'draft' }, 'Delivery form cleared'),
-		removeSavedDeliveryAction: state.savedDelivery
-			? stateAction(state, { savedDelivery: null, saveDelivery: false, checkoutStatus: 'draft' }, 'Saved delivery profile removed')
+		removeSavedDeliveryAction: checkoutState.savedDelivery
+			? stateAction(checkoutState, {
+				savedDelivery: null,
+				savedDeliveries: [],
+				selectedDeliveryProfileId: '',
+				saveDelivery: false,
+				checkoutStatus: 'draft'
+			}, 'Saved delivery profile removed')
 			: null,
-		saveDeliveryAction: stateAction(state, { saveDelivery: true }),
-		oneOrderAction: stateAction(state, { saveDelivery: false }),
-		saveDelivery: state.saveDelivery,
+		saveDeliveryAction: stateAction(checkoutState, { saveDelivery: true }),
+		oneOrderAction: stateAction(checkoutState, { saveDelivery: false, selectedDeliveryProfileId: '' }),
+		saveDelivery: checkoutState.saveDelivery,
+		savedProfiles: savedDeliveryProfileOptions(checkoutState),
+		savedProfileOptions: savedDeliveryProfileOptions(checkoutState),
+		selectedDeliveryProfileId: checkoutState.selectedDeliveryProfileId,
+		saveMode: checkoutState.saveDelivery ? 'save' : 'one-time',
+		saveModeOptions: [
+			{ label: 'One-time', value: 'one-time', selected: !checkoutState.saveDelivery, action: stateAction(checkoutState, { saveDelivery: false, selectedDeliveryProfileId: '' }) },
+			{ label: 'Save delivery', value: 'save', selected: checkoutState.saveDelivery, action: stateAction(checkoutState, { saveDelivery: true }) }
+		],
 		summary: {
 			subtotal: formatMoney(subtotal, state.settings.currency),
 			deliveryFee: formatMoney(deliveryFee, state.settings.currency),
@@ -205,10 +312,16 @@ function renderCheckout(state) {
 		},
 		payDisabled: Boolean(blockedMessage),
 		payDisabledMessage: blockedMessage,
-		payAction: minimumMessage
-			? { type: 'notify', message: minimumMessage, level: 'warning' }
+		payAction: developmentMessage
+			? { type: 'notify', message: developmentMessage, level: 'error' }
+			: workerDomainMessage
+				? { type: 'notify', message: workerDomainMessage, level: 'error' }
+			: collectionMessage
+			? { type: 'notify', message: collectionMessage, level: 'error' }
+			: minimumMessage
+				? { type: 'notify', message: minimumMessage, level: 'warning' }
 			: requiredMessage
 				? { type: 'notify', message: requiredMessage, level: 'warning' }
-			: stockManagedPaymentAction(checkoutState, paymentRequest)
+			: stockManagedPaymentAction(finalCheckoutState, paymentRequest)
 	};
 }

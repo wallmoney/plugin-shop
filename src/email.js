@@ -9,6 +9,7 @@ function escapeHtml(value) {
 
 function orderEmailItems(state) {
 	return cartItems(state).map((item) => ({
+		id: item.product.id,
 		name: item.product.name,
 		quantity: item.quantity,
 		unitPrice: formatMoney(item.product.price, state.settings.currency),
@@ -25,6 +26,28 @@ function orderEmailSubject(state, result) {
 
 function shopAdminEmail(state) {
 	return (state.settings && state.settings.adminEmail) || SHOP_CONFIG.orderEmail.adminEmail || '';
+}
+
+function orderFulfillmentMode() {
+	const fulfillment = SHOP_CONFIG.orderFulfillment || {};
+	const mode = String(fulfillment.mode || 'email').trim().toLowerCase();
+	return ['email', 'webhook', 'both', 'storage', 'none'].includes(mode) ? mode : 'email';
+}
+
+function orderCollectionMessage(state) {
+	const config = SHOP_CONFIG.orderEmail || {};
+	const fulfillment = SHOP_CONFIG.orderFulfillment || {};
+	const mode = orderFulfillmentMode();
+	if (mode === 'none') return 'No order collection is configured, please contact admin.';
+	const webhookUrl = fulfillment.webhookUrl || config.webhookUrl || '';
+	const hasEmail = Boolean(shopAdminEmail(state));
+	const hasWebhook = Boolean(webhookUrl);
+	const configured =
+		(mode === 'email' && hasEmail && hasWebhook) ||
+		(mode === 'webhook' && hasWebhook) ||
+		(mode === 'both' && hasEmail && hasWebhook) ||
+		(mode === 'storage' && hasWebhook);
+	return configured ? '' : 'No order collection is configured, please contact admin.';
 }
 
 function customerEmailSubject(state, result) {
@@ -114,11 +137,38 @@ function mailtoOrderUrl(state, result) {
 
 function orderWebhookPayload(state, result) {
 	const reference = result.request && result.request.reference ? result.request.reference : orderReference(state);
+	const fulfillment = SHOP_CONFIG.orderFulfillment || {};
+	const adminEmail = shopAdminEmail(state);
+	const emails = [
+		...(adminEmail
+			? [{
+				type: 'admin',
+				to: adminEmail,
+				replyTo: state.delivery && state.delivery.email ? state.delivery.email : null,
+				subject: orderEmailSubject(state, result),
+				text: orderEmailText(state, result),
+				html: orderEmailHtml(state, result)
+			}]
+			: []),
+		...(SHOP_CONFIG.orderEmail.sendCustomerReceipt && state.delivery && state.delivery.email
+			? [{
+				type: 'customer',
+				to: state.delivery.email,
+				replyTo: adminEmail || null,
+				subject: customerEmailSubject(state, result),
+				text: orderEmailText(state, result),
+				html: orderEmailHtml(state, result)
+			}]
+			: [])
+	];
 	return {
 		type: 'shop.order.paid',
+		fulfillment: {
+			mode: fulfillment.mode || 'email'
+		},
 		shop: {
 			name: SHOP_CONFIG.name,
-			adminEmail: shopAdminEmail(state) || null
+			adminEmail: adminEmail || null
 		},
 		payment: {
 			reference,
@@ -137,28 +187,9 @@ function orderWebhookPayload(state, result) {
 		},
 		delivery: state.delivery,
 		items: orderEmailItems(state),
-		emails: [
-			{
-				type: 'admin',
-				to: shopAdminEmail(state),
-				replyTo: state.delivery && state.delivery.email ? state.delivery.email : null,
-				subject: orderEmailSubject(state, result),
-				text: orderEmailText(state, result),
-				html: orderEmailHtml(state, result)
-			},
-			...(SHOP_CONFIG.orderEmail.sendCustomerReceipt && state.delivery && state.delivery.email
-				? [{
-					type: 'customer',
-					to: state.delivery.email,
-					replyTo: shopAdminEmail(state) || null,
-					subject: customerEmailSubject(state, result),
-					text: orderEmailText(state, result),
-					html: orderEmailHtml(state, result)
-				}]
-				: [])
-		],
+		emails,
 		email: {
-			to: shopAdminEmail(state),
+			to: adminEmail,
 			replyTo: state.delivery && state.delivery.email ? state.delivery.email : null,
 			subject: orderEmailSubject(state, result),
 			text: orderEmailText(state, result),
@@ -167,11 +198,21 @@ function orderWebhookPayload(state, result) {
 	};
 }
 
+function orderPreparePayload(state, result) {
+	return {
+		...orderWebhookPayload(state, result),
+		type: 'shop.order.prepare'
+	};
+}
+
 async function sendAdminOrderEmail(hostApi, state, result) {
 	const config = SHOP_CONFIG.orderEmail || {};
-	const provider = config.provider || 'none';
+	const fulfillment = SHOP_CONFIG.orderFulfillment || {};
+	const provider = config.provider || (fulfillment.webhookUrl ? 'webhook' : 'none');
+	const mode = orderFulfillmentMode();
 	const adminEmail = shopAdminEmail(state);
-	if (provider === 'none' || !adminEmail) return { ok: true, sent: false, reason: 'Admin email disabled.' };
+	if (provider === 'none' || mode === 'none') return { ok: true, sent: false, reason: 'Order fulfillment disabled.' };
+	if (mode === 'email' && !adminEmail) return { ok: true, sent: false, reason: 'Admin email disabled.' };
 
 	if (provider === 'mailto') {
 		await hostApi.ui.navigate(mailtoOrderUrl(state, result));
@@ -179,15 +220,15 @@ async function sendAdminOrderEmail(hostApi, state, result) {
 	}
 
 	if (provider !== 'webhook') return { ok: true, sent: false, reason: `Unsupported email provider: ${provider}` };
-	if (!config.webhookUrl) return { ok: true, sent: false, reason: 'Order email webhook is not configured.' };
+	const webhookUrl = fulfillment.webhookUrl || config.webhookUrl;
+	if (!webhookUrl) return { ok: true, sent: false, reason: 'Order fulfillment webhook is not configured.' };
 
 	const response = await hostApi.network.postJson({
-		url: config.webhookUrl,
-		headers: config.authHeader ? { authorization: config.authHeader } : undefined,
+		url: webhookUrl,
 		body: orderWebhookPayload(state, result)
 	});
 	if (!response.ok) {
-		throw new Error(`Order email webhook failed (${response.status}).`);
+		throw new Error(`Order fulfillment webhook failed (${response.status}).`);
 	}
-	return { ok: true, sent: true, provider: 'webhook' };
+	return { ok: true, sent: mode === 'email' || mode === 'both', provider: 'webhook', mode };
 }

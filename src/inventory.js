@@ -1,4 +1,4 @@
-// Generated from data/categories.json and data/inventory/*.json. Run npm run build:inventory after edits.
+// Bundled fallback catalog. The active catalog is loaded from IPFS unless local mode is enabled.
 const SHOP_CATEGORIES = [
 	{
 		"id": "tea",

@@ -21,7 +21,10 @@ type StockPayload = {
 
 type Env = {
 	SHOP_STOCK?: KVNamespace;
+	STOCK_PROVIDER?: string;
 	STOCK_WEBHOOK_TOKEN?: string;
+	EXTERNAL_STOCK_API_URL?: string;
+	EXTERNAL_STOCK_API_TOKEN?: string;
 };
 
 type StockResult = {
@@ -50,6 +53,12 @@ function readString(value: unknown): string {
 function readQuantity(value: unknown): number {
 	const number = Number(value);
 	return Number.isFinite(number) && number > 0 ? Math.round(number) : 0;
+}
+
+function stockProvider(env: Env): 'kv' | 'api' | 'none' {
+	const value = readString(env.STOCK_PROVIDER).toLowerCase();
+	if (value === 'api' || value === 'none') return value;
+	return 'kv';
 }
 
 async function checkItemStock(stock: KVNamespace, item: StockItem): Promise<StockResult> {
@@ -84,23 +93,38 @@ async function decrementCheckedItemStock(stock: KVNamespace, result: StockResult
 	return { id: result.id, requested, before, after, status: 'updated' };
 }
 
+async function forwardToExternalStockApi(payload: StockPayload, env: Env): Promise<Response> {
+	if (!env.EXTERNAL_STOCK_API_URL) {
+		return jsonResponse({ ok: false, message: 'EXTERNAL_STOCK_API_URL is not configured.' }, { status: 500 });
+	}
+	const response = await fetch(env.EXTERNAL_STOCK_API_URL, {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			...(env.EXTERNAL_STOCK_API_TOKEN ? { authorization: `Bearer ${env.EXTERNAL_STOCK_API_TOKEN}` } : {})
+		},
+		body: JSON.stringify(payload)
+	});
+	const body = await response.text();
+	return new Response(body, {
+		status: response.status,
+		headers: {
+			'content-type': response.headers.get('content-type') || 'application/json'
+		}
+	});
+}
+
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
 		if (request.method !== 'POST') {
 			return jsonResponse({ ok: false, message: 'Method not allowed.' }, { status: 405 });
 		}
 
-		if (!env.STOCK_WEBHOOK_TOKEN) {
-			return jsonResponse({ ok: false, message: 'Stock webhook token is not configured.' }, { status: 500 });
-		}
-
-		const expected = `Bearer ${env.STOCK_WEBHOOK_TOKEN}`;
-		if (request.headers.get('authorization') !== expected) {
-			return jsonResponse({ ok: false, message: 'Unauthorized.' }, { status: 401 });
-		}
-
-		if (!env.SHOP_STOCK) {
-			return jsonResponse({ ok: true, adjusted: false, reason: 'SHOP_STOCK KV binding is not configured.' });
+		if (env.STOCK_WEBHOOK_TOKEN) {
+			const expected = `Bearer ${env.STOCK_WEBHOOK_TOKEN}`;
+			if (request.headers.get('authorization') !== expected) {
+				return jsonResponse({ ok: false, message: 'Unauthorized.' }, { status: 401 });
+			}
 		}
 
 		const payload = await request.json().catch(() => null) as StockPayload | null;
@@ -113,6 +137,17 @@ export default {
 		const isValidate = payload?.type === 'shop.stock.validate';
 		if (!isDecrement && !isValidate) {
 			return jsonResponse({ ok: false, message: 'Unsupported stock operation.' }, { status: 400 });
+		}
+
+		const provider = stockProvider(env);
+		if (provider === 'none') {
+			return jsonResponse({ ok: true, adjusted: false, provider, reason: 'Stock management disabled.' });
+		}
+		if (provider === 'api') {
+			return forwardToExternalStockApi(payload as StockPayload, env);
+		}
+		if (!env.SHOP_STOCK) {
+			return jsonResponse({ ok: true, adjusted: false, provider, reason: 'SHOP_STOCK KV binding is not configured.' });
 		}
 
 		const checked = await Promise.all(items.map((item) => checkItemStock(env.SHOP_STOCK as KVNamespace, item)));
@@ -132,6 +167,7 @@ export default {
 		if (isValidate) {
 			return jsonResponse({
 				ok: true,
+				provider,
 				adjusted: false,
 				results: checked
 			});
@@ -141,6 +177,7 @@ export default {
 		const updated = results.filter((result) => result.status === 'updated');
 		return jsonResponse({
 			ok: true,
+			provider,
 			adjusted: updated.length > 0,
 			updated: updated.length,
 			skipped: results.length - updated.length,

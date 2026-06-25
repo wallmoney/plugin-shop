@@ -14,7 +14,7 @@ function formatMoney(value, currency) {
 }
 
 function cartItems(state) {
-	return SHOP_PRODUCTS
+	return catalogProducts(state)
 		.map((product) => ({
 			product,
 			quantity: state.cart[product.id] || 0
@@ -51,7 +51,7 @@ function productQuantity(state, productId) {
 }
 
 function setProductQuantity(state, productId, quantity) {
-	const product = SHOP_PRODUCTS.find((item) => item.id === productId);
+	const product = catalogProducts(state).find((item) => item.id === productId);
 	if (!product) return state;
 	return normalizeState({
 		...state,
@@ -71,7 +71,7 @@ function decrementProductQuantity(state, productId) {
 }
 
 function addQuantityToCart(state, productId, quantity) {
-	const product = SHOP_PRODUCTS.find((item) => item.id === productId);
+	const product = catalogProducts(state).find((item) => item.id === productId);
 	if (!product) return state;
 	const cart = { ...state.cart };
 	const current = cart[productId] || 0;
