@@ -392,19 +392,19 @@ function activeCatalog(raw) {
 	return normalizeCatalog(raw) || defaultCatalog();
 }
 
-function activeProducts(raw) {
-	return activeCatalog(raw.catalog).products;
+function activeProducts(catalog) {
+	return activeCatalog(catalog).products;
 }
 
-function normalizeCategory(raw) {
+function normalizeCategory(raw, catalog) {
 	const fallback = 'all';
 	const value = cleanString(raw, fallback).toLowerCase();
-	const categories = activeCatalog(raw.catalog).categories;
+	const categories = activeCatalog(catalog).categories;
 	return value === 'all' || categories.some((category) => category.id === value) ? value : fallback;
 }
 
-function normalizeProductId(raw, category) {
-	const products = activeProducts(raw);
+function normalizeProductId(raw, category, catalog) {
+	const products = activeProducts(catalog);
 	const fallbackProduct =
 		(category === 'all' ? products[0] : products.find((product) => product.category === category)) ||
 		products[0] ||
@@ -447,18 +447,18 @@ function normalizeState(raw) {
 	const view = ['products', 'product', 'cart', 'checkout', 'orders', 'success'].includes(value.view)
 		? value.view
 		: fallback.view;
-	const category = normalizeCategory(value.category);
+	const catalog = normalizeCatalog(value.catalog);
+	const category = normalizeCategory(value.category, catalog);
 	const savedDeliveries = normalizeSavedDeliveries(value.savedDeliveries, value.savedDelivery);
 	const selectedDeliveryProfileId = savedDeliveries.some((profile) => deliveryProfileId(profile) === value.selectedDeliveryProfileId)
 		? value.selectedDeliveryProfileId
 		: '';
-	const catalog = normalizeCatalog(value.catalog);
 	return {
 		...fallback,
 		...value,
 		view,
 		category,
-		selectedProductId: normalizeProductId(value.selectedProductId, category),
+		selectedProductId: normalizeProductId(value.selectedProductId, category, catalog),
 		coreId: typeof value.coreId === 'string' && value.coreId.trim() ? value.coreId.trim() : null,
 		userEmail: cleanString(value.userEmail, fallback.userEmail),
 		emailRequestStatus: ['idle', 'requested', 'resolved'].includes(value.emailRequestStatus)
