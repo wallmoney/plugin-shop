@@ -1,7 +1,7 @@
 function shopLogoUrl() {
-	if (SHOP_CONFIG.logoSrc) return SHOP_CONFIG.logoSrc;
-	if (SHOP_CONFIG.logoUrl) return SHOP_CONFIG.logoUrl;
 	const context = typeof pluginContext === 'object' && pluginContext ? pluginContext : null;
+	if (SHOP_CONFIG.logoSrc && /^https?:\/\//i.test(SHOP_CONFIG.logoSrc)) return SHOP_CONFIG.logoSrc;
+	if (SHOP_CONFIG.logoUrl && /^https?:\/\//i.test(SHOP_CONFIG.logoUrl)) return SHOP_CONFIG.logoUrl;
 	return context && typeof context.iconUrl === 'string' ? context.iconUrl : '';
 }
 
