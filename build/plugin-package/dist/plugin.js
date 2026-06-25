@@ -911,19 +911,6 @@ function productPrice(state, product) {
 	return formatMoney(product.price, state.settings.currency);
 }
 
-function vendorInitials(product) {
-	return (product.vendor || SHOP_CONFIG.name)
-		.split(/\s+/)
-		.filter(Boolean)
-		.slice(0, 2)
-		.map((part) => part[0].toUpperCase())
-		.join('') || 'WM';
-}
-
-function shopThemeAction(state) {
-	return stateAction(state, { theme: state.theme === 'auto' ? 'dark' : state.theme === 'dark' ? 'light' : 'auto' });
-}
-
 function productCardNode(state, product) {
 	return {
 		id: product.id,
@@ -948,15 +935,6 @@ function productCardNode(state, product) {
 	};
 }
 
-function productDetailNode(state, product) {
-	return {
-		...productCardNode(state, product),
-		vendorInitials: vendorInitials(product),
-		description: product.description,
-		packLabel: product.packLabel || 'Standard pack'
-	};
-}
-
 function renderProducts(state) {
 	const products = filteredProducts(state);
 	const pageSize = Math.max(1, Number(SHOP_CONFIG.pageSize) || 8);
@@ -964,38 +942,63 @@ function renderProducts(state) {
 	const currentPage = Math.min(Math.max(1, state.page || 1), totalPages);
 	const visibleProducts = products.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 	return {
-		type: 'shopCatalog',
-		shopTitle: SHOP_CONFIG.name,
-		shopSubtitle: SHOP_CONFIG.tagline,
-		shopLogoUrl: shopLogoUrl(),
-		title: categoryTitle(state),
-		subtitle: SHOP_CONFIG.tagline,
-		coreId: state.coreId,
-		cartCount: cartCount(state),
-		theme: state.theme,
-		themeAction: shopThemeAction(state),
-		portalAction: { type: 'navigate', href: '/' },
-		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
-		cartAction: stateAction(state, { view: 'cart' }),
-		categories: allCategories(state).map((category) => ({
-			id: category.id,
-			label: category.label,
-			selected: state.category === category.id,
-			action: stateAction(state, {
-				category: category.id,
-				view: 'products',
-				page: 1,
-				selectedProductId: (category.id === 'all' ? catalogProducts(state)[0] : productsByCategory(category.id, state)[0])?.id || state.selectedProductId
-			})
-		})),
-		products: visibleProducts.map((product) => productCardNode(state, product)),
-		pagination: {
-			currentPage,
-			totalPages,
-			totalItems: products.length,
-			prevAction: currentPage > 1 ? stateAction(state, { page: currentPage - 1 }) : null,
-			nextAction: currentPage < totalPages ? stateAction(state, { page: currentPage + 1 }) : null
-		}
+		type: 'stack',
+		gap: 'lg',
+		children: [
+			renderHero(state),
+			{
+				type: 'section',
+				title: categoryTitle(state),
+				description: SHOP_CONFIG.tagline,
+				children: [
+					{
+						type: 'buttonRow',
+						buttons: allCategories(state).map((category) => ({
+							label: category.label,
+							variant: state.category === category.id ? 'primary' : 'secondary',
+							action: stateAction(state, {
+								category: category.id,
+								view: 'products',
+								page: 1,
+								selectedProductId: (category.id === 'all' ? catalogProducts(state)[0] : productsByCategory(category.id, state)[0])?.id || state.selectedProductId
+							})
+						}))
+					},
+					...visibleProducts.map((product) => ({
+						type: 'section',
+						title: product.name,
+						description: product.description || product.packLabel || product.vendor || SHOP_CONFIG.name,
+						children: [
+							{
+								type: 'badgeGrid',
+								items: [
+									{ label: 'Vendor', value: product.vendor || SHOP_CONFIG.name, tone: 'muted' },
+									{ label: 'Pack', value: product.packLabel || 'Standard pack', tone: 'muted' },
+									{ label: 'Price', value: productPrice(state, product), tone: 'success' },
+									...(product.digital ? [{ label: 'Delivery', value: 'Digital', tone: 'success' }] : [])
+								]
+							},
+							{
+								type: 'buttonRow',
+								buttons: [
+									{ label: 'View details', variant: 'secondary', action: productCardNode(state, product).action },
+									{ label: 'Add to cart', variant: 'primary', action: productCardNode(state, product).addAction }
+								]
+							}
+						]
+					})),
+					{
+						type: 'buttonRow',
+						align: 'between',
+						buttons: [
+							...(currentPage > 1 ? [{ label: 'Previous', variant: 'secondary', action: stateAction(state, { page: currentPage - 1 }) }] : []),
+							...(currentPage < totalPages ? [{ label: 'Next', variant: 'secondary', action: stateAction(state, { page: currentPage + 1 }) }] : [])
+						]
+					},
+					{ type: 'text', tone: 'muted', text: `Page ${currentPage} of ${totalPages}. ${products.length} product${products.length === 1 ? '' : 's'} available.` }
+				]
+			}
+		]
 	};
 }
 
@@ -1007,24 +1010,44 @@ function renderProductDetail(state) {
 		.concat(catalogProducts(state).filter((item) => item.id !== product.id && item.category !== product.category))
 		.slice(0, 3);
 	return {
-		type: 'shopProductDetail',
-		shopTitle: SHOP_CONFIG.name,
-		shopLogoUrl: shopLogoUrl(),
-		coreId: state.coreId,
-		cartCount: cartCount(state),
-		theme: state.theme,
-		themeAction: shopThemeAction(state),
-		product: productDetailNode(state, product),
-		quantity: productQuantity(state, product.id),
-		backAction: stateAction(state, { view: 'products', category: product.category }),
-		portalAction: { type: 'navigate', href: '/' },
-		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
-		cartAction: stateAction(state, { view: 'cart' }),
-		addAction: stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`),
-		increaseQuantityAction: stateAction(incrementProductQuantity(state, product.id), {}),
-		decreaseQuantityAction: stateAction(decrementProductQuantity(state, product.id), {}),
-		buyAction: stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), { view: 'cart' }),
-		related: related.map((item) => productCardNode(state, item))
+		type: 'section',
+		title: product.name,
+		description: product.description,
+		children: [
+			{
+				type: 'badgeGrid',
+				items: [
+					{ label: 'Vendor', value: product.vendor || SHOP_CONFIG.name, tone: 'muted' },
+					{ label: 'Pack', value: product.packLabel || 'Standard pack', tone: 'muted' },
+					{ label: 'Price', value: productPrice(state, product), tone: 'success' },
+					{ label: 'Quantity', value: String(productQuantity(state, product.id)), tone: 'muted' }
+				]
+			},
+			{
+				type: 'buttonRow',
+				buttons: [
+					{ label: 'Back to products', variant: 'secondary', action: stateAction(state, { view: 'products', category: product.category }) },
+					{ label: '-', variant: 'secondary', action: stateAction(decrementProductQuantity(state, product.id), {}) },
+					{ label: '+', variant: 'secondary', action: stateAction(incrementProductQuantity(state, product.id), {}) },
+					{ label: 'Add to cart', variant: 'primary', action: stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`) },
+					{ label: 'Buy now', variant: 'primary', action: stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), { view: 'cart' }) }
+				]
+			},
+			...(related.length
+				? [
+					{
+						type: 'section',
+						title: 'Related products',
+						children: related.map((item) => ({
+							type: 'button',
+							label: item.name,
+							variant: 'secondary',
+							action: productCardNode(state, item).action
+						}))
+					}
+				]
+				: [])
+		]
 	};
 }
 
@@ -1033,41 +1056,60 @@ function renderProductDetail(state) {
 function renderCart(state) {
 	const items = cartItems(state);
 	return {
-		type: 'shopCart',
-		shopTitle: SHOP_CONFIG.name,
-		shopLogoUrl: shopLogoUrl(),
-		coreId: state.coreId,
-		cartCount: cartCount(state),
-		theme: state.theme,
-		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'dark' : state.theme === 'dark' ? 'light' : 'auto' }),
-		portalAction: { type: 'navigate', href: '/' },
-		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
-		checkoutAction: stateAction(checkoutReadyState(state), {}),
-		clearAction: stateAction(state, { cart: {}, checkoutStatus: 'draft' }, 'Cart cleared'),
-		subtotal: formatMoney(cartSubtotal(state), state.settings.currency),
-		items: items.map((item) => ({
-			id: item.product.id,
-			name: item.product.name,
-			vendor: item.product.vendor || SHOP_CONFIG.name,
-			imageUrl: productImageUrl(state, item.product),
-			icon: item.product.icon,
-			packLabel: item.product.packLabel || 'Standard pack',
-			quantity: item.quantity,
-			price: formatMoney(item.product.price, state.settings.currency),
-			lineTotal: formatMoney(item.product.price * item.quantity, state.settings.currency),
-			productAction: stateAction(state, {
-				view: 'product',
-				category: item.product.category,
-				selectedProductId: item.product.id,
-				productQuantities: {
-					...state.productQuantities,
-					[item.product.id]: Math.max(1, item.quantity)
+		type: 'section',
+		title: 'Cart',
+		description: `${cartCount(state)} item${cartCount(state) === 1 ? '' : 's'} • ${formatMoney(cartSubtotal(state), state.settings.currency)}`,
+		children: items.length
+			? [
+				...items.map((item) => ({
+					type: 'section',
+					title: item.product.name,
+					description: item.product.packLabel || item.product.vendor || SHOP_CONFIG.name,
+					children: [
+						{
+							type: 'badgeGrid',
+							items: [
+								{ label: 'Quantity', value: String(item.quantity), tone: 'muted' },
+								{ label: 'Price', value: formatMoney(item.product.price, state.settings.currency), tone: 'muted' },
+								{ label: 'Line total', value: formatMoney(item.product.price * item.quantity, state.settings.currency), tone: 'success' }
+							]
+						},
+						{
+							type: 'buttonRow',
+							buttons: [
+								{
+									label: 'View',
+									variant: 'secondary',
+									action: stateAction(state, {
+										view: 'product',
+										category: item.product.category,
+										selectedProductId: item.product.id,
+										productQuantities: {
+											...state.productQuantities,
+											[item.product.id]: Math.max(1, item.quantity)
+										}
+									})
+								},
+								{ label: '-', variant: 'secondary', action: stateAction(removeOneFromCart(state, item.product.id), {}) },
+								{ label: '+', variant: 'secondary', action: stateAction(addToCart(state, item.product.id), {}) },
+								{ label: 'Remove', variant: 'ghost', action: stateAction(removeProductFromCart(state, item.product.id), {}) }
+							]
+						}
+					]
+				})),
+				{
+					type: 'buttonRow',
+					buttons: [
+						{ label: 'Continue shopping', variant: 'secondary', action: stateAction(state, { view: 'products', category: 'all', page: 1 }) },
+						{ label: 'Clear cart', variant: 'ghost', action: stateAction(state, { cart: {}, checkoutStatus: 'draft' }, 'Cart cleared') },
+						{ label: 'Checkout', variant: 'primary', action: stateAction(checkoutReadyState(state), {}) }
+					]
 				}
-			}),
-			addAction: stateAction(addToCart(state, item.product.id), {}),
-			removeAction: stateAction(removeOneFromCart(state, item.product.id), {}),
-			deleteAction: stateAction(removeProductFromCart(state, item.product.id), {})
-		}))
+			]
+			: [
+				{ type: 'text', tone: 'muted', text: 'Your cart is empty.' },
+				{ type: 'button', label: 'Browse products', variant: 'primary', action: stateAction(state, { view: 'products', category: 'all', page: 1 }) }
+			]
 	};
 }
 
@@ -1106,13 +1148,12 @@ function renderDeliveryForm(state) {
 		);
 		fields.push({
 			name: 'delivery.state',
-			label: 'State',
+			label: 'State (US only)',
 			type: 'select',
 			value: deliveryDraft.state,
 			placeholder: 'California',
 			options: US_STATE_OPTIONS,
-			required: hasUnitedStates,
-			visibleWhenCountry: 'United States'
+			required: hasUnitedStates
 		});
 		fields.push({ name: 'delivery.notes', label: 'Delivery notes', value: deliveryDraft.notes, placeholder: 'Floor, flat number, …' });
 	}
@@ -1120,14 +1161,15 @@ function renderDeliveryForm(state) {
 	return {
 		type: 'form',
 		fields,
-		submitLabel: '',
-		showSubmit: false,
+		action: {
+			type: 'storage',
+			key: STATE_KEY,
+			value: checkoutReadyState(state)
+		},
 		autoSaveAction: {
 			type: 'storage',
 			key: STATE_KEY,
-			value: checkoutReadyState(state),
-			mergeFormValues: true,
-			saveValidDeliveryProfile: state.saveDelivery && hasPhysicalItems
+			value: checkoutReadyState(state)
 		}
 	};
 }
@@ -1326,78 +1368,116 @@ function renderCheckout(state) {
 	}
 
 	return {
-		type: 'shopCheckout',
-		shopTitle: SHOP_CONFIG.name,
-		shopLogoUrl: shopLogoUrl(),
-		coreId: state.coreId,
-		cartCount: cartCount(state),
-		theme: state.theme,
-		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'dark' : state.theme === 'dark' ? 'light' : 'auto' }),
-		portalAction: { type: 'navigate', href: '/' },
-		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
-		cartAction: stateAction(state, { view: 'cart' }),
-		deliveryForm: renderDeliveryForm(checkoutState),
-		useSavedDeliveryAction: checkoutState.savedDelivery
-			? stateAction(checkoutState, {
-				delivery: checkoutState.savedDelivery,
-				selectedDeliveryProfileId: deliveryProfileId(checkoutState.savedDelivery),
-				saveDelivery: true,
-				checkoutStatus: 'details_saved'
-			}, 'Saved delivery profile loaded')
-			: null,
-		clearDeliveryAction: stateAction(state, { delivery: { ...emptyDelivery(), email: state.userEmail || '' }, checkoutStatus: 'draft' }, 'Delivery form cleared'),
-		removeSavedDeliveryAction: checkoutState.savedDelivery
-			? stateAction(checkoutState, {
-				savedDelivery: null,
-				savedDeliveries: [],
-				selectedDeliveryProfileId: '',
-				saveDelivery: false,
-				checkoutStatus: 'draft'
-			}, 'Saved delivery profile removed')
-			: null,
-		saveDeliveryAction: stateAction(checkoutState, { saveDelivery: true }),
-		oneOrderAction: stateAction(checkoutState, { saveDelivery: false, selectedDeliveryProfileId: '' }),
-		saveDelivery: checkoutState.saveDelivery,
-		savedProfiles: savedDeliveryProfileOptions(checkoutState),
-		savedProfileOptions: savedDeliveryProfileOptions(checkoutState),
-		selectedDeliveryProfileId: checkoutState.selectedDeliveryProfileId,
-		saveMode: checkoutState.saveDelivery ? 'save' : 'one-time',
-		saveModeOptions: [
-			{ label: 'One-time', value: 'one-time', selected: !checkoutState.saveDelivery, action: stateAction(checkoutState, { saveDelivery: false, selectedDeliveryProfileId: '' }) },
-			{ label: 'Save delivery', value: 'save', selected: checkoutState.saveDelivery, action: stateAction(checkoutState, { saveDelivery: true }) }
-		],
-		summary: {
-			subtotal: formatMoney(subtotal, state.settings.currency),
-			deliveryFee: formatMoney(deliveryFee, state.settings.currency),
-			deliveryFeeApplied: deliveryFee > 0,
-			total: formatMoney(total, state.settings.currency),
-			merchantAccount: state.settings.merchantAccount,
-			collectorAccount: collectorAccount(),
-			customerCoreId: state.coreId || 'Not provided',
-			reference: orderReference(state),
-			delivery: deliverySummary(delivery),
-			status: state.checkoutStatus,
-			minimumMessage: blockedMessage,
-			hasPhysicalItems,
-			items: items.map((item) => ({
-				name: item.product.name,
-				quantity: item.quantity,
-				lineTotal: formatMoney(item.product.price * item.quantity, state.settings.currency)
-			}))
-		},
-		payDisabled: Boolean(blockedMessage),
-		payDisabledMessage: blockedMessage,
-		payAction: developmentMessage
-			? { type: 'notify', message: developmentMessage, level: 'error' }
-			: workerDomainMessage
-				? { type: 'notify', message: workerDomainMessage, level: 'error' }
-			: collectionMessage
-			? { type: 'notify', message: collectionMessage, level: 'error' }
-			: minimumMessage
-				? { type: 'notify', message: minimumMessage, level: 'warning' }
-			: requiredMessage
-				? { type: 'notify', message: requiredMessage, level: 'warning' }
-			: stockManagedPaymentAction(finalCheckoutState, paymentRequest)
+		type: 'section',
+		title: hasPhysicalItems ? 'Delivery details' : 'Contact details',
+		description: hasPhysicalItems
+			? 'These details are sent to the shop admin only after successful payment.'
+			: 'Digital orders only need an email address and Core ID.',
+		children: [
+			...(hasPhysicalItems && savedDeliveryProfileOptions(checkoutState).length
+				? [
+					{
+						type: 'select',
+						label: 'Saved address',
+						value: checkoutState.selectedDeliveryProfileId,
+						options: savedDeliveryProfileOptions(checkoutState).map((profile) => ({
+							label: profile.description ? `${profile.label} - ${profile.description}` : profile.label,
+							value: profile.id,
+							action: profile.selectAction
+						}))
+					}
+				]
+				: []),
+			renderDeliveryForm(checkoutState),
+			...(hasPhysicalItems
+				? [
+					{
+						type: 'buttonRow',
+						buttons: [
+							{
+								label: checkoutState.saveDelivery ? 'Saving delivery' : 'Save delivery',
+								variant: checkoutState.saveDelivery ? 'primary' : 'secondary',
+								action: stateAction(checkoutState, { saveDelivery: true })
+							},
+							{
+								label: 'This order only',
+								variant: checkoutState.saveDelivery ? 'secondary' : 'primary',
+								action: stateAction(checkoutState, { saveDelivery: false, selectedDeliveryProfileId: '' })
+							},
+							{
+								label: 'Clear form',
+								variant: 'ghost',
+								action: stateAction(state, { delivery: { ...emptyDelivery(), email: state.userEmail || '' }, checkoutStatus: 'draft' }, 'Delivery form cleared')
+							},
+							...(checkoutState.savedDelivery
+								? [
+									{
+										label: 'Remove saved delivery',
+										variant: 'ghost',
+										action: stateAction(checkoutState, {
+											savedDelivery: null,
+											savedDeliveries: [],
+											selectedDeliveryProfileId: '',
+											saveDelivery: false,
+											checkoutStatus: 'draft'
+										}, 'Saved delivery profile removed')
+									}
+								]
+								: [])
+						]
+					}
+				]
+				: []),
+			{
+				type: 'section',
+				title: 'Order summary',
+				children: [
+					{
+						type: 'badgeGrid',
+						items: [
+							{ label: 'Subtotal', value: formatMoney(subtotal, state.settings.currency), tone: 'muted' },
+							...(deliveryFee > 0 ? [{ label: 'Delivery', value: formatMoney(deliveryFee, state.settings.currency), tone: 'muted' }] : []),
+							{ label: 'Total', value: formatMoney(total, state.settings.currency), tone: 'success' },
+							{ label: 'Reference', value: orderReference(state), tone: 'muted' }
+						]
+					},
+					{
+						type: 'list',
+						items: [
+							{ label: 'Core ID', value: state.coreId || 'Not provided' },
+							{ label: 'Collector', value: collectorAccount() },
+							...(hasPhysicalItems ? [{ label: 'Delivery', value: deliverySummary(delivery) }] : []),
+							...items.map((item) => ({
+								label: `${item.product.name} × ${item.quantity}`,
+								value: formatMoney(item.product.price * item.quantity, state.settings.currency)
+							}))
+						]
+					},
+					...(blockedMessage ? [{ type: 'text', tone: requiredMessage || minimumMessage ? 'warning' : 'danger', text: blockedMessage }] : []),
+					{
+						type: 'buttonRow',
+						buttons: [
+							{ label: 'Back to cart', variant: 'secondary', action: stateAction(state, { view: 'cart' }) },
+							{
+								label: blockedMessage ? 'Cannot pay yet' : 'Pay with Wall Money',
+								variant: 'primary',
+								action: developmentMessage
+									? { type: 'notify', message: developmentMessage, level: 'error' }
+									: workerDomainMessage
+										? { type: 'notify', message: workerDomainMessage, level: 'error' }
+									: collectionMessage
+										? { type: 'notify', message: collectionMessage, level: 'error' }
+									: minimumMessage
+										? { type: 'notify', message: minimumMessage, level: 'warning' }
+									: requiredMessage
+										? { type: 'notify', message: requiredMessage, level: 'warning' }
+									: stockManagedPaymentAction(finalCheckoutState, paymentRequest)
+							}
+						]
+					}
+				]
+			}
+		]
 	};
 }
 
@@ -1448,22 +1528,31 @@ function renderOrders(state) {
 function renderSuccess(state) {
 	const order = state.lastOrder;
 	return {
-		type: 'shopSuccess',
-		shopTitle: SHOP_CONFIG.name,
-		shopLogoUrl: shopLogoUrl(),
-		coreId: state.coreId,
-		theme: state.theme,
-		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'dark' : state.theme === 'dark' ? 'light' : 'auto' }),
-		portalAction: { type: 'navigate', href: '/' },
-		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
-		order: order
-			? {
-				status: order.status || 'paid',
-				total: formatMoney(order.total, order.currency),
-				paidAt: order.paidAt || '',
-				delivery: order.delivery || ''
-			}
-			: null
+		type: 'section',
+		title: 'Payment successful',
+		description: 'Your order was paid and sent to the shop admin.',
+		children: [
+			...(order
+				? [
+					{
+						type: 'badgeGrid',
+						items: [
+							{ label: 'Status', value: order.status || 'paid', tone: 'success' },
+							{ label: 'Total', value: formatMoney(order.total, order.currency), tone: 'success' },
+							{ label: 'Paid', value: order.paidAt || 'Recorded', tone: 'muted' }
+						]
+					},
+					{
+						type: 'list',
+						items: [
+							{ label: 'Delivery', value: order.delivery || 'Not saved' },
+							{ label: 'Reference', value: order.reference || 'Not available' }
+						]
+					}
+				]
+				: []),
+			{ type: 'button', label: 'Continue shopping', variant: 'primary', action: stateAction(state, { view: 'products', category: 'all', page: 1 }) }
+		]
 	};
 }
 
