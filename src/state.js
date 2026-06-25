@@ -312,11 +312,16 @@ function normalizeState(raw) {
 }
 
 function getState(hostApi) {
-	return normalizeState(hostApi.storage.get(STATE_KEY));
+	const storage = hostApi && hostApi.storage;
+	const raw = storage && typeof storage.get === 'function' ? storage.get(STATE_KEY) : null;
+	return normalizeState(raw);
 }
 
 function saveState(hostApi, next) {
-	hostApi.storage.set(STATE_KEY, normalizeState(next));
+	const storage = hostApi && hostApi.storage;
+	if (storage && typeof storage.set === 'function') {
+		storage.set(STATE_KEY, normalizeState(next));
+	}
 }
 
 function stateAction(state, patch, message) {

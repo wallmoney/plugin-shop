@@ -466,7 +466,7 @@ The plugin avoids an external database:
 
 - Product descriptions, images, and metadata should be uploaded to IPFS by the merchant.
 - The catalog can be represented by a CID or IPNS name.
-- The plugin uses `https://ipf.sk` for IPFS/IPNS gateway resolution.
+- The plugin uses `https://ipf.sk` for IPFS/IPNS gateway resolution. That gateway Worker tries multiple public IPFS gateways and returns the first successful response.
 - Portal plugin storage is used only for local UX state: cart, draft checkout, saved delivery profile, and order status.
 
 This repo currently uses IPFS for the catalog and does not keep `data/catalog.json` in the tree. If you add that file temporarily, this command validates it and refreshes `src/inventory.js`:
@@ -523,7 +523,7 @@ ipfs://<cid>/catalog.json -> https://ipf.sk/ipfs/<cid>/catalog.json
 ipns://<name>/catalog.json -> https://ipf.sk/ipns/<name>/catalog.json
 ```
 
-IPFS/IPNS gateways can be slow when content is newly published. The plugin waits up to 12 seconds per request and tries the initial request plus 2 retries. If the catalog still cannot be loaded, it shows the error and a `Retry` button. The user can also switch back to the local bundled catalog from that error screen.
+IPFS/IPNS gateways can be slow when content is newly published. The plugin waits up to 12 seconds per request and tries the initial request plus 2 retries. Each request goes through `https://ipf.sk`, which races configured public IPFS gateways and uses the first successful response. If the catalog still cannot be loaded, the plugin shows the error and a `Retry` button. The user can also switch back to the local bundled catalog from that error screen.
 
 ## D1 Catalog Model
 

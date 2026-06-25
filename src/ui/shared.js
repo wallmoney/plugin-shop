@@ -15,7 +15,7 @@ function renderHero(state) {
 				type: 'badgeGrid',
 				items: [
 					{ label: 'Cart', value: `${cartCount(state)} item${cartCount(state) === 1 ? '' : 's'}`, tone: cartCount(state) ? 'success' : 'muted' },
-					{ label: 'Catalog', value: catalogProvider(state) === 'd1' ? 'D1 database' : state.settings.catalogRef, tone: 'muted' }
+					{ label: 'Catalog', value: catalogProvider(state) === 'd1' ? 'D1 database' : catalogSettings(state).catalogRef, tone: 'muted' }
 				]
 			},
 			{

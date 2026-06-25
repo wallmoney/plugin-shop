@@ -489,11 +489,16 @@ function normalizeState(raw) {
 }
 
 function getState(hostApi) {
-	return normalizeState(hostApi.storage.get(STATE_KEY));
+	const storage = hostApi && hostApi.storage;
+	const raw = storage && typeof storage.get === 'function' ? storage.get(STATE_KEY) : null;
+	return normalizeState(raw);
 }
 
 function saveState(hostApi, next) {
-	hostApi.storage.set(STATE_KEY, normalizeState(next));
+	const storage = hostApi && hostApi.storage;
+	if (storage && typeof storage.set === 'function') {
+		storage.set(STATE_KEY, normalizeState(next));
+	}
 }
 
 function stateAction(state, patch, message) {
@@ -569,18 +574,29 @@ function allCategories(state) {
 	];
 }
 
+function catalogSettings(state) {
+	const fallback = defaultState().settings;
+	const settings = state && state.settings && typeof state.settings === 'object' ? state.settings : {};
+	return normalizeSettings({
+		...fallback,
+		...settings
+	});
+}
+
 function catalogProvider(state) {
-	const provider = state.settings.catalogProvider;
-	if (provider === 'd1' && state.settings.catalogD1Url) return 'd1';
+	const settings = catalogSettings(state);
+	const provider = settings.catalogProvider;
+	if (provider === 'd1' && settings.catalogD1Url) return 'd1';
 	if (provider === 'remote') return 'remote';
-	const ref = state.settings.catalogRef.trim();
+	const ref = settings.catalogRef.trim();
 	if (provider !== 'local' && ref && !ref.startsWith('data/')) return 'remote';
 	return 'local';
 }
 
 function catalogUrl(state) {
-	if (catalogProvider(state) === 'd1') return state.settings.catalogD1Url;
-	const ref = state.settings.catalogRef.trim();
+	const settings = catalogSettings(state);
+	if (catalogProvider(state) === 'd1') return settings.catalogD1Url;
+	const ref = settings.catalogRef.trim();
 	if (!ref) return 'https://ipf.sk';
 	if (/^https?:\/\//i.test(ref)) return ref;
 	if (ref.startsWith('ipfs://')) {
@@ -821,7 +837,7 @@ function renderHero(state) {
 				type: 'badgeGrid',
 				items: [
 					{ label: 'Cart', value: `${cartCount(state)} item${cartCount(state) === 1 ? '' : 's'}`, tone: cartCount(state) ? 'success' : 'muted' },
-					{ label: 'Catalog', value: catalogProvider(state) === 'd1' ? 'D1 database' : state.settings.catalogRef, tone: 'muted' }
+					{ label: 'Catalog', value: catalogProvider(state) === 'd1' ? 'D1 database' : catalogSettings(state).catalogRef, tone: 'muted' }
 				]
 			},
 			{
