@@ -304,7 +304,7 @@ function renderCheckout(state) {
 					${hasPhysicalItems && profiles.length ? `
 						<label>
 							<span class="wm-product-meta">Saved address</span>
-							<select class="wm-input" onchange="this.selectedOptions[0] && this.selectedOptions[0].dataset.pluginAction && parent.postMessage({source:'mota-plugin-frame',type:'action',actionId:this.selectedOptions[0].dataset.pluginAction}, '*')">
+							<select class="wm-input">
 								<option value="">Select saved address</option>
 								${profiles.map((profile) => `<option value="${escapeHtml(profile.id)}" data-plugin-action="${addFrameAction(actions, profile.selectAction)}" ${profile.id === checkoutState.selectedDeliveryProfileId ? 'selected' : ''}>${escapeHtml(profile.description ? `${profile.label} - ${profile.description}` : profile.label)}</option>`).join('')}
 							</select>
