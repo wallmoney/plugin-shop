@@ -31,13 +31,12 @@ function renderDeliveryForm(state) {
 		);
 		fields.push({
 			name: 'delivery.state',
-			label: 'State',
+			label: 'State (US only)',
 			type: 'select',
 			value: deliveryDraft.state,
 			placeholder: 'California',
 			options: US_STATE_OPTIONS,
-			required: hasUnitedStates,
-			visibleWhenCountry: 'United States'
+			required: hasUnitedStates
 		});
 		fields.push({ name: 'delivery.notes', label: 'Delivery notes', value: deliveryDraft.notes, placeholder: 'Floor, flat number, …' });
 	}
@@ -45,14 +44,15 @@ function renderDeliveryForm(state) {
 	return {
 		type: 'form',
 		fields,
-		submitLabel: '',
-		showSubmit: false,
+		action: {
+			type: 'storage',
+			key: STATE_KEY,
+			value: checkoutReadyState(state)
+		},
 		autoSaveAction: {
 			type: 'storage',
 			key: STATE_KEY,
-			value: checkoutReadyState(state),
-			mergeFormValues: true,
-			saveValidDeliveryProfile: state.saveDelivery && hasPhysicalItems
+			value: checkoutReadyState(state)
 		}
 	};
 }
@@ -251,77 +251,115 @@ function renderCheckout(state) {
 	}
 
 	return {
-		type: 'shopCheckout',
-		shopTitle: SHOP_CONFIG.name,
-		shopLogoUrl: shopLogoUrl(),
-		coreId: state.coreId,
-		cartCount: cartCount(state),
-		theme: state.theme,
-		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'dark' : state.theme === 'dark' ? 'light' : 'auto' }),
-		portalAction: { type: 'navigate', href: '/' },
-		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
-		cartAction: stateAction(state, { view: 'cart' }),
-		deliveryForm: renderDeliveryForm(checkoutState),
-		useSavedDeliveryAction: checkoutState.savedDelivery
-			? stateAction(checkoutState, {
-				delivery: checkoutState.savedDelivery,
-				selectedDeliveryProfileId: deliveryProfileId(checkoutState.savedDelivery),
-				saveDelivery: true,
-				checkoutStatus: 'details_saved'
-			}, 'Saved delivery profile loaded')
-			: null,
-		clearDeliveryAction: stateAction(state, { delivery: { ...emptyDelivery(), email: state.userEmail || '' }, checkoutStatus: 'draft' }, 'Delivery form cleared'),
-		removeSavedDeliveryAction: checkoutState.savedDelivery
-			? stateAction(checkoutState, {
-				savedDelivery: null,
-				savedDeliveries: [],
-				selectedDeliveryProfileId: '',
-				saveDelivery: false,
-				checkoutStatus: 'draft'
-			}, 'Saved delivery profile removed')
-			: null,
-		saveDeliveryAction: stateAction(checkoutState, { saveDelivery: true }),
-		oneOrderAction: stateAction(checkoutState, { saveDelivery: false, selectedDeliveryProfileId: '' }),
-		saveDelivery: checkoutState.saveDelivery,
-		savedProfiles: savedDeliveryProfileOptions(checkoutState),
-		savedProfileOptions: savedDeliveryProfileOptions(checkoutState),
-		selectedDeliveryProfileId: checkoutState.selectedDeliveryProfileId,
-		saveMode: checkoutState.saveDelivery ? 'save' : 'one-time',
-		saveModeOptions: [
-			{ label: 'One-time', value: 'one-time', selected: !checkoutState.saveDelivery, action: stateAction(checkoutState, { saveDelivery: false, selectedDeliveryProfileId: '' }) },
-			{ label: 'Save delivery', value: 'save', selected: checkoutState.saveDelivery, action: stateAction(checkoutState, { saveDelivery: true }) }
-		],
-		summary: {
-			subtotal: formatMoney(subtotal, state.settings.currency),
-			deliveryFee: formatMoney(deliveryFee, state.settings.currency),
-			deliveryFeeApplied: deliveryFee > 0,
-			total: formatMoney(total, state.settings.currency),
-			merchantAccount: state.settings.merchantAccount,
-			collectorAccount: collectorAccount(),
-			customerCoreId: state.coreId || 'Not provided',
-			reference: orderReference(state),
-			delivery: deliverySummary(delivery),
-			status: state.checkoutStatus,
-			minimumMessage: blockedMessage,
-			hasPhysicalItems,
-			items: items.map((item) => ({
-				name: item.product.name,
-				quantity: item.quantity,
-				lineTotal: formatMoney(item.product.price * item.quantity, state.settings.currency)
-			}))
-		},
-		payDisabled: Boolean(blockedMessage),
-		payDisabledMessage: blockedMessage,
-		payAction: developmentMessage
-			? { type: 'notify', message: developmentMessage, level: 'error' }
-			: workerDomainMessage
-				? { type: 'notify', message: workerDomainMessage, level: 'error' }
-			: collectionMessage
-			? { type: 'notify', message: collectionMessage, level: 'error' }
-			: minimumMessage
-				? { type: 'notify', message: minimumMessage, level: 'warning' }
-			: requiredMessage
-				? { type: 'notify', message: requiredMessage, level: 'warning' }
-			: stockManagedPaymentAction(finalCheckoutState, paymentRequest)
+		type: 'section',
+		title: hasPhysicalItems ? 'Delivery details' : 'Contact details',
+		description: hasPhysicalItems
+			? 'These details are sent to the shop admin only after successful payment.'
+			: 'Digital orders only need an email address and Core ID.',
+		children: [
+			...(hasPhysicalItems && savedDeliveryProfileOptions(checkoutState).length
+				? [
+					{
+						type: 'select',
+						label: 'Saved address',
+						value: checkoutState.selectedDeliveryProfileId,
+						options: savedDeliveryProfileOptions(checkoutState).map((profile) => ({
+							label: profile.description ? `${profile.label} - ${profile.description}` : profile.label,
+							value: profile.id,
+							action: profile.selectAction
+						}))
+					}
+				]
+				: []),
+			renderDeliveryForm(checkoutState),
+			...(hasPhysicalItems
+				? [
+					{
+						type: 'buttonRow',
+						buttons: [
+							{
+								label: checkoutState.saveDelivery ? 'Saving delivery' : 'Save delivery',
+								variant: checkoutState.saveDelivery ? 'primary' : 'secondary',
+								action: stateAction(checkoutState, { saveDelivery: true })
+							},
+							{
+								label: 'This order only',
+								variant: checkoutState.saveDelivery ? 'secondary' : 'primary',
+								action: stateAction(checkoutState, { saveDelivery: false, selectedDeliveryProfileId: '' })
+							},
+							{
+								label: 'Clear form',
+								variant: 'ghost',
+								action: stateAction(state, { delivery: { ...emptyDelivery(), email: state.userEmail || '' }, checkoutStatus: 'draft' }, 'Delivery form cleared')
+							},
+							...(checkoutState.savedDelivery
+								? [
+									{
+										label: 'Remove saved delivery',
+										variant: 'ghost',
+										action: stateAction(checkoutState, {
+											savedDelivery: null,
+											savedDeliveries: [],
+											selectedDeliveryProfileId: '',
+											saveDelivery: false,
+											checkoutStatus: 'draft'
+										}, 'Saved delivery profile removed')
+									}
+								]
+								: [])
+						]
+					}
+				]
+				: []),
+			{
+				type: 'section',
+				title: 'Order summary',
+				children: [
+					{
+						type: 'badgeGrid',
+						items: [
+							{ label: 'Subtotal', value: formatMoney(subtotal, state.settings.currency), tone: 'muted' },
+							...(deliveryFee > 0 ? [{ label: 'Delivery', value: formatMoney(deliveryFee, state.settings.currency), tone: 'muted' }] : []),
+							{ label: 'Total', value: formatMoney(total, state.settings.currency), tone: 'success' },
+							{ label: 'Reference', value: orderReference(state), tone: 'muted' }
+						]
+					},
+					{
+						type: 'list',
+						items: [
+							{ label: 'Core ID', value: state.coreId || 'Not provided' },
+							{ label: 'Collector', value: collectorAccount() },
+							...(hasPhysicalItems ? [{ label: 'Delivery', value: deliverySummary(delivery) }] : []),
+							...items.map((item) => ({
+								label: `${item.product.name} × ${item.quantity}`,
+								value: formatMoney(item.product.price * item.quantity, state.settings.currency)
+							}))
+						]
+					},
+					...(blockedMessage ? [{ type: 'text', tone: requiredMessage || minimumMessage ? 'warning' : 'danger', text: blockedMessage }] : []),
+					{
+						type: 'buttonRow',
+						buttons: [
+							{ label: 'Back to cart', variant: 'secondary', action: stateAction(state, { view: 'cart' }) },
+							{
+								label: blockedMessage ? 'Cannot pay yet' : 'Pay with Wall Money',
+								variant: 'primary',
+								action: developmentMessage
+									? { type: 'notify', message: developmentMessage, level: 'error' }
+									: workerDomainMessage
+										? { type: 'notify', message: workerDomainMessage, level: 'error' }
+									: collectionMessage
+										? { type: 'notify', message: collectionMessage, level: 'error' }
+									: minimumMessage
+										? { type: 'notify', message: minimumMessage, level: 'warning' }
+									: requiredMessage
+										? { type: 'notify', message: requiredMessage, level: 'warning' }
+									: stockManagedPaymentAction(finalCheckoutState, paymentRequest)
+							}
+						]
+					}
+				]
+			}
+		]
 	};
 }
