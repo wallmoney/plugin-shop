@@ -2,6 +2,10 @@
 	"name": "plugin-shop-order-stock",
 	"main": "order-stock.ts",
 	"compatibility_date": "2026-06-05",
+	"vars": {
+		"STOCK_PROVIDER": "kv",
+		"EXTERNAL_STOCK_API_URL": "https://your-stock-api.example.com/stock"
+	},
 	"kv_namespaces": [
 		{
 			"binding": "SHOP_STOCK",

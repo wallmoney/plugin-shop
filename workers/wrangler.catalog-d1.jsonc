@@ -1,0 +1,16 @@
+{
+	"name": "plugin-shop-catalog",
+	"main": "catalog-d1.ts",
+	"compatibility_date": "2026-06-25",
+	"vars": {
+		"CACHE_CONTROL": "public, max-age=60"
+	},
+	"d1_databases": [
+		{
+			"binding": "CATALOG_DB",
+			"database_name": "plugin-shop-catalog",
+			"database_id": "replace-with-production-d1-database-id",
+			"migrations_dir": "../migrations/catalog"
+		}
+	]
+}

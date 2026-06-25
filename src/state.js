@@ -26,16 +26,30 @@ function defaultState() {
 		},
 		saveDelivery: true,
 		savedDelivery: null,
+		savedDeliveries: [],
+		selectedDeliveryProfileId: '',
 		checkoutStatus: 'draft',
 		lastOrder: null,
+		catalog: null,
+		catalogStatus: 'idle',
+		catalogError: '',
+		catalogSource: '',
 		settings: {
 			merchantAccount: SHOP_CONFIG.defaultMerchantAccount,
 			adminEmail: SHOP_CONFIG.orderEmail.adminEmail,
 			currency: SHOP_CONFIG.defaultCurrency,
-			gatewayUrl: SHOP_CONFIG.defaultGatewayUrl,
-			catalogRef: SHOP_CONFIG.defaultCatalogRef
+			catalogProvider: SHOP_CONFIG.defaultCatalogProvider || 'local',
+			catalogRef: SHOP_CONFIG.defaultCatalogRef,
+			catalogD1Url: SHOP_CONFIG.catalogD1 && SHOP_CONFIG.catalogD1.apiUrl ? SHOP_CONFIG.catalogD1.apiUrl : ''
 		},
 		updatedAt: null
+	};
+}
+
+function defaultCatalog() {
+	return {
+		categories: SHOP_CATEGORIES,
+		products: SHOP_PRODUCTS
 	};
 }
 
@@ -68,38 +82,165 @@ function normalizeDelivery(raw) {
 	};
 }
 
+function deliveryProfileKey(delivery) {
+	const value = normalizeDelivery(delivery);
+	return (value.address || value.email || '').trim().toLowerCase();
+}
+
+function deliveryProfileId(delivery) {
+	const key = deliveryProfileKey(delivery);
+	return key
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/^-+|-+$/g, '')
+		.slice(0, 64);
+}
+
+function hasDeliveryAddress(delivery) {
+	const value = normalizeDelivery(delivery);
+	return Boolean(value.address && value.city && value.zip && value.country);
+}
+
+function deliveryProfileLabel(delivery) {
+	const value = normalizeDelivery(delivery);
+	return value.address || value.email || 'Saved delivery profile';
+}
+
+function normalizeSavedDeliveries(raw, legacy) {
+	const profiles = [];
+	const seen = new Set();
+	const values = Array.isArray(raw) ? [...raw] : [];
+	if (legacy) values.unshift(legacy);
+	for (const item of values) {
+		const delivery = normalizeDelivery(item);
+		if (!deliveryProfileKey(delivery) || !hasDeliveryAddress(delivery)) continue;
+		const key = deliveryProfileKey(delivery);
+		if (seen.has(key)) continue;
+		seen.add(key);
+		profiles.push(delivery);
+	}
+	return profiles;
+}
+
+function upsertSavedDeliveryProfile(profiles, delivery) {
+	const next = normalizeSavedDeliveries(profiles);
+	const value = normalizeDelivery(delivery);
+	const key = deliveryProfileKey(value);
+	if (!key || !hasDeliveryAddress(value)) return next;
+	const index = next.findIndex((profile) => deliveryProfileKey(profile) === key);
+	if (index >= 0) {
+		next[index] = value;
+	} else {
+		next.push(value);
+	}
+	return next;
+}
+
+function removeSavedDeliveryProfile(profiles, profileId) {
+	return normalizeSavedDeliveries(profiles).filter((profile) => deliveryProfileId(profile) !== profileId);
+}
+
 function normalizeSettings(raw) {
 	const fallback = defaultState().settings;
 	const value = objectValue(raw);
+	const provider = cleanString(value.catalogProvider, fallback.catalogProvider).toLowerCase();
 	return {
 		merchantAccount: cleanString(value.merchantAccount, fallback.merchantAccount),
 		adminEmail: cleanString(value.adminEmail, fallback.adminEmail),
 		currency: cleanString(value.currency, fallback.currency).toUpperCase(),
-		gatewayUrl: cleanString(value.gatewayUrl, fallback.gatewayUrl).replace(/\/+$/, ''),
-		catalogRef: cleanString(value.catalogRef, fallback.catalogRef)
+		catalogProvider: provider === 'remote' || provider === 'd1' ? provider : 'local',
+		catalogRef: cleanString(value.catalogRef, fallback.catalogRef),
+		catalogD1Url: cleanString(value.catalogD1Url, fallback.catalogD1Url)
 	};
+}
+
+function normalizeCatalog(raw) {
+	const value = objectValue(raw);
+	const categories = Array.isArray(value.categories) ? value.categories : [];
+	const products = Array.isArray(value.products) ? value.products : [];
+	const normalizedCategories = categories
+		.map((category) => objectValue(category))
+		.map((category) => ({
+			id: cleanString(category.id, ''),
+			label: cleanString(category.label, ''),
+			helper: cleanString(category.helper, ''),
+			order: Number(category.order)
+		}))
+		.filter((category) => category.id && category.label)
+		.sort((first, second) => {
+			const firstOrder = Number.isFinite(first.order) ? first.order : 999;
+			const secondOrder = Number.isFinite(second.order) ? second.order : 999;
+			return firstOrder === secondOrder ? first.label.localeCompare(second.label) : firstOrder - secondOrder;
+		});
+	const categoryIds = new Set(normalizedCategories.map((category) => category.id));
+	const normalizedProducts = products
+		.map((product) => objectValue(product))
+		.map((product) => ({
+			id: cleanString(product.id, ''),
+			name: cleanString(product.name, ''),
+			category: cleanString(product.category, ''),
+			price: Number(product.price),
+			icon: cleanString(product.icon, ''),
+			cid: cleanString(product.cid, ''),
+			imageCid: cleanString(product.imageCid, ''),
+			imageUrl: cleanString(product.imageUrl, ''),
+			description: cleanString(product.description, ''),
+			vendor: cleanString(product.vendor, ''),
+			badge: cleanString(product.badge, ''),
+			packLabel: cleanString(product.packLabel, ''),
+			digital: product.digital === true,
+			order: Number(product.order)
+		}))
+		.filter((product) =>
+			product.id &&
+			product.name &&
+			product.category &&
+			categoryIds.has(product.category) &&
+			Number.isFinite(product.price) &&
+			product.price >= 0
+		)
+		.sort((first, second) => {
+			const firstOrder = Number.isFinite(first.order) ? first.order : 999;
+			const secondOrder = Number.isFinite(second.order) ? second.order : 999;
+			return firstOrder === secondOrder ? first.name.localeCompare(second.name) : firstOrder - secondOrder;
+		});
+
+	if (!normalizedCategories.length || !normalizedProducts.length) return null;
+	return {
+		categories: normalizedCategories,
+		products: normalizedProducts
+	};
+}
+
+function activeCatalog(raw) {
+	return normalizeCatalog(raw) || defaultCatalog();
+}
+
+function activeProducts(raw) {
+	return activeCatalog(raw.catalog).products;
 }
 
 function normalizeCategory(raw) {
 	const fallback = 'all';
 	const value = cleanString(raw, fallback).toLowerCase();
-	return value === 'all' || SHOP_CATEGORIES.some((category) => category.id === value) ? value : fallback;
+	const categories = activeCatalog(raw.catalog).categories;
+	return value === 'all' || categories.some((category) => category.id === value) ? value : fallback;
 }
 
 function normalizeProductId(raw, category) {
+	const products = activeProducts(raw);
 	const fallbackProduct =
-		(category === 'all' ? SHOP_PRODUCTS[0] : SHOP_PRODUCTS.find((product) => product.category === category)) ||
-		SHOP_PRODUCTS[0] ||
+		(category === 'all' ? products[0] : products.find((product) => product.category === category)) ||
+		products[0] ||
 		null;
 	const fallback = fallbackProduct ? fallbackProduct.id : '';
 	const value = cleanString(raw, fallback);
-	return SHOP_PRODUCTS.some((product) => product.id === value) ? value : fallback;
+	return products.some((product) => product.id === value) ? value : fallback;
 }
 
-function normalizeCart(raw) {
+function normalizeCart(raw, catalog) {
 	const cart = {};
 	const value = objectValue(raw);
-	for (const product of SHOP_PRODUCTS) {
+	for (const product of activeCatalog(catalog).products) {
 		const quantity = Number(value[product.id]);
 		if (Number.isFinite(quantity) && quantity > 0) {
 			cart[product.id] = Math.round(quantity);
@@ -108,10 +249,10 @@ function normalizeCart(raw) {
 	return cart;
 }
 
-function normalizeQuantities(raw) {
+function normalizeQuantities(raw, catalog) {
 	const quantities = {};
 	const value = objectValue(raw);
-	for (const product of SHOP_PRODUCTS) {
+	for (const product of activeCatalog(catalog).products) {
 		const quantity = Number(value[product.id]);
 		quantities[product.id] = Number.isFinite(quantity) && quantity > 0 ? Math.max(1, Math.round(quantity)) : 1;
 	}
@@ -130,6 +271,11 @@ function normalizeState(raw) {
 		? value.view
 		: fallback.view;
 	const category = normalizeCategory(value.category);
+	const savedDeliveries = normalizeSavedDeliveries(value.savedDeliveries, value.savedDelivery);
+	const selectedDeliveryProfileId = savedDeliveries.some((profile) => deliveryProfileId(profile) === value.selectedDeliveryProfileId)
+		? value.selectedDeliveryProfileId
+		: '';
+	const catalog = normalizeCatalog(value.catalog);
 	return {
 		...fallback,
 		...value,
@@ -145,13 +291,21 @@ function normalizeState(raw) {
 		theme: normalizeTheme(value.theme),
 		query: typeof value.query === 'string' ? value.query : fallback.query,
 		page: Number.isFinite(Number(value.page)) && Number(value.page) > 0 ? Math.floor(Number(value.page)) : fallback.page,
-		productQuantities: normalizeQuantities(value.productQuantities),
-		cart: normalizeCart(value.cart),
+		productQuantities: normalizeQuantities(value.productQuantities, catalog),
+		cart: normalizeCart(value.cart, catalog),
 		delivery: normalizeDelivery(value.delivery),
 		saveDelivery: value.saveDelivery !== false,
-		savedDelivery: value.savedDelivery ? normalizeDelivery(value.savedDelivery) : null,
+		savedDelivery: savedDeliveries[0] || null,
+		savedDeliveries,
+		selectedDeliveryProfileId,
 		checkoutStatus: cleanString(value.checkoutStatus, fallback.checkoutStatus),
 		lastOrder: value.lastOrder && typeof value.lastOrder === 'object' ? value.lastOrder : null,
+		catalog,
+		catalogStatus: ['idle', 'loading', 'loaded', 'error'].includes(value.catalogStatus)
+			? value.catalogStatus
+			: fallback.catalogStatus,
+		catalogError: cleanString(value.catalogError, fallback.catalogError),
+		catalogSource: cleanString(value.catalogSource, fallback.catalogSource),
 		settings: normalizeSettings(value.settings),
 		updatedAt: typeof value.updatedAt === 'string' ? value.updatedAt : null
 	};

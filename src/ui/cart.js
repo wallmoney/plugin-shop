@@ -3,7 +3,7 @@ function renderCart(state) {
 	return {
 		type: 'shopCart',
 		shopTitle: SHOP_CONFIG.name,
-		shopLogoUrl: SHOP_CONFIG.logoUrl,
+		shopLogoUrl: shopLogoUrl(),
 		coreId: state.coreId,
 		cartCount: cartCount(state),
 		theme: state.theme,

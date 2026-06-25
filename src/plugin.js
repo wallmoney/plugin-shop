@@ -30,29 +30,39 @@ module.exports = {
 						cart: {},
 						checkoutStatus: 'paid',
 						lastOrder,
-						savedDelivery: state.saveDelivery ? state.delivery : state.savedDelivery
+						savedDelivery: state.saveDelivery && hasDeliveryAddress(state.delivery) ? state.delivery : state.savedDelivery,
+						savedDeliveries: state.saveDelivery
+							? upsertSavedDeliveryProfile(state.savedDeliveries, state.delivery)
+							: state.savedDeliveries,
+						selectedDeliveryProfileId: state.saveDelivery && hasDeliveryAddress(state.delivery)
+							? deliveryProfileId(state.delivery)
+							: state.selectedDeliveryProfileId
 					});
 					hostApi.ui.notify('Order paid. The merchant can fulfill it using the payment reference.', 'success');
-					sendAdminOrderEmail(hostApi, state, result)
-						.then((emailResult) => {
-							if (emailResult && emailResult.sent) {
-								hostApi.ui.toast('Order email sent to shop admin.', 'success');
-							}
-						})
-						.catch((error) => {
-							const message = error && error.message ? error.message : 'Unable to send order email.';
-							hostApi.ui.notify(message, 'error');
-						});
-					sendStockAdjustment(hostApi, state, result)
-						.then((stockResult) => {
-							if (stockResult && stockResult.adjusted) {
-								hostApi.ui.toast('Stock updated.', 'success');
-							}
-						})
-						.catch((error) => {
-							const message = error && error.message ? error.message : 'Unable to update stock.';
-							hostApi.ui.notify(message, 'warning');
-						});
+					if (SHOP_CONFIG.orderPayment && SHOP_CONFIG.orderPayment.webhookUrl) {
+						hostApi.ui.toast('Order fulfillment will continue after payment verification.', 'success');
+					} else {
+						sendAdminOrderEmail(hostApi, state, result)
+							.then((emailResult) => {
+								if (emailResult && emailResult.sent) {
+									hostApi.ui.toast('Order email sent to shop admin.', 'success');
+								}
+							})
+							.catch((error) => {
+								const message = error && error.message ? error.message : 'Unable to send order fulfillment.';
+								hostApi.ui.notify(message, 'error');
+							});
+						sendStockAdjustment(hostApi, state, result)
+							.then((stockResult) => {
+								if (stockResult && stockResult.adjusted) {
+									hostApi.ui.toast('Stock updated.', 'success');
+								}
+							})
+							.catch((error) => {
+								const message = error && error.message ? error.message : 'Unable to update stock.';
+								hostApi.ui.notify(message, 'warning');
+							});
+					}
 				} else if (result.status === 'opened') {
 					saveState(hostApi, {
 						...state,
@@ -97,6 +107,7 @@ module.exports = {
 		render() {
 			const api = this.hostApi || hostApi;
 			const state = getState(api);
+			maybeLoadCatalog(api, state);
 			maybeRequestCheckoutEmail(api, state);
 			return {
 				title: SHOP_CONFIG.name,

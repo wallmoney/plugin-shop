@@ -1,6 +1,6 @@
 function categoryTitle(state) {
 	if (state.category === 'all') return 'All';
-	const category = categoryById(state.category);
+	const category = categoryById(state.category, state);
 	return category ? category.label : 'Products';
 }
 
@@ -64,7 +64,7 @@ function renderProducts(state) {
 		type: 'shopCatalog',
 		shopTitle: SHOP_CONFIG.name,
 		shopSubtitle: SHOP_CONFIG.tagline,
-		shopLogoUrl: SHOP_CONFIG.logoUrl,
+		shopLogoUrl: shopLogoUrl(),
 		title: categoryTitle(state),
 		subtitle: SHOP_CONFIG.tagline,
 		coreId: state.coreId,
@@ -74,7 +74,7 @@ function renderProducts(state) {
 		portalAction: { type: 'navigate', href: '/' },
 		homeAction: stateAction(state, { view: 'products', category: 'all', page: 1 }),
 		cartAction: stateAction(state, { view: 'cart' }),
-		categories: allCategories().map((category) => ({
+		categories: allCategories(state).map((category) => ({
 			id: category.id,
 			label: category.label,
 			selected: state.category === category.id,
@@ -82,7 +82,7 @@ function renderProducts(state) {
 				category: category.id,
 				view: 'products',
 				page: 1,
-				selectedProductId: (category.id === 'all' ? SHOP_PRODUCTS[0] : productsByCategory(category.id)[0])?.id || state.selectedProductId
+				selectedProductId: (category.id === 'all' ? catalogProducts(state)[0] : productsByCategory(category.id, state)[0])?.id || state.selectedProductId
 			})
 		})),
 		products: visibleProducts.map((product) => productCardNode(state, product)),
@@ -99,14 +99,14 @@ function renderProducts(state) {
 function renderProductDetail(state) {
 	const product = selectedProduct(state);
 	if (!product) return renderProducts(state);
-	const related = SHOP_PRODUCTS
+	const related = catalogProducts(state)
 		.filter((item) => item.id !== product.id && item.category === product.category)
-		.concat(SHOP_PRODUCTS.filter((item) => item.id !== product.id && item.category !== product.category))
+		.concat(catalogProducts(state).filter((item) => item.id !== product.id && item.category !== product.category))
 		.slice(0, 3);
 	return {
 		type: 'shopProductDetail',
 		shopTitle: SHOP_CONFIG.name,
-		shopLogoUrl: SHOP_CONFIG.logoUrl,
+		shopLogoUrl: shopLogoUrl(),
 		coreId: state.coreId,
 		cartCount: cartCount(state),
 		theme: state.theme,

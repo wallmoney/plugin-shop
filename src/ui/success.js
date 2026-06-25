@@ -3,7 +3,7 @@ function renderSuccess(state) {
 	return {
 		type: 'shopSuccess',
 		shopTitle: SHOP_CONFIG.name,
-		shopLogoUrl: SHOP_CONFIG.logoUrl,
+		shopLogoUrl: shopLogoUrl(),
 		coreId: state.coreId,
 		theme: state.theme,
 		themeAction: stateAction(state, { theme: state.theme === 'auto' ? 'dark' : state.theme === 'dark' ? 'light' : 'auto' }),

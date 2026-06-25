@@ -1,0 +1,36 @@
+{
+	"name": "plugin-shop-order-fulfillment",
+	"main": "order-fulfillment.ts",
+	"compatibility_date": "2026-06-25",
+	"send_email": [
+		{
+			"name": "EMAIL"
+		}
+	],
+	"vars": {
+		"FULFILLMENT_MODE": "storage",
+		"FULFILLMENT_WEBHOOK_URL": "https://fulfillment.example.com/orders/paid",
+		"EMAIL_PROVIDER": "cloudflare",
+		"EMAIL_FROM": "shop@yourdomain.com",
+		"EMAIL_FROM_NAME": "Wall Money Shop",
+		"COREAPI_WEBHOOK_KEY_URL": "https://coreapi.wall.money/obp/v6.0.0/transactions/key",
+		"STOCK_WEBHOOK_URL": "https://stock.example.com",
+		"ORDER_STORAGE_PROVIDER": "d1",
+		"REQUIRE_PAYMENT_WEBHOOK": "true"
+	},
+	"kv_namespaces": [
+		{
+			"binding": "ORDER_DRAFTS",
+			"id": "replace-with-production-kv-namespace-id",
+			"preview_id": "replace-with-preview-kv-namespace-id"
+		}
+	],
+	"d1_databases": [
+		{
+			"binding": "ORDER_DB",
+			"database_name": "plugin-shop-orders",
+			"database_id": "replace-with-production-orders-d1-database-id",
+			"migrations_dir": "../migrations/orders"
+		}
+	]
+}
