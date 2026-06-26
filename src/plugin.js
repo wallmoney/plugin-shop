@@ -71,7 +71,7 @@ module.exports = {
 				} else if (result.status === 'failed' || result.status === 'cancelled' || result.status === 'expired') {
 					saveState(hostApi, {
 						...state,
-						view: 'cart',
+						view: 'failed',
 						checkoutStatus: result.status
 					});
 				}

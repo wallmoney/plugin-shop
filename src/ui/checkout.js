@@ -29,15 +29,17 @@ function renderDeliveryForm(state) {
 				required: true
 			}
 		);
-		fields.push({
-			name: 'delivery.state',
-			label: 'State (US only)',
-			type: 'select',
-			value: deliveryDraft.state,
-			placeholder: 'California',
-			options: US_STATE_OPTIONS,
-			required: hasUnitedStates
-		});
+		if (hasUnitedStates) {
+			fields.push({
+				name: 'delivery.state',
+				label: 'State',
+				type: 'select',
+				value: deliveryDraft.state,
+				placeholder: 'California',
+				options: US_STATE_OPTIONS,
+				required: true
+			});
+		}
 		fields.push({ name: 'delivery.notes', label: 'Delivery notes', value: deliveryDraft.notes, placeholder: 'Floor, flat number, …' });
 	}
 
@@ -213,10 +215,11 @@ function checkoutRequiredMessage(state, hasPhysicalItems) {
 function renderCheckoutField(field, storageActionId) {
 	const value = escapeHtml(field.value || '');
 	const required = field.required ? 'required' : '';
+	const label = `${escapeHtml(field.label || field.name)}${field.required ? ' <span class="wm-required">*</span>' : ''}`;
 	const common = `class="wm-input" name="${escapeHtml(field.name)}" data-plugin-storage-action="${escapeHtml(storageActionId)}" data-plugin-field="${escapeHtml(field.name)}" ${required}`;
 	if (field.type === 'select') {
 		return `<label>
-			<span class="wm-product-meta">${escapeHtml(field.label || field.name)}</span>
+			<span class="wm-field-label">${label}</span>
 			<select ${common}>
 				<option value="">${escapeHtml(field.placeholder || field.label || '')}</option>
 				${(field.options || []).map((option) => {
@@ -227,7 +230,7 @@ function renderCheckoutField(field, storageActionId) {
 		</label>`;
 	}
 	return `<label class="${field.name === 'delivery.notes' || field.name === 'delivery.address' || field.name === 'delivery.address2' ? 'wm-span-2' : ''}">
-		<span class="wm-product-meta">${escapeHtml(field.label || field.name)}</span>
+		<span class="wm-field-label">${label}</span>
 		<input ${common} type="${escapeHtml(field.type || 'text')}" value="${value}" placeholder="${escapeHtml(field.placeholder || field.label || '')}" />
 	</label>`;
 }
@@ -276,6 +279,22 @@ function renderCheckout(state) {
 	const deliveryForm = renderDeliveryForm(checkoutState);
 	const storageActionId = addFrameAction(actions, deliveryForm.autoSaveAction || deliveryForm.action);
 	const profiles = savedDeliveryProfileOptions(checkoutState);
+	const savedAddressPanel = hasPhysicalItems && profiles.length ? `
+		<details class="wm-saved">
+			<summary>Saved addresses</summary>
+			${profiles.map((profile) => `
+				<div class="wm-saved-row">
+					<button type="button" class="wm-btn wm-btn-ghost" ${actionAttr(actions, profile.selectAction)}>
+						<span>
+							<span class="wm-saved-title">${escapeHtml(profile.label)}</span>
+							${profile.description ? `<span class="wm-saved-sub">${escapeHtml(profile.description)}</span>` : ''}
+						</span>
+					</button>
+					<button type="button" class="wm-icon-btn" title="Delete saved address" ${actionAttr(actions, profile.removeAction)}>${icon('trash', 15)}</button>
+				</div>
+			`).join('')}
+		</details>
+	` : '';
 	const payAction = developmentMessage
 		? { type: 'notify', message: developmentMessage, level: 'error' }
 		: workerDomainMessage
@@ -289,50 +308,32 @@ function renderCheckout(state) {
 		: stockManagedPaymentAction(finalCheckoutState, paymentRequest);
 
 	return pluginFrame('Checkout', `
-		<div class="wm-page">
-			<header class="wm-header wm-shell">
-				<button type="button" class="wm-brand" ${actionAttr(actions, stateAction(state, { view: 'products', category: 'all', page: 1 }))}>
-					${shopLogoUrl() ? `<img class="wm-logo" src="${escapeHtml(shopLogoUrl())}" alt="" />` : ''}
-					<span>${escapeHtml(SHOP_CONFIG.name)}</span>
-				</button>
-				<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'cart' }))}>Cart ${cartCount(state)}</button>
-			</header>
+		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
+			${renderShopHeader(actions, state)}
 			<main class="wm-checkout">
 				<section class="wm-card">
 					<h1 style="margin:0;font-size:1.5rem;font-weight:950">${hasPhysicalItems ? 'Delivery details' : 'Contact details'}</h1>
 					<p class="wm-muted">${hasPhysicalItems ? 'These details are sent to the shop admin only after successful payment.' : 'Digital orders only need an email address and Core ID.'}</p>
-					${hasPhysicalItems && profiles.length ? `
-						<label>
-							<span class="wm-product-meta">Saved address</span>
-							<select class="wm-input">
-								<option value="">Select saved address</option>
-								${profiles.map((profile) => `<option value="${escapeHtml(profile.id)}" data-plugin-action="${addFrameAction(actions, profile.selectAction)}" ${profile.id === checkoutState.selectedDeliveryProfileId ? 'selected' : ''}>${escapeHtml(profile.description ? `${profile.label} - ${profile.description}` : profile.label)}</option>`).join('')}
-							</select>
-						</label>
+					${hasPhysicalItems ? `
+						<div class="wm-form-actions-top">
+							<div class="wm-switch" role="group" aria-label="Delivery saving">
+								<button type="button" class="${checkoutState.saveDelivery ? 'is-active' : ''}" ${actionAttr(actions, stateAction(checkoutState, { saveDelivery: true }))}>Saving</button>
+								<button type="button" class="${checkoutState.saveDelivery ? '' : 'is-active'}" ${actionAttr(actions, stateAction(checkoutState, { saveDelivery: false, selectedDeliveryProfileId: '' }))}>One time</button>
+							</div>
+							${frameButton(actions, 'Clear form', stateAction(state, { delivery: { ...emptyDelivery(), email: state.userEmail || '' }, checkoutStatus: 'draft' }, 'Delivery form cleared'), 'link')}
+						</div>
+						${savedAddressPanel}
 					` : ''}
 					<form class="wm-form-grid">
 						${deliveryForm.fields.map((field) => renderCheckoutField(field, storageActionId)).join('')}
 					</form>
-					${hasPhysicalItems ? `
-						<div class="wm-inline-actions">
-							${frameButton(actions, checkoutState.saveDelivery ? 'Saving delivery' : 'Save delivery', stateAction(checkoutState, { saveDelivery: true }), checkoutState.saveDelivery ? 'primary' : 'secondary')}
-							${frameButton(actions, 'This order only', stateAction(checkoutState, { saveDelivery: false, selectedDeliveryProfileId: '' }), checkoutState.saveDelivery ? 'secondary' : 'primary')}
-							${frameButton(actions, 'Clear form', stateAction(state, { delivery: { ...emptyDelivery(), email: state.userEmail || '' }, checkoutStatus: 'draft' }, 'Delivery form cleared'), 'ghost')}
-							${checkoutState.savedDelivery ? frameButton(actions, 'Remove saved delivery', stateAction(checkoutState, {
-								savedDelivery: null,
-								savedDeliveries: [],
-								selectedDeliveryProfileId: '',
-								saveDelivery: false,
-								checkoutStatus: 'draft'
-							}, 'Saved delivery profile removed'), 'ghost') : ''}
-						</div>
-					` : ''}
+					<p class="wm-required-note"><span class="wm-required">*</span> Required fields</p>
 				</section>
 				<aside class="wm-card">
 					<h2 style="margin:0;font-size:1.25rem;font-weight:950">Order summary</h2>
 					${items.map((item) => `<div class="wm-summary-line"><span>${escapeHtml(item.product.name)} × ${item.quantity}</span><strong>${escapeHtml(formatMoney(item.product.price * item.quantity, state.settings.currency))}</strong></div>`).join('')}
 					<div class="wm-total"><span>Total</span><span>${escapeHtml(formatMoney(total, state.settings.currency))}</span></div>
-					<p class="wm-muted">Core ID: ${escapeHtml(state.coreId || 'Not provided')}</p>
+					<p class="wm-muted wm-summary-core">Core ID:<br><span class="wm-coreid">${escapeHtml(state.coreId ? compactCoreId(state.coreId) : 'Not provided')}</span></p>
 					<p class="wm-muted">Collector: ${escapeHtml(collectorAccount())}</p>
 					${hasPhysicalItems ? `<p class="wm-muted">Delivery: ${escapeHtml(deliverySummary(delivery))}</p>` : ''}
 					${blockedMessage ? `<p class="wm-warning">${escapeHtml(blockedMessage)}</p>` : ''}

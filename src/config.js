@@ -30,6 +30,22 @@ const SHOP_CONFIG = {
 	orderPayment: {
 		webhookUrl: 'https://order-fulfillment.example.com/orders/payment-webhook'
 	},
+	contact: {
+		email: 'support@example.com',
+		mobile: '+421900000000',
+		subjects: [
+			{ label: 'Order support', subject: 'Order support request', body: 'Hello, I need help with my order.' },
+			{ label: 'Product question', subject: 'Product question', body: 'Hello, I have a question about a product.' },
+			{ label: 'Business inquiry', subject: 'Business inquiry', body: 'Hello, I would like to contact your shop.' }
+		],
+		company: {
+			name: 'Wall Money Shop',
+			registrationNumber: '',
+			vatId: '',
+			address: '',
+			website: ''
+		}
+	},
 	stockManagement: {
 		provider: 'none',
 		apiUrl: ''

@@ -8,6 +8,7 @@ function defaultState() {
 		emailRequestStatus: 'idle',
 		countryCode: '',
 		theme: 'auto',
+		lastAddedProductId: '',
 		query: '',
 		page: 1,
 		productQuantities: {},
@@ -40,7 +41,8 @@ function defaultState() {
 			currency: SHOP_CONFIG.defaultCurrency,
 			catalogProvider: SHOP_CONFIG.defaultCatalogProvider || 'local',
 			catalogRef: SHOP_CONFIG.defaultCatalogRef,
-			catalogD1Url: SHOP_CONFIG.catalogD1 && SHOP_CONFIG.catalogD1.apiUrl ? SHOP_CONFIG.catalogD1.apiUrl : ''
+			catalogD1Url: SHOP_CONFIG.catalogD1 && SHOP_CONFIG.catalogD1.apiUrl ? SHOP_CONFIG.catalogD1.apiUrl : '',
+			contact: SHOP_CONFIG.contact || {}
 		},
 		updatedAt: null
 	};
@@ -143,13 +145,41 @@ function normalizeSettings(raw) {
 	const fallback = defaultState().settings;
 	const value = objectValue(raw);
 	const provider = cleanString(value.catalogProvider, fallback.catalogProvider).toLowerCase();
+	const contact = objectValue(value.contact);
+	const fallbackContact = objectValue(fallback.contact);
+	const company = objectValue(contact.company);
+	const fallbackCompany = objectValue(fallbackContact.company);
+	const subjects = Array.isArray(contact.subjects)
+		? contact.subjects
+		: Array.isArray(fallbackContact.subjects)
+			? fallbackContact.subjects
+			: [];
 	return {
 		merchantAccount: cleanString(value.merchantAccount, fallback.merchantAccount),
 		adminEmail: cleanString(value.adminEmail, fallback.adminEmail),
 		currency: cleanString(value.currency, fallback.currency).toUpperCase(),
 		catalogProvider: provider === 'remote' || provider === 'd1' ? provider : 'local',
 		catalogRef: cleanString(value.catalogRef, fallback.catalogRef),
-		catalogD1Url: cleanString(value.catalogD1Url, fallback.catalogD1Url)
+		catalogD1Url: cleanString(value.catalogD1Url, fallback.catalogD1Url),
+		contact: {
+			email: cleanString(contact.email, fallbackContact.email),
+			mobile: cleanString(contact.mobile, fallbackContact.mobile),
+			subjects: subjects
+				.map((subject) => objectValue(subject))
+				.map((subject) => ({
+					label: cleanString(subject.label, ''),
+					subject: cleanString(subject.subject, ''),
+					body: cleanString(subject.body, '')
+				}))
+				.filter((subject) => subject.label && subject.subject),
+			company: {
+				name: cleanString(company.name, fallbackCompany.name),
+				registrationNumber: cleanString(company.registrationNumber, fallbackCompany.registrationNumber),
+				vatId: cleanString(company.vatId, fallbackCompany.vatId),
+				address: cleanString(company.address, fallbackCompany.address),
+				website: cleanString(company.website, fallbackCompany.website)
+			}
+		}
 	};
 }
 
@@ -267,7 +297,7 @@ function normalizeTheme(raw) {
 function normalizeState(raw) {
 	const fallback = defaultState();
 	const value = objectValue(raw);
-	const view = ['products', 'product', 'cart', 'checkout', 'orders', 'success'].includes(value.view)
+	const view = ['products', 'product', 'cart', 'checkout', 'orders', 'success', 'failed', 'contact'].includes(value.view)
 		? value.view
 		: fallback.view;
 	const catalog = normalizeCatalog(value.catalog);
@@ -289,6 +319,7 @@ function normalizeState(raw) {
 			: fallback.emailRequestStatus,
 		countryCode: cleanString(value.countryCode, fallback.countryCode).toUpperCase(),
 		theme: normalizeTheme(value.theme),
+		lastAddedProductId: cleanString(value.lastAddedProductId, fallback.lastAddedProductId),
 		query: typeof value.query === 'string' ? value.query : fallback.query,
 		page: Number.isFinite(Number(value.page)) && Number(value.page) > 0 ? Math.floor(Number(value.page)) : fallback.page,
 		productQuantities: normalizeQuantities(value.productQuantities, catalog),
