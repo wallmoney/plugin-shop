@@ -68,8 +68,8 @@ function cleanString(value, fallback) {
 function normalizeDelivery(raw) {
 	const fallback = defaultState().delivery;
 	const value = objectValue(raw);
-	const country = cleanString(value.country, fallback.country);
-	const isUnitedStates = country === 'United States' || country === 'US';
+	const country = countryCodeFromValue(value.country) || countryCodeFromValue(fallback.country);
+	const isUnitedStates = country === 'US';
 	return {
 		name: cleanString(value.name, fallback.name),
 		email: cleanString(value.email, fallback.email),

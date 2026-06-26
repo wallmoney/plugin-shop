@@ -1,8 +1,8 @@
 function renderDeliveryForm(state) {
 	const initialDelivery = checkoutDelivery(state);
 	const hasPhysicalItems = cartItems(state).some((item) => item.product.digital !== true);
-	const selectedCountry = initialDelivery.country || countryNameFromCode(state.countryCode) || '';
-	const hasUnitedStates = selectedCountry === 'United States' || selectedCountry === 'US' || state.countryCode === 'US';
+	const selectedCountry = countryCodeFromValue(initialDelivery.country) || countryCodeFromValue(state.countryCode) || '';
+	const hasUnitedStates = selectedCountry === 'US';
 	const deliveryDraft = {
 		...initialDelivery,
 		email: initialDelivery.email || state.userEmail || '',
@@ -24,7 +24,7 @@ function renderDeliveryForm(state) {
 				label: 'Country',
 				type: 'country',
 				value: deliveryDraft.country,
-				placeholder: 'United States',
+				placeholder: 'Country code or name',
 				options: COUNTRY_OPTIONS,
 				required: true
 			}
@@ -69,10 +69,11 @@ function checkoutDelivery(state) {
 }
 
 function checkoutReadyState(state) {
+	const currentDelivery = checkoutDelivery(state);
 	const delivery = normalizeDelivery({
-		...checkoutDelivery(state),
-		email: checkoutDelivery(state).email || state.userEmail || '',
-		country: checkoutDelivery(state).country || countryNameFromCode(state.countryCode) || ''
+		...currentDelivery,
+		email: currentDelivery.email || state.userEmail || '',
+		country: countryCodeFromValue(currentDelivery.country) || countryCodeFromValue(state.countryCode) || ''
 	});
 	return normalizeState({
 		...state,
@@ -104,7 +105,7 @@ function savedDeliveryProfileOptions(state) {
 		return {
 			id,
 			label: deliveryProfileLabel(profile),
-			description: [profile.city, profile.zip, profile.country].filter(Boolean).join(', '),
+			description: [profile.city, profile.zip, countryNameFromCode(profile.country) || profile.country].filter(Boolean).join(', '),
 			selected,
 			selectAction: stateAction(state, {
 				delivery: profile,
@@ -178,7 +179,7 @@ function isValidPhone(value) {
 }
 
 function isUnitedStates(value) {
-	return value === 'United States' || value === 'US';
+	return countryCodeFromValue(value) === 'US';
 }
 
 function minimumCheckoutMessage(state, total) {
@@ -199,14 +200,14 @@ function checkoutRequiredMessage(state, hasPhysicalItems) {
 	if (!delivery.address) missing.push('street address');
 	if (!delivery.city) missing.push('city');
 	if (!delivery.zip) missing.push('ZIP');
-	if (!delivery.country) missing.push('country');
+	if (!countryCodeFromValue(delivery.country)) missing.push('country');
 	if (missing.length) return 'Enter delivery details before checkout.';
 	if (delivery.name.length < 2) return 'Enter a valid full name.';
 	if (!isValidPhone(delivery.phone)) return 'Enter a valid phone number.';
 	if (delivery.address.length < 3) return 'Enter a valid street address.';
 	if (delivery.city.length < 2) return 'Enter a valid city.';
 	if (delivery.zip.length < 2) return 'Enter a valid ZIP/postal code.';
-	if (!COUNTRY_OPTIONS.some((country) => country.name === delivery.country || country.code === delivery.country)) return 'Select a valid country.';
+	if (!COUNTRY_OPTIONS.some((country) => country.code === countryCodeFromValue(delivery.country))) return 'Select a valid country.';
 	if (isUnitedStates(delivery.country) && !delivery.state) return 'Select a state for United States delivery.';
 	if (isUnitedStates(delivery.country) && !US_STATE_OPTIONS.some((stateOption) => stateOption.name === delivery.state)) return 'Select a valid state.';
 	return missing.length ? `Add ${missing.join(', ')} before checkout.` : '';
@@ -227,6 +228,15 @@ function renderCheckoutField(field, storageActionId) {
 					return `<option value="${escapeHtml(optionValue)}" ${optionValue === field.value ? 'selected' : ''}>${escapeHtml(optionValue)}</option>`;
 				}).join('')}
 			</select>
+		</label>`;
+	}
+	if (field.type === 'country') {
+		return `<label>
+			<span class="wm-field-label">${label}</span>
+			<input ${common} type="text" list="wm-country-options" value="${value}" placeholder="${escapeHtml(field.placeholder || field.label || '')}" autocomplete="country" />
+			<datalist id="wm-country-options">
+				${(field.options || []).map((option) => `<option value="${escapeHtml(option.code || '')}" label="${escapeHtml(option.name || option.code || '')}">${escapeHtml(option.name || option.code || '')}</option>`).join('')}
+			</datalist>
 		</label>`;
 	}
 	return `<label class="${field.name === 'delivery.notes' || field.name === 'delivery.address' || field.name === 'delivery.address2' ? 'wm-span-2' : ''}">
@@ -295,17 +305,7 @@ function renderCheckout(state) {
 			`).join('')}
 		</details>
 	` : '';
-	const payAction = developmentMessage
-		? { type: 'notify', message: developmentMessage, level: 'error' }
-		: workerDomainMessage
-			? { type: 'notify', message: workerDomainMessage, level: 'error' }
-		: collectionMessage
-			? { type: 'notify', message: collectionMessage, level: 'error' }
-		: minimumMessage
-			? { type: 'notify', message: minimumMessage, level: 'warning' }
-		: requiredMessage
-			? { type: 'notify', message: requiredMessage, level: 'warning' }
-		: stockManagedPaymentAction(finalCheckoutState, paymentRequest);
+	const payAction = blockedMessage ? null : stockManagedPaymentAction(finalCheckoutState, paymentRequest);
 
 	return pluginFrame('Checkout', `
 		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
@@ -339,7 +339,7 @@ function renderCheckout(state) {
 					${blockedMessage ? `<p class="wm-warning">${escapeHtml(blockedMessage)}</p>` : ''}
 					<div class="wm-inline-actions">
 						${frameButton(actions, 'Back to cart', stateAction(state, { view: 'cart' }), 'secondary')}
-						${frameButton(actions, blockedMessage ? 'Cannot pay yet' : 'Pay with Wall Money', payAction)}
+						<button type="button" class="wm-btn wm-btn-primary wm-pay-btn" ${payAction ? actionAttr(actions, payAction) : 'disabled'}>Pay with Wall Money</button>
 					</div>
 				</aside>
 			</main>

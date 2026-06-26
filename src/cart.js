@@ -106,7 +106,8 @@ function orderReference(state) {
 }
 
 function deliverySummary(delivery) {
-	const cityLine = [delivery.city, delivery.state, delivery.zip, delivery.country].filter(Boolean).join(', ');
+	const country = countryNameFromCode(delivery.country) || delivery.country;
+	const cityLine = [delivery.city, delivery.state, delivery.zip, country].filter(Boolean).join(', ');
 	return [delivery.address, delivery.address2, cityLine].filter(Boolean).join(' • ') || 'Not entered';
 }
 

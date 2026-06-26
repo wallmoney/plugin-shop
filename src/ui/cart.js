@@ -31,11 +31,13 @@ function renderCart(state) {
 						</div>
 					`).join('')}
 					<div class="wm-total"><span>Subtotal</span><span>${escapeHtml(formatMoney(cartSubtotal(state), state.settings.currency))}</span></div>
-					<div class="wm-inline-actions">
-						${frameButton(actions, 'Continue shopping', stateAction(state, { view: 'products', category: 'all', page: 1 }), 'secondary')}
-						${frameButton(actions, 'Continue to checkout', stateAction(checkoutReadyState(state), {}))}
+					<div class="wm-cart-actions">
+						${frameButton(actions, 'Clear cart', stateAction(state, { cart: {}, checkoutStatus: 'draft' }, 'Cart cleared'), 'link')}
+						<div class="wm-cart-right">
+							${frameButton(actions, 'Continue shopping', stateAction(state, { view: 'products', category: 'all', page: 1 }), 'secondary')}
+							${frameButton(actions, 'Continue to checkout', stateAction(checkoutReadyState(state), {}))}
+						</div>
 					</div>
-					<div style="margin-top:.75rem">${frameButton(actions, 'Clear cart', stateAction(state, { cart: {}, checkoutStatus: 'draft' }, 'Cart cleared'), 'link')}</div>
 				` : `
 					<div style="padding:2rem;text-align:center">
 						<p style="font-weight:950">Your cart is empty.</p>
