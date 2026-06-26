@@ -36,19 +36,19 @@ function renderContactPage(state) {
 					<p class="wm-muted">Choose a topic to open your mail client with a prepared subject.</p>
 					<div class="wm-inline-actions" style="margin-top:1.5rem">
 						${email ? subjects.map((item) => `
-							<a class="wm-btn wm-btn-primary" href="${escapeHtml(contactMailUrl(email, item.subject, item.body))}">
+							<button type="button" class="wm-btn wm-btn-primary" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, item.subject, item.body) })}>
 								${icon('mail', 17)} ${escapeHtml(item.label)}
-							</a>
+							</button>
 						`).join('') : ''}
 						${email ? `
-							<a class="wm-btn wm-btn-secondary" href="${escapeHtml(contactMailUrl(email, 'Shop contact', 'Hello, I would like to contact your shop.'))}">
+							<button type="button" class="wm-btn wm-btn-secondary" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, 'Shop contact', 'Hello, I would like to contact your shop.') })}>
 								${icon('mail', 17)} Email shop
-							</a>
+							</button>
 						` : ''}
 						${mobile ? `
-							<a class="wm-btn wm-btn-secondary" href="${escapeHtml(contactPhoneUrl(mobile))}">
+							<button type="button" class="wm-btn wm-btn-secondary" ${actionAttr(actions, { type: 'navigate', href: contactPhoneUrl(mobile) })}>
 								${icon('phone', 17)} Call shop
-							</a>
+							</button>
 						` : ''}
 					</div>
 					${!email && !mobile ? `<p class="wm-warning">No shop contact is configured.</p>` : ''}
@@ -62,7 +62,7 @@ function renderContactPage(state) {
 					${company.website ? `
 						<div class="wm-summary-line">
 							<span class="wm-muted">Website</span>
-							<a class="wm-btn wm-btn-link" href="${escapeHtml(company.website)}" target="_blank" rel="noopener">${icon('externalLink', 15)} Open</a>
+							<button type="button" class="wm-btn wm-btn-link" ${actionAttr(actions, { type: 'navigate', href: company.website })}>${icon('externalLink', 15)} Open</button>
 						</div>
 					` : ''}
 					${email ? `<div class="wm-summary-line"><span class="wm-muted">Email</span><strong>${escapeHtml(email)}</strong></div>` : ''}

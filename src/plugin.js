@@ -80,7 +80,7 @@ module.exports = {
 				.then((profile) => {
 					if (!profile) return;
 					const state = getState(hostApi);
-					const country = state.delivery.country || countryNameFromCode(profile.countryCode);
+					const country = countryCodeFromValue(state.delivery.country) || countryCodeFromValue(profile.countryCode);
 					saveState(hostApi, {
 						...state,
 						coreId: state.coreId || profile.coreId,

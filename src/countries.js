@@ -35,3 +35,12 @@ function countryNameFromCode(code) {
 	const normalized = typeof code === 'string' ? code.trim().toUpperCase() : '';
 	return COUNTRY_OPTIONS.find((country) => country.code === normalized)?.name || '';
 }
+
+function countryCodeFromValue(value) {
+	const normalized = typeof value === 'string' ? value.trim() : '';
+	if (!normalized) return '';
+	const upper = normalized.toUpperCase();
+	const lower = normalized.toLowerCase();
+	const country = COUNTRY_OPTIONS.find((item) => item.code === upper || item.name.toLowerCase() === lower);
+	return country ? country.code : upper.length === 2 ? upper : '';
+}

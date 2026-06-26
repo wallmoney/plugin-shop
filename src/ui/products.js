@@ -39,12 +39,11 @@ function renderProducts(state) {
 		<div class="wm-shop wm-theme-${escapeHtml(state.theme)}">
 			<div class="wm-shell wm-layout">
 				<aside class="wm-sidebar">
-					<button type="button" class="wm-brand" ${actionAttr(actions, { type: 'navigate', href: '/' })}>
-						${coreIdenticon(state.coreId)}
+					<button type="button" class="wm-brand" ${actionAttr(actions, stateAction(state, { view: 'products', category: 'all', page: 1 }))}>
+						${shopLogoMarkup()}
 						<span>${escapeHtml(SHOP_CONFIG.name)}</span>
 					</button>
 					<p class="wm-subtitle">${escapeHtml(SHOP_CONFIG.tagline || '')}</p>
-					<div style="margin-top:1rem">${renderThemeSwitcher(actions, state)}</div>
 					<nav class="wm-nav" aria-label="Shop categories">
 						${allCategories(state).map((category) => `
 							<button type="button" class="${state.category === category.id ? 'is-active' : ''}" ${actionAttr(actions, stateAction(state, {
@@ -67,6 +66,7 @@ function renderProducts(state) {
 							${renderThemeSwitcher(actions, state)}
 							<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'contact' }))}>${icon('mail', 17)} <span>Contact</span></button>
 							<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'cart' }))}>${icon('cart', 17)} <span>Cart ${cartCount(state)}</span></button>
+							<button type="button" class="wm-icon-btn wm-user-btn" title="Back to bank" ${actionAttr(actions, { type: 'navigate', href: '/' })}>${coreIdenticon(state.coreId)}</button>
 						</div>
 					</div>
 					<div class="wm-grid">
@@ -82,8 +82,8 @@ function renderProducts(state) {
 									<p class="wm-product-pack">${escapeHtml(product.packLabel || 'Standard pack')}</p>
 									<p class="wm-product-price">${escapeHtml(productPrice(state, product))}</p>
 								</button>
-								<button type="button" class="wm-btn wm-btn-${state.lastAddedProductId === product.id ? 'success wm-added' : 'primary'} wm-product-add" ${actionAttr(actions, stateAction({ ...addToCart(state, product.id), lastAddedProductId: product.id }, {}, `${product.name} added to cart`))}>
-									<span class="wm-add-normal">Add to cart</span><span class="wm-add-added">${icon('check', 16)} Added</span>
+								<button type="button" class="wm-btn wm-btn-primary wm-product-add" ${actionAttr(actions, stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`))}>
+									Add to cart
 								</button>
 							</article>
 						`).join('')}
@@ -126,8 +126,8 @@ function renderProductDetail(state) {
 						<button type="button" ${actionAttr(actions, stateAction(incrementProductQuantity(state, product.id), {}))}>${icon('plus', 15)}</button>
 					</div>
 					<div class="wm-inline-actions">
-						<button type="button" class="wm-btn wm-btn-${state.lastAddedProductId === product.id ? 'success wm-added' : 'secondary'} wm-product-add" ${actionAttr(actions, stateAction({ ...addQuantityToCart(state, product.id, productQuantity(state, product.id)), lastAddedProductId: product.id }, {}, `${product.name} added to cart`))}>
-							<span class="wm-add-normal">Add to cart</span><span class="wm-add-added">${icon('check', 16)} Added</span>
+						<button type="button" class="wm-btn wm-btn-secondary wm-product-add" ${actionAttr(actions, stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`))}>
+							Add to cart
 						</button>
 						${frameButton(actions, 'Buy now', stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), { view: 'cart' }))}
 					</div>

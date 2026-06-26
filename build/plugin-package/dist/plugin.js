@@ -189,6 +189,15 @@ function countryNameFromCode(code) {
 	return COUNTRY_OPTIONS.find((country) => country.code === normalized)?.name || '';
 }
 
+function countryCodeFromValue(value) {
+	const normalized = typeof value === 'string' ? value.trim() : '';
+	if (!normalized) return '';
+	const upper = normalized.toUpperCase();
+	const lower = normalized.toLowerCase();
+	const country = COUNTRY_OPTIONS.find((item) => item.code === upper || item.name.toLowerCase() === lower);
+	return country ? country.code : upper.length === 2 ? upper : '';
+}
+
 
 // src/state.js
 function defaultState() {
@@ -261,8 +270,8 @@ function cleanString(value, fallback) {
 function normalizeDelivery(raw) {
 	const fallback = defaultState().delivery;
 	const value = objectValue(raw);
-	const country = cleanString(value.country, fallback.country);
-	const isUnitedStates = country === 'United States' || country === 'US';
+	const country = countryCodeFromValue(value.country) || countryCodeFromValue(fallback.country);
+	const isUnitedStates = country === 'US';
 	return {
 		name: cleanString(value.name, fallback.name),
 		email: cleanString(value.email, fallback.email),
@@ -857,7 +866,8 @@ function orderReference(state) {
 }
 
 function deliverySummary(delivery) {
-	const cityLine = [delivery.city, delivery.state, delivery.zip, delivery.country].filter(Boolean).join(', ');
+	const country = countryNameFromCode(delivery.country) || delivery.country;
+	const cityLine = [delivery.city, delivery.state, delivery.zip, country].filter(Boolean).join(', ');
 	return [delivery.address, delivery.address2, cityLine].filter(Boolean).join(' • ') || 'Not entered';
 }
 
@@ -871,7 +881,12 @@ function shopLogoUrl() {
 	const context = typeof pluginContext === 'object' && pluginContext ? pluginContext : null;
 	if (SHOP_CONFIG.logoSrc && /^https?:\/\//i.test(SHOP_CONFIG.logoSrc)) return SHOP_CONFIG.logoSrc;
 	if (SHOP_CONFIG.logoUrl && /^https?:\/\//i.test(SHOP_CONFIG.logoUrl)) return SHOP_CONFIG.logoUrl;
-	return context && typeof context.iconUrl === 'string' ? context.iconUrl : '';
+	return (SHOP_CONFIG.logoSrc || SHOP_CONFIG.logoUrl) && context && typeof context.iconUrl === 'string' ? context.iconUrl : '';
+}
+
+function shopLogoMarkup() {
+	const logo = shopLogoUrl();
+	return logo ? `<img class="wm-logo" src="${escapeHtml(logo)}" alt="" />` : '';
 }
 
 function escapeHtml(value) {
@@ -973,14 +988,15 @@ function renderShopHeader(actions, state, options = {}) {
 	const title = escapeHtml(SHOP_CONFIG.name);
 	const backAction = options.backAction || stateAction(state, { view: 'products', category: 'all', page: 1 });
 	return `<header class="wm-header wm-shell">
-		<button type="button" class="wm-brand" ${actionAttr(actions, { type: 'navigate', href: '/' })}>
-			${coreIdenticon(state.coreId)}
+		<button type="button" class="wm-brand" ${actionAttr(actions, stateAction(state, { view: 'products', category: 'all', page: 1 }))}>
+			${shopLogoMarkup()}
 			<span>${title}</span>
 		</button>
 		<div class="wm-actions">
 			${renderThemeSwitcher(actions, state)}
-			<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'cart' }))}>${icon('cart', 17)} <span>Cart ${cartCount(state)}</span></button>
 			<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'contact' }))}>${icon('mail', 17)} <span>Contact</span></button>
+			<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'cart' }))}>${icon('cart', 17)} <span>Cart ${cartCount(state)}</span></button>
+			<button type="button" class="wm-icon-btn wm-user-btn" title="Back to bank" ${actionAttr(actions, { type: 'navigate', href: '/' })}>${coreIdenticon(state.coreId)}</button>
 			${options.showBack ? `<button type="button" class="wm-icon-btn" title="Back" ${actionAttr(actions, backAction)}>${icon('arrowLeft', 18)}</button>` : ''}
 		</div>
 	</header>`;
@@ -994,12 +1010,13 @@ function pluginFrame(title, body, actions, options = {}) {
 		actions,
 		html: `<style>
 			:root{color-scheme:dark light;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-			*{box-sizing:border-box}body{margin:0;background:#f6f4ee;color:#0c0a09}button,input,select{font:inherit}
-			.wm-shop{min-height:100vh;background:#f6f4ee;color:#0c0a09}.wm-shell{max-width:1680px;margin:0 auto}.wm-header{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1.25rem 1.5rem}.wm-brand{display:inline-flex;align-items:center;gap:.65rem;border:0;background:transparent;color:inherit;font-size:1.5rem;font-weight:900;letter-spacing:-.03em;cursor:pointer}.wm-logo{width:2rem;height:2rem;border-radius:.75rem;object-fit:cover}.wm-actions{display:flex;align-items:center;gap:.75rem}.wm-icon-btn,.wm-chip{border:1px solid rgba(120,113,108,.25);background:#fff;color:#292524;border-radius:999px;box-shadow:0 10px 30px rgba(28,25,23,.08);font-weight:800}.wm-chip{padding:.6rem 1rem}.wm-layout{display:flex;min-height:100vh}.wm-sidebar{width:15rem;flex:0 0 15rem;border-right:1px solid #e7e5e4;background:rgba(251,250,247,.96);padding:1.25rem}.wm-subtitle{margin:.5rem 0 0;color:#57534e;font-size:.9rem;font-weight:650;line-height:1.55}.wm-nav{display:flex;flex-direction:column;gap:.5rem;margin-top:1.5rem}.wm-nav button{border:0;border-radius:1rem;background:transparent;color:#57534e;text-align:left;padding:.85rem 1rem;font-weight:900;cursor:pointer}.wm-nav button.is-active{background:#fff;color:#0c0a09;box-shadow:0 18px 40px rgba(28,25,23,.12)}.wm-main{min-width:0;flex:1;padding:1.5rem 2.5rem}.wm-main-head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;border-bottom:1px solid #e7e5e4;padding-bottom:1.5rem}.wm-kicker{margin:0;color:#78716c;font-size:.9rem;font-weight:750}.wm-title{margin:.25rem 0 0;font-size:clamp(2rem,4vw,3.5rem);line-height:.95;font-weight:950;letter-spacing:-.045em}.wm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2rem 1rem;margin-top:2rem}.wm-product{text-align:left}.wm-product-media{position:relative;aspect-ratio:1;overflow:hidden;border-radius:1.75rem;background:#fff;box-shadow:0 8px 30px rgba(28,25,23,.08);border:1px solid rgba(214,211,209,.7)}.wm-product-media img{width:100%;height:100%;object-fit:cover;display:block}.wm-empty-icon{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:3rem}.wm-badge{position:absolute;left:.75rem;top:.75rem;border-radius:999px;background:#fff;color:#1c1917;padding:.3rem .75rem;font-size:.75rem;font-weight:900}.wm-product button.wm-product-open{display:block;width:100%;border:0;background:transparent;text-align:left;color:inherit;cursor:pointer}.wm-product-meta{margin:.75rem 0 0;color:#78716c;font-size:.85rem;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wm-product-name{margin:.25rem 0 0;min-height:2.5rem;font-size:1rem;line-height:1.25;font-weight:950}.wm-product-pack,.wm-product-price{margin:.3rem 0 0}.wm-product-pack{color:#78716c;font-size:.85rem;font-weight:750}.wm-product-price{font-weight:950}.wm-btn{min-height:2.65rem;border-radius:999px;padding:.65rem 1rem;border:0;font-size:.9rem;font-weight:950;cursor:pointer;transition:transform .15s ease,background .15s ease}.wm-btn:hover{transform:translateY(-1px)}.wm-btn-primary{background:#6d28d9;color:#fff}.wm-btn-secondary{background:#fff;color:#292524;border:1px solid #d6d3d1}.wm-btn-ghost{background:transparent;color:#57534e}.wm-product>.wm-btn{width:100%;margin-top:.75rem}.wm-page{min-height:100vh;background:#f6f4ee;padding:1.25rem}.wm-card{background:#fff;border:1px solid #e7e5e4;border-radius:2rem;box-shadow:0 18px 50px rgba(28,25,23,.08);padding:1.25rem}.wm-cart{max-width:48rem;margin:2.5rem auto 0}.wm-row{display:grid;grid-template-columns:7rem minmax(0,1fr) auto;gap:1rem;margin-top:1.25rem}.wm-row-media{aspect-ratio:1;overflow:hidden;border-radius:1.5rem;background:#f5f5f4}.wm-row-media img{width:100%;height:100%;object-fit:cover}.wm-muted{color:#78716c}.wm-total{display:flex;justify-content:space-between;gap:1rem;border-top:1px solid #e7e5e4;margin-top:2rem;padding-top:1.25rem;font-size:1.1rem;font-weight:950}.wm-inline-actions{display:flex;flex-wrap:wrap;gap:.65rem;margin-top:1rem}.wm-qty{display:inline-flex;align-items:center;border:1px solid #d6d3d1;border-radius:999px;background:#fff}.wm-qty button{border:0;background:transparent;padding:.45rem .75rem;font-weight:950;cursor:pointer}.wm-qty span{min-width:2rem;text-align:center;font-weight:900}.wm-detail{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(24rem,.95fr);gap:2rem;max-width:80rem;margin:0 auto;padding:1.5rem}.wm-detail-media{overflow:hidden;border-radius:2.25rem;background:#fff;box-shadow:0 8px 30px rgba(28,25,23,.08);border:1px solid #e7e5e4}.wm-detail-media img{width:100%;aspect-ratio:1;object-fit:cover;display:block}.wm-detail-copy{padding-top:3rem}.wm-price{font-size:2rem;font-weight:950}.wm-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin-top:1.5rem}.wm-input{width:100%;border:1px solid #d6d3d1;background:#fafaf9;border-radius:1rem;padding:.85rem 1rem;font-weight:750;color:#0c0a09}.wm-span-2{grid-column:span 2}.wm-checkout{display:grid;grid-template-columns:minmax(0,1fr) 24rem;gap:1.5rem;max-width:72rem;margin:2.5rem auto 0}.wm-summary-line{display:flex;justify-content:space-between;gap:1rem;margin-top:.75rem}.wm-warning{border:1px solid rgba(245,158,11,.35);background:#fef3c7;color:#78350f;border-radius:1rem;padding:.75rem;margin-top:1rem;font-weight:850}.wm-success{text-align:center;max-width:48rem;margin:4rem auto 0}.wm-success-mark{display:flex;align-items:center;justify-content:center;width:3.5rem;height:3.5rem;margin:0 auto;border-radius:999px;background:#dcfce7;color:#166534;font-size:2rem;font-weight:950}
+			*{box-sizing:border-box}html,body{margin:0;width:100%;min-width:100%;min-height:100%;background:#f6f4ee;color:#0c0a09}body{overflow-x:hidden}button,input,select{font:inherit}button,a[href],select{cursor:pointer}button:disabled{cursor:not-allowed}
+			.wm-shop{min-height:100vh;min-height:100dvh;background:#f6f4ee;color:#0c0a09}.wm-shell{max-width:1680px;margin:0 auto}.wm-header{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1.25rem 1.5rem}.wm-brand{display:inline-flex;align-items:center;gap:.65rem;border:0;background:transparent;color:inherit;font-size:1.5rem;font-weight:900;letter-spacing:-.03em;cursor:pointer}.wm-logo{width:2rem;height:2rem;border-radius:.75rem;object-fit:cover}.wm-actions{display:flex;align-items:center;gap:.75rem}.wm-icon-btn,.wm-chip{border:1px solid rgba(120,113,108,.25);background:#fff;color:#292524;border-radius:999px;box-shadow:0 10px 30px rgba(28,25,23,.08);font-weight:800}.wm-chip{padding:.6rem 1rem}.wm-layout{display:flex;min-height:100vh;min-height:100dvh}.wm-sidebar{width:15rem;flex:0 0 15rem;border-right:1px solid #e7e5e4;background:rgba(251,250,247,.96);padding:1.25rem}.wm-subtitle{margin:.5rem 0 0;color:#57534e;font-size:.9rem;font-weight:650;line-height:1.55}.wm-nav{display:flex;flex-direction:column;gap:.5rem;margin-top:1.5rem}.wm-nav button{border:0;border-radius:1rem;background:transparent;color:#57534e;text-align:left;padding:.85rem 1rem;font-weight:900;cursor:pointer}.wm-nav button.is-active{background:#fff;color:#0c0a09;box-shadow:0 18px 40px rgba(28,25,23,.12)}.wm-main{min-width:0;flex:1;padding:1.5rem 2.5rem}.wm-main-head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;border-bottom:1px solid #e7e5e4;padding-bottom:1.5rem}.wm-kicker{margin:0;color:#78716c;font-size:.9rem;font-weight:750}.wm-title{margin:.25rem 0 0;font-size:clamp(2rem,4vw,3.5rem);line-height:.95;font-weight:950;letter-spacing:-.045em}.wm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2rem 1rem;margin-top:2rem}.wm-product{text-align:left}.wm-product-media{position:relative;aspect-ratio:1;overflow:hidden;border-radius:1.75rem;background:#fff;box-shadow:0 8px 30px rgba(28,25,23,.08);border:1px solid rgba(214,211,209,.7)}.wm-product-media img{width:100%;height:100%;object-fit:cover;display:block}.wm-empty-icon{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:3rem}.wm-badge{position:absolute;left:.75rem;top:.75rem;border-radius:999px;background:#fff;color:#1c1917;padding:.3rem .75rem;font-size:.75rem;font-weight:900}.wm-product button.wm-product-open{display:block;width:100%;border:0;background:transparent;text-align:left;color:inherit;cursor:pointer}.wm-product-meta{margin:.75rem 0 0;color:#78716c;font-size:.85rem;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wm-product-name{margin:.25rem 0 0;min-height:2.5rem;font-size:1rem;line-height:1.25;font-weight:950}.wm-product-pack,.wm-product-price{margin:.3rem 0 0}.wm-product-pack{color:#78716c;font-size:.85rem;font-weight:750}.wm-product-price{font-weight:950}.wm-btn{min-height:2.65rem;border-radius:999px;padding:.65rem 1rem;border:0;font-size:.9rem;font-weight:950;cursor:pointer;transition:transform .15s ease,background .15s ease}.wm-btn:hover{transform:translateY(-1px)}.wm-btn-primary{background:#6d28d9;color:#fff}.wm-btn-secondary{background:#fff;color:#292524;border:1px solid #d6d3d1}.wm-btn-ghost{background:transparent;color:#57534e}.wm-product>.wm-btn{width:100%;margin-top:.75rem}.wm-page{min-height:100vh;min-height:100dvh;background:#f6f4ee;padding:1.25rem}.wm-card{background:#fff;border:1px solid #e7e5e4;border-radius:2rem;box-shadow:0 18px 50px rgba(28,25,23,.08);padding:1.25rem}.wm-cart{max-width:48rem;margin:2.5rem auto 0}.wm-row{display:grid;grid-template-columns:7rem minmax(0,1fr) auto;gap:1rem;margin-top:1.25rem}.wm-row-media{aspect-ratio:1;overflow:hidden;border-radius:1.5rem;background:#f5f5f4}.wm-row-media img{width:100%;height:100%;object-fit:cover}.wm-muted{color:#78716c}.wm-total{display:flex;justify-content:space-between;gap:1rem;border-top:1px solid #e7e5e4;margin-top:2rem;padding-top:1.25rem;font-size:1.1rem;font-weight:950}.wm-inline-actions{display:flex;flex-wrap:wrap;gap:.65rem;margin-top:1rem}.wm-qty{display:inline-flex;align-items:center;border:1px solid #d6d3d1;border-radius:999px;background:#fff}.wm-qty button{border:0;background:transparent;padding:.45rem .75rem;font-weight:950;cursor:pointer}.wm-qty span{min-width:2rem;text-align:center;font-weight:900}.wm-detail{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(24rem,.95fr);gap:2rem;max-width:80rem;margin:0 auto;padding:1.5rem}.wm-detail-media{overflow:hidden;border-radius:2.25rem;background:#fff;box-shadow:0 8px 30px rgba(28,25,23,.08);border:1px solid #e7e5e4}.wm-detail-media img{width:100%;aspect-ratio:1;object-fit:cover;display:block}.wm-detail-copy{padding-top:3rem}.wm-price{font-size:2rem;font-weight:950}.wm-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin-top:1.5rem}.wm-input{width:100%;border:1px solid #d6d3d1;background:#fafaf9;border-radius:1rem;padding:.85rem 1rem;font-weight:750;color:#0c0a09}.wm-span-2{grid-column:span 2}.wm-checkout{display:grid;grid-template-columns:minmax(0,1fr) 24rem;gap:1.5rem;max-width:72rem;margin:2.5rem auto 0}.wm-summary-line{display:flex;justify-content:space-between;gap:1rem;margin-top:.75rem}.wm-warning{border:1px solid rgba(245,158,11,.35);background:#fef3c7;color:#78350f;border-radius:1rem;padding:.75rem;margin-top:1rem;font-weight:850}.wm-success{text-align:center;max-width:48rem;margin:4rem auto 0}.wm-success-mark{display:flex;align-items:center;justify-content:center;width:3.5rem;height:3.5rem;margin:0 auto;border-radius:999px;background:#dcfce7;color:#166534;font-size:2rem;font-weight:950}
 			@media (min-width:640px){.wm-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media (min-width:1280px){.wm-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}@media (min-width:1536px){.wm-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
-			@media (prefers-color-scheme:dark){body,.wm-shop,.wm-page{background:#020617;color:#f8fafc}.wm-sidebar{background:rgba(15,23,42,.96);border-right-color:#1e293b}.wm-subtitle,.wm-kicker,.wm-product-meta,.wm-product-pack,.wm-muted{color:#cbd5e1}.wm-main-head,.wm-total{border-color:#1e293b}.wm-nav button{color:#cbd5e1}.wm-nav button.is-active{background:#f8fafc;color:#020617}.wm-card,.wm-chip,.wm-icon-btn,.wm-btn-secondary,.wm-qty{background:#0f172a;color:#f8fafc;border-color:#334155;box-shadow:none}.wm-product-media,.wm-detail-media,.wm-row-media{background:#1e293b;border-color:#334155}.wm-input{background:#0f172a;border-color:#334155;color:#fff}.wm-warning{background:rgba(245,158,11,.14);color:#fde68a}}
+			@media (prefers-color-scheme:dark){html,body,.wm-shop,.wm-page{background:#020617;color:#f8fafc}.wm-sidebar{background:rgba(15,23,42,.96);border-right-color:#1e293b}.wm-subtitle,.wm-kicker,.wm-product-meta,.wm-product-pack,.wm-muted{color:#cbd5e1}.wm-main-head,.wm-total{border-color:#1e293b}.wm-nav button{color:#cbd5e1}.wm-nav button.is-active{background:#f8fafc;color:#020617}.wm-card,.wm-chip,.wm-icon-btn,.wm-btn-secondary,.wm-qty{background:#0f172a;color:#f8fafc;border-color:#334155;box-shadow:none}.wm-product-media,.wm-detail-media,.wm-row-media{background:#1e293b;border-color:#334155}.wm-input{background:#0f172a;border-color:#334155;color:#fff}.wm-warning{background:rgba(245,158,11,.14);color:#fde68a}}
 			@media (max-width:900px){.wm-layout{display:block}.wm-sidebar{width:auto;border-right:0;border-bottom:1px solid #e7e5e4}.wm-nav{flex-direction:row;overflow-x:auto}.wm-main{padding:1.25rem}.wm-main-head{align-items:flex-start;flex-direction:column}.wm-detail,.wm-checkout{display:block;padding:1.25rem}.wm-detail-copy,.wm-checkout aside{margin-top:1.5rem;padding-top:0}.wm-row{grid-template-columns:5.5rem minmax(0,1fr)}.wm-row>strong{grid-column:2}.wm-form-grid{grid-template-columns:1fr}.wm-span-2{grid-column:auto}}
-			.wm-theme-light{background:#f6f4ee!important;color:#0c0a09!important}.wm-theme-dark{background:#020617!important;color:#f8fafc!important}.wm-theme-light .wm-sidebar{background:rgba(251,250,247,.96)!important;border-color:#e7e5e4!important}.wm-theme-light .wm-card,.wm-theme-light .wm-chip,.wm-theme-light .wm-icon-btn,.wm-theme-light .wm-btn-secondary,.wm-theme-light .wm-qty{background:#fff!important;color:#292524!important;border-color:#d6d3d1!important}.wm-theme-light .wm-product-media,.wm-theme-light .wm-detail-media,.wm-theme-light .wm-row-media,.wm-theme-light .wm-input{background:#fafaf9!important;color:#0c0a09!important;border-color:#d6d3d1!important}.wm-theme-light .wm-muted,.wm-theme-light .wm-subtitle,.wm-theme-light .wm-kicker,.wm-theme-light .wm-product-meta,.wm-theme-light .wm-product-pack{color:#6b7280!important}.wm-theme-dark .wm-sidebar{background:rgba(15,23,42,.96)!important;border-color:#1e293b!important}.wm-theme-dark .wm-card,.wm-theme-dark .wm-chip,.wm-theme-dark .wm-icon-btn,.wm-theme-dark .wm-btn-secondary,.wm-theme-dark .wm-qty{background:#0f172a!important;color:#f8fafc!important;border-color:#334155!important}.wm-theme-dark .wm-product-media,.wm-theme-dark .wm-detail-media,.wm-theme-dark .wm-row-media,.wm-theme-dark .wm-input{background:#1e293b!important;color:#fff!important;border-color:#334155!important}.wm-theme-dark .wm-muted,.wm-theme-dark .wm-subtitle,.wm-theme-dark .wm-kicker,.wm-theme-dark .wm-product-meta,.wm-theme-dark .wm-product-pack{color:#cbd5e1!important}.wm-svg{display:inline-block;flex:0 0 auto}.wm-identicon{width:2.15rem;height:2.15rem;border-radius:.8rem}.wm-brand,.wm-title,.wm-product-name,.wm-btn,.wm-chip,.wm-icon-btn,.wm-nav button,.wm-product-price,.wm-price,.wm-total,.wm-qty span{font-weight:650;letter-spacing:0}.wm-title{font-weight:750}.wm-product-meta,.wm-product-pack,.wm-muted,.wm-subtitle,.wm-kicker{font-weight:500}.wm-product-card{display:block;width:100%;padding:0;border:0;background:transparent;color:inherit;text-align:left;transition:transform .16s ease}.wm-product-card:hover{transform:translateY(-3px)}.wm-product-card:hover .wm-product-media{border-color:#7c3aed!important;box-shadow:0 18px 44px rgba(15,23,42,.2)}.wm-product-media,.wm-detail-media{cursor:pointer}.wm-product-media{transition:border-color .16s ease,box-shadow .16s ease}.wm-theme-switch{display:inline-flex;align-items:center;gap:.15rem;border:1px solid rgba(148,163,184,.35);background:rgba(148,163,184,.12);border-radius:999px;padding:.2rem}.wm-theme-switch button{display:inline-flex;align-items:center;justify-content:center;width:2rem;height:2rem;border:0;border-radius:999px;background:transparent;color:inherit;opacity:.65;cursor:pointer}.wm-theme-switch button.is-active{background:rgba(255,255,255,.14);opacity:1}.wm-icon-btn{display:inline-flex;align-items:center;justify-content:center;width:2.7rem;height:2.7rem;padding:0}.wm-chip{display:inline-flex;align-items:center;gap:.45rem}.wm-qty{background:rgba(148,163,184,.11)}.wm-qty button{display:inline-flex;align-items:center;justify-content:center;color:inherit;cursor:pointer}.wm-qty button:hover{background:rgba(124,58,237,.16)}.wm-btn-link{min-height:auto;padding:.2rem .35rem;border-radius:.45rem;background:transparent!important;color:#94a3b8!important;font-size:.85rem}.wm-btn-success{background:#059669!important;color:#fff!important}.wm-product-add{position:relative}.wm-add-added{display:none}.wm-added .wm-add-normal{animation:wm-hide-normal 1.5s ease forwards}.wm-added .wm-add-added{display:inline;animation:wm-show-added 1.5s ease forwards}@keyframes wm-show-added{0%,72%{opacity:1}100%{opacity:0;width:0;overflow:hidden}}@keyframes wm-hide-normal{0%,72%{opacity:0;width:0;overflow:hidden}100%{opacity:1;width:auto}}.wm-field-label{display:flex;align-items:center;gap:.25rem;margin-bottom:.4rem;color:#94a3b8;font-size:.85rem;font-weight:600}.wm-required{color:#ef4444}.wm-required-note{margin:1rem 0 0;color:#94a3b8;font-size:.82rem}.wm-coreid{overflow-wrap:anywhere;word-break:break-word;letter-spacing:.03em}.wm-switch{display:inline-flex;align-items:center;gap:.2rem;border:1px solid rgba(148,163,184,.35);background:rgba(148,163,184,.1);border-radius:999px;padding:.22rem}.wm-switch button{border:0;border-radius:999px;background:transparent;color:inherit;opacity:.72;padding:.55rem .85rem;font-weight:650;cursor:pointer}.wm-switch button.is-active{background:#7c3aed;color:#fff;opacity:1}.wm-form-actions-top{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem;margin-top:1rem}.wm-saved{margin-top:1rem;border:1px solid rgba(148,163,184,.35);border-radius:1rem;background:rgba(148,163,184,.1);overflow:hidden}.wm-saved summary{padding:.85rem 1rem;cursor:pointer;font-weight:650}.wm-saved-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem;align-items:center;border-top:1px solid rgba(148,163,184,.25);padding:.65rem}.wm-saved-title{font-weight:650}.wm-saved-sub{display:block;margin:.15rem 0 0;color:#94a3b8;font-size:.8rem}.wm-summary-core{max-width:100%;overflow-wrap:anywhere}.wm-fail-mark{background:#fee2e2;color:#991b1b}.wm-form-grid label[hidden]{display:none}
+			html:has(.wm-theme-light),body:has(.wm-theme-light){background:#f6f4ee;color:#0c0a09}html:has(.wm-theme-dark),body:has(.wm-theme-dark){background:#020617;color:#f8fafc}
+			.wm-theme-light{background:#f6f4ee!important;color:#0c0a09!important}.wm-theme-dark{background:#020617!important;color:#f8fafc!important}.wm-theme-light .wm-sidebar{background:rgba(251,250,247,.96)!important;border-color:#e7e5e4!important}.wm-theme-light .wm-card,.wm-theme-light .wm-chip,.wm-theme-light .wm-icon-btn,.wm-theme-light .wm-btn-secondary,.wm-theme-light .wm-qty{background:#fff!important;color:#292524!important;border-color:#d6d3d1!important}.wm-theme-light .wm-product-media,.wm-theme-light .wm-detail-media,.wm-theme-light .wm-row-media,.wm-theme-light .wm-input{background:#fafaf9!important;color:#0c0a09!important;border-color:#d6d3d1!important}.wm-theme-light .wm-muted,.wm-theme-light .wm-subtitle,.wm-theme-light .wm-kicker,.wm-theme-light .wm-product-meta,.wm-theme-light .wm-product-pack{color:#6b7280!important}.wm-theme-dark .wm-sidebar{background:rgba(15,23,42,.96)!important;border-color:#1e293b!important}.wm-theme-dark .wm-card,.wm-theme-dark .wm-chip,.wm-theme-dark .wm-icon-btn,.wm-theme-dark .wm-btn-secondary,.wm-theme-dark .wm-qty{background:#0f172a!important;color:#f8fafc!important;border-color:#334155!important}.wm-theme-dark .wm-product-media,.wm-theme-dark .wm-detail-media,.wm-theme-dark .wm-row-media,.wm-theme-dark .wm-input{background:#1e293b!important;color:#fff!important;border-color:#334155!important}.wm-theme-dark .wm-muted,.wm-theme-dark .wm-subtitle,.wm-theme-dark .wm-kicker,.wm-theme-dark .wm-product-meta,.wm-theme-dark .wm-product-pack{color:#cbd5e1!important}.wm-svg{display:inline-block;flex:0 0 auto}.wm-identicon{width:100%;height:100%;border-radius:999px}.wm-user-btn{overflow:hidden;border-radius:999px}.wm-brand,.wm-title,.wm-product-name,.wm-btn,.wm-chip,.wm-icon-btn,.wm-nav button,.wm-product-price,.wm-price,.wm-total,.wm-qty span{font-weight:650;letter-spacing:0}.wm-title{font-weight:750}.wm-product-meta,.wm-product-pack,.wm-muted,.wm-subtitle,.wm-kicker{font-weight:500}.wm-product-card{display:block;width:100%;padding:0;border:0;background:transparent;color:inherit;text-align:left;transition:transform .16s ease}.wm-product-card:hover{transform:translateY(-3px)}.wm-product-card:hover .wm-product-media{border-color:#7c3aed!important;box-shadow:0 18px 44px rgba(15,23,42,.2)}.wm-product-media,.wm-detail-media{cursor:pointer}.wm-product-media{transition:border-color .16s ease,box-shadow .16s ease}.wm-theme-switch{display:inline-flex;align-items:center;gap:.15rem;border:1px solid rgba(148,163,184,.35);background:rgba(148,163,184,.12);border-radius:999px;padding:.2rem}.wm-theme-switch button{display:inline-flex;align-items:center;justify-content:center;width:2rem;height:2rem;border:0;border-radius:999px;background:transparent;color:inherit;opacity:.65;cursor:pointer}.wm-theme-switch button.is-active{background:rgba(255,255,255,.14);opacity:1}.wm-icon-btn{display:inline-flex;align-items:center;justify-content:center;width:2.7rem;height:2.7rem;padding:0}.wm-chip{display:inline-flex;align-items:center;gap:.45rem;cursor:pointer}.wm-qty{background:rgba(148,163,184,.11)}.wm-qty button{display:inline-flex;align-items:center;justify-content:center;color:inherit;cursor:pointer}.wm-qty button:hover{background:rgba(124,58,237,.16)}.wm-btn-link{min-height:auto;padding:.2rem .35rem;border-radius:.45rem;background:transparent!important;color:#94a3b8!important;font-size:.85rem}.wm-btn-success{background:#059669!important;color:#fff!important}.wm-product-add{display:flex;align-items:center;justify-content:center;position:relative;text-align:center}.wm-add-added{display:none}.wm-cart-actions{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-top:1rem}.wm-cart-right{display:flex;flex-wrap:wrap;gap:.65rem;justify-content:flex-end}.wm-pay-btn[disabled]{opacity:.55;transform:none!important}.wm-field-label{display:flex;align-items:center;gap:.25rem;margin-bottom:.4rem;color:#94a3b8;font-size:.85rem;font-weight:600}.wm-required{color:#ef4444}.wm-required-note{margin:1rem 0 0;color:#94a3b8;font-size:.82rem}.wm-coreid{overflow-wrap:anywhere;word-break:break-word;letter-spacing:.03em}.wm-switch{display:inline-flex;align-items:center;gap:.2rem;border:1px solid rgba(148,163,184,.35);background:rgba(148,163,184,.1);border-radius:999px;padding:.22rem}.wm-switch button{border:0;border-radius:999px;background:transparent;color:inherit;opacity:.72;padding:.55rem .85rem;font-weight:650;cursor:pointer}.wm-switch button.is-active{background:#7c3aed;color:#fff;opacity:1}.wm-form-actions-top{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem;margin-top:1rem}.wm-saved{margin-top:1rem;border:1px solid rgba(148,163,184,.35);border-radius:1rem;background:rgba(148,163,184,.1);overflow:hidden}.wm-saved summary{padding:.85rem 1rem;cursor:pointer;font-weight:650}.wm-saved-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem;align-items:center;border-top:1px solid rgba(148,163,184,.25);padding:.65rem}.wm-saved-title{font-weight:650}.wm-saved-sub{display:block;margin:.15rem 0 0;color:#94a3b8;font-size:.8rem}.wm-summary-core{max-width:100%;overflow-wrap:anywhere}.wm-fail-mark{background:#fee2e2;color:#991b1b}.wm-form-grid label[hidden]{display:none}
 		</style>${body}`
 	};
 }
@@ -1092,19 +1109,19 @@ function renderContactPage(state) {
 					<p class="wm-muted">Choose a topic to open your mail client with a prepared subject.</p>
 					<div class="wm-inline-actions" style="margin-top:1.5rem">
 						${email ? subjects.map((item) => `
-							<a class="wm-btn wm-btn-primary" href="${escapeHtml(contactMailUrl(email, item.subject, item.body))}">
+							<button type="button" class="wm-btn wm-btn-primary" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, item.subject, item.body) })}>
 								${icon('mail', 17)} ${escapeHtml(item.label)}
-							</a>
+							</button>
 						`).join('') : ''}
 						${email ? `
-							<a class="wm-btn wm-btn-secondary" href="${escapeHtml(contactMailUrl(email, 'Shop contact', 'Hello, I would like to contact your shop.'))}">
+							<button type="button" class="wm-btn wm-btn-secondary" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, 'Shop contact', 'Hello, I would like to contact your shop.') })}>
 								${icon('mail', 17)} Email shop
-							</a>
+							</button>
 						` : ''}
 						${mobile ? `
-							<a class="wm-btn wm-btn-secondary" href="${escapeHtml(contactPhoneUrl(mobile))}">
+							<button type="button" class="wm-btn wm-btn-secondary" ${actionAttr(actions, { type: 'navigate', href: contactPhoneUrl(mobile) })}>
 								${icon('phone', 17)} Call shop
-							</a>
+							</button>
 						` : ''}
 					</div>
 					${!email && !mobile ? `<p class="wm-warning">No shop contact is configured.</p>` : ''}
@@ -1118,7 +1135,7 @@ function renderContactPage(state) {
 					${company.website ? `
 						<div class="wm-summary-line">
 							<span class="wm-muted">Website</span>
-							<a class="wm-btn wm-btn-link" href="${escapeHtml(company.website)}" target="_blank" rel="noopener">${icon('externalLink', 15)} Open</a>
+							<button type="button" class="wm-btn wm-btn-link" ${actionAttr(actions, { type: 'navigate', href: company.website })}>${icon('externalLink', 15)} Open</button>
 						</div>
 					` : ''}
 					${email ? `<div class="wm-summary-line"><span class="wm-muted">Email</span><strong>${escapeHtml(email)}</strong></div>` : ''}
@@ -1172,12 +1189,11 @@ function renderProducts(state) {
 		<div class="wm-shop wm-theme-${escapeHtml(state.theme)}">
 			<div class="wm-shell wm-layout">
 				<aside class="wm-sidebar">
-					<button type="button" class="wm-brand" ${actionAttr(actions, { type: 'navigate', href: '/' })}>
-						${coreIdenticon(state.coreId)}
+					<button type="button" class="wm-brand" ${actionAttr(actions, stateAction(state, { view: 'products', category: 'all', page: 1 }))}>
+						${shopLogoMarkup()}
 						<span>${escapeHtml(SHOP_CONFIG.name)}</span>
 					</button>
 					<p class="wm-subtitle">${escapeHtml(SHOP_CONFIG.tagline || '')}</p>
-					<div style="margin-top:1rem">${renderThemeSwitcher(actions, state)}</div>
 					<nav class="wm-nav" aria-label="Shop categories">
 						${allCategories(state).map((category) => `
 							<button type="button" class="${state.category === category.id ? 'is-active' : ''}" ${actionAttr(actions, stateAction(state, {
@@ -1200,6 +1216,7 @@ function renderProducts(state) {
 							${renderThemeSwitcher(actions, state)}
 							<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'contact' }))}>${icon('mail', 17)} <span>Contact</span></button>
 							<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'cart' }))}>${icon('cart', 17)} <span>Cart ${cartCount(state)}</span></button>
+							<button type="button" class="wm-icon-btn wm-user-btn" title="Back to bank" ${actionAttr(actions, { type: 'navigate', href: '/' })}>${coreIdenticon(state.coreId)}</button>
 						</div>
 					</div>
 					<div class="wm-grid">
@@ -1215,8 +1232,8 @@ function renderProducts(state) {
 									<p class="wm-product-pack">${escapeHtml(product.packLabel || 'Standard pack')}</p>
 									<p class="wm-product-price">${escapeHtml(productPrice(state, product))}</p>
 								</button>
-								<button type="button" class="wm-btn wm-btn-${state.lastAddedProductId === product.id ? 'success wm-added' : 'primary'} wm-product-add" ${actionAttr(actions, stateAction({ ...addToCart(state, product.id), lastAddedProductId: product.id }, {}, `${product.name} added to cart`))}>
-									<span class="wm-add-normal">Add to cart</span><span class="wm-add-added">${icon('check', 16)} Added</span>
+								<button type="button" class="wm-btn wm-btn-primary wm-product-add" ${actionAttr(actions, stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`))}>
+									Add to cart
 								</button>
 							</article>
 						`).join('')}
@@ -1259,8 +1276,8 @@ function renderProductDetail(state) {
 						<button type="button" ${actionAttr(actions, stateAction(incrementProductQuantity(state, product.id), {}))}>${icon('plus', 15)}</button>
 					</div>
 					<div class="wm-inline-actions">
-						<button type="button" class="wm-btn wm-btn-${state.lastAddedProductId === product.id ? 'success wm-added' : 'secondary'} wm-product-add" ${actionAttr(actions, stateAction({ ...addQuantityToCart(state, product.id, productQuantity(state, product.id)), lastAddedProductId: product.id }, {}, `${product.name} added to cart`))}>
-							<span class="wm-add-normal">Add to cart</span><span class="wm-add-added">${icon('check', 16)} Added</span>
+						<button type="button" class="wm-btn wm-btn-secondary wm-product-add" ${actionAttr(actions, stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`))}>
+							Add to cart
 						</button>
 						${frameButton(actions, 'Buy now', stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), { view: 'cart' }))}
 					</div>
@@ -1309,11 +1326,13 @@ function renderCart(state) {
 						</div>
 					`).join('')}
 					<div class="wm-total"><span>Subtotal</span><span>${escapeHtml(formatMoney(cartSubtotal(state), state.settings.currency))}</span></div>
-					<div class="wm-inline-actions">
-						${frameButton(actions, 'Continue shopping', stateAction(state, { view: 'products', category: 'all', page: 1 }), 'secondary')}
-						${frameButton(actions, 'Continue to checkout', stateAction(checkoutReadyState(state), {}))}
+					<div class="wm-cart-actions">
+						${frameButton(actions, 'Clear cart', stateAction(state, { cart: {}, checkoutStatus: 'draft' }, 'Cart cleared'), 'link')}
+						<div class="wm-cart-right">
+							${frameButton(actions, 'Continue shopping', stateAction(state, { view: 'products', category: 'all', page: 1 }), 'secondary')}
+							${frameButton(actions, 'Continue to checkout', stateAction(checkoutReadyState(state), {}))}
+						</div>
 					</div>
-					<div style="margin-top:.75rem">${frameButton(actions, 'Clear cart', stateAction(state, { cart: {}, checkoutStatus: 'draft' }, 'Cart cleared'), 'link')}</div>
 				` : `
 					<div style="padding:2rem;text-align:center">
 						<p style="font-weight:950">Your cart is empty.</p>
@@ -1330,8 +1349,8 @@ function renderCart(state) {
 function renderDeliveryForm(state) {
 	const initialDelivery = checkoutDelivery(state);
 	const hasPhysicalItems = cartItems(state).some((item) => item.product.digital !== true);
-	const selectedCountry = initialDelivery.country || countryNameFromCode(state.countryCode) || '';
-	const hasUnitedStates = selectedCountry === 'United States' || selectedCountry === 'US' || state.countryCode === 'US';
+	const selectedCountry = countryCodeFromValue(initialDelivery.country) || countryCodeFromValue(state.countryCode) || '';
+	const hasUnitedStates = selectedCountry === 'US';
 	const deliveryDraft = {
 		...initialDelivery,
 		email: initialDelivery.email || state.userEmail || '',
@@ -1353,7 +1372,7 @@ function renderDeliveryForm(state) {
 				label: 'Country',
 				type: 'country',
 				value: deliveryDraft.country,
-				placeholder: 'United States',
+				placeholder: 'Country code or name',
 				options: COUNTRY_OPTIONS,
 				required: true
 			}
@@ -1398,10 +1417,11 @@ function checkoutDelivery(state) {
 }
 
 function checkoutReadyState(state) {
+	const currentDelivery = checkoutDelivery(state);
 	const delivery = normalizeDelivery({
-		...checkoutDelivery(state),
-		email: checkoutDelivery(state).email || state.userEmail || '',
-		country: checkoutDelivery(state).country || countryNameFromCode(state.countryCode) || ''
+		...currentDelivery,
+		email: currentDelivery.email || state.userEmail || '',
+		country: countryCodeFromValue(currentDelivery.country) || countryCodeFromValue(state.countryCode) || ''
 	});
 	return normalizeState({
 		...state,
@@ -1433,7 +1453,7 @@ function savedDeliveryProfileOptions(state) {
 		return {
 			id,
 			label: deliveryProfileLabel(profile),
-			description: [profile.city, profile.zip, profile.country].filter(Boolean).join(', '),
+			description: [profile.city, profile.zip, countryNameFromCode(profile.country) || profile.country].filter(Boolean).join(', '),
 			selected,
 			selectAction: stateAction(state, {
 				delivery: profile,
@@ -1507,7 +1527,7 @@ function isValidPhone(value) {
 }
 
 function isUnitedStates(value) {
-	return value === 'United States' || value === 'US';
+	return countryCodeFromValue(value) === 'US';
 }
 
 function minimumCheckoutMessage(state, total) {
@@ -1528,14 +1548,14 @@ function checkoutRequiredMessage(state, hasPhysicalItems) {
 	if (!delivery.address) missing.push('street address');
 	if (!delivery.city) missing.push('city');
 	if (!delivery.zip) missing.push('ZIP');
-	if (!delivery.country) missing.push('country');
+	if (!countryCodeFromValue(delivery.country)) missing.push('country');
 	if (missing.length) return 'Enter delivery details before checkout.';
 	if (delivery.name.length < 2) return 'Enter a valid full name.';
 	if (!isValidPhone(delivery.phone)) return 'Enter a valid phone number.';
 	if (delivery.address.length < 3) return 'Enter a valid street address.';
 	if (delivery.city.length < 2) return 'Enter a valid city.';
 	if (delivery.zip.length < 2) return 'Enter a valid ZIP/postal code.';
-	if (!COUNTRY_OPTIONS.some((country) => country.name === delivery.country || country.code === delivery.country)) return 'Select a valid country.';
+	if (!COUNTRY_OPTIONS.some((country) => country.code === countryCodeFromValue(delivery.country))) return 'Select a valid country.';
 	if (isUnitedStates(delivery.country) && !delivery.state) return 'Select a state for United States delivery.';
 	if (isUnitedStates(delivery.country) && !US_STATE_OPTIONS.some((stateOption) => stateOption.name === delivery.state)) return 'Select a valid state.';
 	return missing.length ? `Add ${missing.join(', ')} before checkout.` : '';
@@ -1556,6 +1576,15 @@ function renderCheckoutField(field, storageActionId) {
 					return `<option value="${escapeHtml(optionValue)}" ${optionValue === field.value ? 'selected' : ''}>${escapeHtml(optionValue)}</option>`;
 				}).join('')}
 			</select>
+		</label>`;
+	}
+	if (field.type === 'country') {
+		return `<label>
+			<span class="wm-field-label">${label}</span>
+			<input ${common} type="text" list="wm-country-options" value="${value}" placeholder="${escapeHtml(field.placeholder || field.label || '')}" autocomplete="country" />
+			<datalist id="wm-country-options">
+				${(field.options || []).map((option) => `<option value="${escapeHtml(option.code || '')}" label="${escapeHtml(option.name || option.code || '')}">${escapeHtml(option.name || option.code || '')}</option>`).join('')}
+			</datalist>
 		</label>`;
 	}
 	return `<label class="${field.name === 'delivery.notes' || field.name === 'delivery.address' || field.name === 'delivery.address2' ? 'wm-span-2' : ''}">
@@ -1624,17 +1653,7 @@ function renderCheckout(state) {
 			`).join('')}
 		</details>
 	` : '';
-	const payAction = developmentMessage
-		? { type: 'notify', message: developmentMessage, level: 'error' }
-		: workerDomainMessage
-			? { type: 'notify', message: workerDomainMessage, level: 'error' }
-		: collectionMessage
-			? { type: 'notify', message: collectionMessage, level: 'error' }
-		: minimumMessage
-			? { type: 'notify', message: minimumMessage, level: 'warning' }
-		: requiredMessage
-			? { type: 'notify', message: requiredMessage, level: 'warning' }
-		: stockManagedPaymentAction(finalCheckoutState, paymentRequest);
+	const payAction = blockedMessage ? null : stockManagedPaymentAction(finalCheckoutState, paymentRequest);
 
 	return pluginFrame('Checkout', `
 		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
@@ -1668,7 +1687,7 @@ function renderCheckout(state) {
 					${blockedMessage ? `<p class="wm-warning">${escapeHtml(blockedMessage)}</p>` : ''}
 					<div class="wm-inline-actions">
 						${frameButton(actions, 'Back to cart', stateAction(state, { view: 'cart' }), 'secondary')}
-						${frameButton(actions, blockedMessage ? 'Cannot pay yet' : 'Pay with Wall Money', payAction)}
+						<button type="button" class="wm-btn wm-btn-primary wm-pay-btn" ${payAction ? actionAttr(actions, payAction) : 'disabled'}>Pay with Wall Money</button>
 					</div>
 				</aside>
 			</main>
@@ -2152,7 +2171,7 @@ module.exports = {
 				.then((profile) => {
 					if (!profile) return;
 					const state = getState(hostApi);
-					const country = state.delivery.country || countryNameFromCode(profile.countryCode);
+					const country = countryCodeFromValue(state.delivery.country) || countryCodeFromValue(profile.countryCode);
 					saveState(hostApi, {
 						...state,
 						coreId: state.coreId || profile.coreId,
