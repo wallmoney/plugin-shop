@@ -35,6 +35,22 @@ const SHOP_CONFIG = {
 	orderPayment: {
 		webhookUrl: 'https://order-fulfillment.example.com/orders/payment-webhook'
 	},
+	contact: {
+		email: 'support@example.com',
+		mobile: '+421900000000',
+		subjects: [
+			{ label: 'Order support', subject: 'Order support request', body: 'Hello, I need help with my order.' },
+			{ label: 'Product question', subject: 'Product question', body: 'Hello, I have a question about a product.' },
+			{ label: 'Business inquiry', subject: 'Business inquiry', body: 'Hello, I would like to contact your shop.' }
+		],
+		company: {
+			name: 'Wall Money Shop',
+			registrationNumber: '',
+			vatId: '',
+			address: '',
+			website: ''
+		}
+	},
 	stockManagement: {
 		provider: 'none',
 		apiUrl: ''
@@ -185,6 +201,7 @@ function defaultState() {
 		emailRequestStatus: 'idle',
 		countryCode: '',
 		theme: 'auto',
+		lastAddedProductId: '',
 		query: '',
 		page: 1,
 		productQuantities: {},
@@ -217,7 +234,8 @@ function defaultState() {
 			currency: SHOP_CONFIG.defaultCurrency,
 			catalogProvider: SHOP_CONFIG.defaultCatalogProvider || 'local',
 			catalogRef: SHOP_CONFIG.defaultCatalogRef,
-			catalogD1Url: SHOP_CONFIG.catalogD1 && SHOP_CONFIG.catalogD1.apiUrl ? SHOP_CONFIG.catalogD1.apiUrl : ''
+			catalogD1Url: SHOP_CONFIG.catalogD1 && SHOP_CONFIG.catalogD1.apiUrl ? SHOP_CONFIG.catalogD1.apiUrl : '',
+			contact: SHOP_CONFIG.contact || {}
 		},
 		updatedAt: null
 	};
@@ -320,13 +338,41 @@ function normalizeSettings(raw) {
 	const fallback = defaultState().settings;
 	const value = objectValue(raw);
 	const provider = cleanString(value.catalogProvider, fallback.catalogProvider).toLowerCase();
+	const contact = objectValue(value.contact);
+	const fallbackContact = objectValue(fallback.contact);
+	const company = objectValue(contact.company);
+	const fallbackCompany = objectValue(fallbackContact.company);
+	const subjects = Array.isArray(contact.subjects)
+		? contact.subjects
+		: Array.isArray(fallbackContact.subjects)
+			? fallbackContact.subjects
+			: [];
 	return {
 		merchantAccount: cleanString(value.merchantAccount, fallback.merchantAccount),
 		adminEmail: cleanString(value.adminEmail, fallback.adminEmail),
 		currency: cleanString(value.currency, fallback.currency).toUpperCase(),
 		catalogProvider: provider === 'remote' || provider === 'd1' ? provider : 'local',
 		catalogRef: cleanString(value.catalogRef, fallback.catalogRef),
-		catalogD1Url: cleanString(value.catalogD1Url, fallback.catalogD1Url)
+		catalogD1Url: cleanString(value.catalogD1Url, fallback.catalogD1Url),
+		contact: {
+			email: cleanString(contact.email, fallbackContact.email),
+			mobile: cleanString(contact.mobile, fallbackContact.mobile),
+			subjects: subjects
+				.map((subject) => objectValue(subject))
+				.map((subject) => ({
+					label: cleanString(subject.label, ''),
+					subject: cleanString(subject.subject, ''),
+					body: cleanString(subject.body, '')
+				}))
+				.filter((subject) => subject.label && subject.subject),
+			company: {
+				name: cleanString(company.name, fallbackCompany.name),
+				registrationNumber: cleanString(company.registrationNumber, fallbackCompany.registrationNumber),
+				vatId: cleanString(company.vatId, fallbackCompany.vatId),
+				address: cleanString(company.address, fallbackCompany.address),
+				website: cleanString(company.website, fallbackCompany.website)
+			}
+		}
 	};
 }
 
@@ -444,7 +490,7 @@ function normalizeTheme(raw) {
 function normalizeState(raw) {
 	const fallback = defaultState();
 	const value = objectValue(raw);
-	const view = ['products', 'product', 'cart', 'checkout', 'orders', 'success'].includes(value.view)
+	const view = ['products', 'product', 'cart', 'checkout', 'orders', 'success', 'failed', 'contact'].includes(value.view)
 		? value.view
 		: fallback.view;
 	const catalog = normalizeCatalog(value.catalog);
@@ -466,6 +512,7 @@ function normalizeState(raw) {
 			: fallback.emailRequestStatus,
 		countryCode: cleanString(value.countryCode, fallback.countryCode).toUpperCase(),
 		theme: normalizeTheme(value.theme),
+		lastAddedProductId: cleanString(value.lastAddedProductId, fallback.lastAddedProductId),
 		query: typeof value.query === 'string' ? value.query : fallback.query,
 		page: Number.isFinite(Number(value.page)) && Number(value.page) > 0 ? Math.floor(Number(value.page)) : fallback.page,
 		productQuantities: normalizeQuantities(value.productQuantities, catalog),
@@ -850,6 +897,95 @@ function frameButton(actions, label, action, variant = 'primary', extraClass = '
 	return `<button type="button" class="wm-btn wm-btn-${variant} ${extraClass}" ${actionAttr(actions, action)}>${escapeHtml(label)}</button>`;
 }
 
+function icon(name, size = 18) {
+	const attrs = `width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"`;
+	const paths = {
+		arrowLeft: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+		cart: '<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
+		building: '<rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/>',
+		check: '<path d="M20 6 9 17l-5-5"/>',
+		externalLink: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+		mail: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+		monitor: '<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>',
+		moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+		phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 3.08 5.18 2 2 0 0 1 5.06 3h3a2 2 0 0 1 2 1.72c.12.86.31 1.7.57 2.5a2 2 0 0 1-.45 2.11L9 10.5a16 16 0 0 0 4.5 4.5l1.17-1.17a2 2 0 0 1 2.11-.45c.8.26 1.64.45 2.5.57A2 2 0 0 1 22 16.92Z"/>',
+		plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+		minus: '<path d="M5 12h14"/>',
+		sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+		trash: '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>',
+		x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'
+	};
+	return `<svg class="wm-svg" ${attrs}>${paths[name] || paths.cart}</svg>`;
+}
+
+function compactCoreId(value) {
+	return String(value || '')
+		.toUpperCase()
+		.replace(/\s+/g, '')
+		.replace(/(.{4})/g, '$1 ')
+		.trim();
+}
+
+function coreIdenticon(coreId) {
+	const value = String(coreId || SHOP_CONFIG.name || 'wallmoney-shop').toLowerCase();
+	const seed = new Array(4).fill(0);
+	for (let index = 0; index < value.length; index += 1) {
+		seed[index % 4] = (seed[index % 4] << 5) - seed[index % 4] + value.charCodeAt(index);
+	}
+	const random = () => {
+		const next = seed[0] ^ seed[0] << 11;
+		seed[0] = seed[1];
+		seed[1] = seed[2];
+		seed[2] = seed[3];
+		seed[3] = seed[3] ^ seed[3] >> 19 ^ next ^ next >> 8;
+		return (seed[3] >>> 0) / 2147483648;
+	};
+	const color = () => `hsl(${Math.floor(random() * 360)},${Math.floor(40 + random() * 60)}%,${Math.floor((random() + random() + random() + random()) * 25)}%)`;
+	const primary = color();
+	const background = color();
+	const accent = color();
+	const cells = [];
+	for (let index = 0; index < 32; index += 1) {
+		const column = index % 4;
+		const row = index / 4 | 0;
+		const fill = Math.floor(random() * 2.3);
+		if (!fill) continue;
+		cells.push([column, row, fill], [7 - column, row, fill]);
+	}
+	return `<svg class="wm-identicon" viewBox="0 0 64 64" role="img" aria-label="Core ID identicon">
+		<rect width="64" height="64" rx="16" fill="${background}" />
+		${cells.map(([x, y, fill]) => `<rect x="${x * 8}" y="${y * 8}" width="8" height="8" fill="${fill === 1 ? primary : accent}" />`).join('')}
+	</svg>`;
+}
+
+function renderThemeSwitcher(actions, state) {
+	const options = [
+		{ id: 'auto', label: 'Auto', icon: 'monitor' },
+		{ id: 'light', label: 'Light', icon: 'sun' },
+		{ id: 'dark', label: 'Dark', icon: 'moon' }
+	];
+	return `<div class="wm-theme-switch" role="group" aria-label="Theme">
+		${options.map((option) => `<button type="button" class="${state.theme === option.id ? 'is-active' : ''}" title="${escapeHtml(option.label)}" ${actionAttr(actions, stateAction(state, { theme: option.id }))}>${icon(option.icon, 16)}</button>`).join('')}
+	</div>`;
+}
+
+function renderShopHeader(actions, state, options = {}) {
+	const title = escapeHtml(SHOP_CONFIG.name);
+	const backAction = options.backAction || stateAction(state, { view: 'products', category: 'all', page: 1 });
+	return `<header class="wm-header wm-shell">
+		<button type="button" class="wm-brand" ${actionAttr(actions, { type: 'navigate', href: '/' })}>
+			${coreIdenticon(state.coreId)}
+			<span>${title}</span>
+		</button>
+		<div class="wm-actions">
+			${renderThemeSwitcher(actions, state)}
+			<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'cart' }))}>${icon('cart', 17)} <span>Cart ${cartCount(state)}</span></button>
+			<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'contact' }))}>${icon('mail', 17)} <span>Contact</span></button>
+			${options.showBack ? `<button type="button" class="wm-icon-btn" title="Back" ${actionAttr(actions, backAction)}>${icon('arrowLeft', 18)}</button>` : ''}
+		</div>
+	</header>`;
+}
+
 function pluginFrame(title, body, actions, options = {}) {
 	return {
 		type: 'pluginFrame',
@@ -863,6 +999,7 @@ function pluginFrame(title, body, actions, options = {}) {
 			@media (min-width:640px){.wm-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media (min-width:1280px){.wm-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}@media (min-width:1536px){.wm-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
 			@media (prefers-color-scheme:dark){body,.wm-shop,.wm-page{background:#020617;color:#f8fafc}.wm-sidebar{background:rgba(15,23,42,.96);border-right-color:#1e293b}.wm-subtitle,.wm-kicker,.wm-product-meta,.wm-product-pack,.wm-muted{color:#cbd5e1}.wm-main-head,.wm-total{border-color:#1e293b}.wm-nav button{color:#cbd5e1}.wm-nav button.is-active{background:#f8fafc;color:#020617}.wm-card,.wm-chip,.wm-icon-btn,.wm-btn-secondary,.wm-qty{background:#0f172a;color:#f8fafc;border-color:#334155;box-shadow:none}.wm-product-media,.wm-detail-media,.wm-row-media{background:#1e293b;border-color:#334155}.wm-input{background:#0f172a;border-color:#334155;color:#fff}.wm-warning{background:rgba(245,158,11,.14);color:#fde68a}}
 			@media (max-width:900px){.wm-layout{display:block}.wm-sidebar{width:auto;border-right:0;border-bottom:1px solid #e7e5e4}.wm-nav{flex-direction:row;overflow-x:auto}.wm-main{padding:1.25rem}.wm-main-head{align-items:flex-start;flex-direction:column}.wm-detail,.wm-checkout{display:block;padding:1.25rem}.wm-detail-copy,.wm-checkout aside{margin-top:1.5rem;padding-top:0}.wm-row{grid-template-columns:5.5rem minmax(0,1fr)}.wm-row>strong{grid-column:2}.wm-form-grid{grid-template-columns:1fr}.wm-span-2{grid-column:auto}}
+			.wm-theme-light{background:#f6f4ee!important;color:#0c0a09!important}.wm-theme-dark{background:#020617!important;color:#f8fafc!important}.wm-theme-light .wm-sidebar{background:rgba(251,250,247,.96)!important;border-color:#e7e5e4!important}.wm-theme-light .wm-card,.wm-theme-light .wm-chip,.wm-theme-light .wm-icon-btn,.wm-theme-light .wm-btn-secondary,.wm-theme-light .wm-qty{background:#fff!important;color:#292524!important;border-color:#d6d3d1!important}.wm-theme-light .wm-product-media,.wm-theme-light .wm-detail-media,.wm-theme-light .wm-row-media,.wm-theme-light .wm-input{background:#fafaf9!important;color:#0c0a09!important;border-color:#d6d3d1!important}.wm-theme-light .wm-muted,.wm-theme-light .wm-subtitle,.wm-theme-light .wm-kicker,.wm-theme-light .wm-product-meta,.wm-theme-light .wm-product-pack{color:#6b7280!important}.wm-theme-dark .wm-sidebar{background:rgba(15,23,42,.96)!important;border-color:#1e293b!important}.wm-theme-dark .wm-card,.wm-theme-dark .wm-chip,.wm-theme-dark .wm-icon-btn,.wm-theme-dark .wm-btn-secondary,.wm-theme-dark .wm-qty{background:#0f172a!important;color:#f8fafc!important;border-color:#334155!important}.wm-theme-dark .wm-product-media,.wm-theme-dark .wm-detail-media,.wm-theme-dark .wm-row-media,.wm-theme-dark .wm-input{background:#1e293b!important;color:#fff!important;border-color:#334155!important}.wm-theme-dark .wm-muted,.wm-theme-dark .wm-subtitle,.wm-theme-dark .wm-kicker,.wm-theme-dark .wm-product-meta,.wm-theme-dark .wm-product-pack{color:#cbd5e1!important}.wm-svg{display:inline-block;flex:0 0 auto}.wm-identicon{width:2.15rem;height:2.15rem;border-radius:.8rem}.wm-brand,.wm-title,.wm-product-name,.wm-btn,.wm-chip,.wm-icon-btn,.wm-nav button,.wm-product-price,.wm-price,.wm-total,.wm-qty span{font-weight:650;letter-spacing:0}.wm-title{font-weight:750}.wm-product-meta,.wm-product-pack,.wm-muted,.wm-subtitle,.wm-kicker{font-weight:500}.wm-product-card{display:block;width:100%;padding:0;border:0;background:transparent;color:inherit;text-align:left;transition:transform .16s ease}.wm-product-card:hover{transform:translateY(-3px)}.wm-product-card:hover .wm-product-media{border-color:#7c3aed!important;box-shadow:0 18px 44px rgba(15,23,42,.2)}.wm-product-media,.wm-detail-media{cursor:pointer}.wm-product-media{transition:border-color .16s ease,box-shadow .16s ease}.wm-theme-switch{display:inline-flex;align-items:center;gap:.15rem;border:1px solid rgba(148,163,184,.35);background:rgba(148,163,184,.12);border-radius:999px;padding:.2rem}.wm-theme-switch button{display:inline-flex;align-items:center;justify-content:center;width:2rem;height:2rem;border:0;border-radius:999px;background:transparent;color:inherit;opacity:.65;cursor:pointer}.wm-theme-switch button.is-active{background:rgba(255,255,255,.14);opacity:1}.wm-icon-btn{display:inline-flex;align-items:center;justify-content:center;width:2.7rem;height:2.7rem;padding:0}.wm-chip{display:inline-flex;align-items:center;gap:.45rem}.wm-qty{background:rgba(148,163,184,.11)}.wm-qty button{display:inline-flex;align-items:center;justify-content:center;color:inherit;cursor:pointer}.wm-qty button:hover{background:rgba(124,58,237,.16)}.wm-btn-link{min-height:auto;padding:.2rem .35rem;border-radius:.45rem;background:transparent!important;color:#94a3b8!important;font-size:.85rem}.wm-btn-success{background:#059669!important;color:#fff!important}.wm-product-add{position:relative}.wm-add-added{display:none}.wm-added .wm-add-normal{animation:wm-hide-normal 1.5s ease forwards}.wm-added .wm-add-added{display:inline;animation:wm-show-added 1.5s ease forwards}@keyframes wm-show-added{0%,72%{opacity:1}100%{opacity:0;width:0;overflow:hidden}}@keyframes wm-hide-normal{0%,72%{opacity:0;width:0;overflow:hidden}100%{opacity:1;width:auto}}.wm-field-label{display:flex;align-items:center;gap:.25rem;margin-bottom:.4rem;color:#94a3b8;font-size:.85rem;font-weight:600}.wm-required{color:#ef4444}.wm-required-note{margin:1rem 0 0;color:#94a3b8;font-size:.82rem}.wm-coreid{overflow-wrap:anywhere;word-break:break-word;letter-spacing:.03em}.wm-switch{display:inline-flex;align-items:center;gap:.2rem;border:1px solid rgba(148,163,184,.35);background:rgba(148,163,184,.1);border-radius:999px;padding:.22rem}.wm-switch button{border:0;border-radius:999px;background:transparent;color:inherit;opacity:.72;padding:.55rem .85rem;font-weight:650;cursor:pointer}.wm-switch button.is-active{background:#7c3aed;color:#fff;opacity:1}.wm-form-actions-top{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem;margin-top:1rem}.wm-saved{margin-top:1rem;border:1px solid rgba(148,163,184,.35);border-radius:1rem;background:rgba(148,163,184,.1);overflow:hidden}.wm-saved summary{padding:.85rem 1rem;cursor:pointer;font-weight:650}.wm-saved-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem;align-items:center;border-top:1px solid rgba(148,163,184,.25);padding:.65rem}.wm-saved-title{font-weight:650}.wm-saved-sub{display:block;margin:.15rem 0 0;color:#94a3b8;font-size:.8rem}.wm-summary-core{max-width:100%;overflow-wrap:anywhere}.wm-fail-mark{background:#fee2e2;color:#991b1b}.wm-form-grid label[hidden]{display:none}
 		</style>${body}`
 	};
 }
@@ -909,8 +1046,87 @@ function renderView(state) {
 	if (state.view === 'cart') return renderCart(state);
 	if (state.view === 'checkout') return renderCheckout(state);
 	if (state.view === 'success') return renderSuccess(state);
+	if (state.view === 'failed') return renderPaymentFailed(state);
+	if (state.view === 'contact') return renderContactPage(state);
 	if (state.view === 'orders') return renderOrders(state);
 	return renderProducts(state);
+}
+
+
+// src/ui/contact.js
+function contactSettings(state) {
+	return state.settings && state.settings.contact ? state.settings.contact : SHOP_CONFIG.contact || {};
+}
+
+function contactMailUrl(email, subject, body) {
+	const params = new URLSearchParams();
+	if (subject) params.set('subject', subject);
+	if (body) params.set('body', body);
+	const query = params.toString();
+	return `mailto:${encodeURIComponent(email)}${query ? `?${query}` : ''}`;
+}
+
+function contactPhoneUrl(phone) {
+	return `tel:${String(phone || '').replace(/[^+0-9]/g, '')}`;
+}
+
+function renderCompanyDetail(label, value) {
+	return value ? `<div class="wm-summary-line"><span class="wm-muted">${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>` : '';
+}
+
+function renderContactPage(state) {
+	const actions = {};
+	const contact = contactSettings(state);
+	const email = contact.email || '';
+	const mobile = contact.mobile || '';
+	const subjects = Array.isArray(contact.subjects) ? contact.subjects : [];
+	const company = contact.company || {};
+
+	return pluginFrame('Contact', `
+		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
+			${renderShopHeader(actions, state)}
+			<main class="wm-checkout">
+				<section class="wm-card">
+					<p class="wm-kicker">Shop support</p>
+					<h1 class="wm-title" style="font-size:2.25rem">Contact</h1>
+					<p class="wm-muted">Choose a topic to open your mail client with a prepared subject.</p>
+					<div class="wm-inline-actions" style="margin-top:1.5rem">
+						${email ? subjects.map((item) => `
+							<a class="wm-btn wm-btn-primary" href="${escapeHtml(contactMailUrl(email, item.subject, item.body))}">
+								${icon('mail', 17)} ${escapeHtml(item.label)}
+							</a>
+						`).join('') : ''}
+						${email ? `
+							<a class="wm-btn wm-btn-secondary" href="${escapeHtml(contactMailUrl(email, 'Shop contact', 'Hello, I would like to contact your shop.'))}">
+								${icon('mail', 17)} Email shop
+							</a>
+						` : ''}
+						${mobile ? `
+							<a class="wm-btn wm-btn-secondary" href="${escapeHtml(contactPhoneUrl(mobile))}">
+								${icon('phone', 17)} Call shop
+							</a>
+						` : ''}
+					</div>
+					${!email && !mobile ? `<p class="wm-warning">No shop contact is configured.</p>` : ''}
+				</section>
+				<aside class="wm-card">
+					<h2 style="display:flex;align-items:center;gap:.5rem;margin:0;font-size:1.25rem;font-weight:700">${icon('building', 18)} Company details</h2>
+					${renderCompanyDetail('Company', company.name)}
+					${renderCompanyDetail('Registration number', company.registrationNumber)}
+					${renderCompanyDetail('VAT ID', company.vatId)}
+					${renderCompanyDetail('Address', company.address)}
+					${company.website ? `
+						<div class="wm-summary-line">
+							<span class="wm-muted">Website</span>
+							<a class="wm-btn wm-btn-link" href="${escapeHtml(company.website)}" target="_blank" rel="noopener">${icon('externalLink', 15)} Open</a>
+						</div>
+					` : ''}
+					${email ? `<div class="wm-summary-line"><span class="wm-muted">Email</span><strong>${escapeHtml(email)}</strong></div>` : ''}
+					${mobile ? `<div class="wm-summary-line"><span class="wm-muted">Mobile</span><strong>${escapeHtml(mobile)}</strong></div>` : ''}
+				</aside>
+			</main>
+		</div>
+	`, actions);
 }
 
 
@@ -951,17 +1167,17 @@ function renderProducts(state) {
 	const totalPages = Math.max(1, Math.ceil(products.length / pageSize));
 	const currentPage = Math.min(Math.max(1, state.page || 1), totalPages);
 	const visibleProducts = products.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-	const logo = shopLogoUrl();
 
 	return pluginFrame(SHOP_CONFIG.name, `
-		<div class="wm-shop">
+		<div class="wm-shop wm-theme-${escapeHtml(state.theme)}">
 			<div class="wm-shell wm-layout">
 				<aside class="wm-sidebar">
-					<button type="button" class="wm-brand" ${actionAttr(actions, stateAction(state, { view: 'products', category: 'all', page: 1 }))}>
-						${logo ? `<img class="wm-logo" src="${escapeHtml(logo)}" alt="" />` : ''}
+					<button type="button" class="wm-brand" ${actionAttr(actions, { type: 'navigate', href: '/' })}>
+						${coreIdenticon(state.coreId)}
 						<span>${escapeHtml(SHOP_CONFIG.name)}</span>
 					</button>
 					<p class="wm-subtitle">${escapeHtml(SHOP_CONFIG.tagline || '')}</p>
+					<div style="margin-top:1rem">${renderThemeSwitcher(actions, state)}</div>
 					<nav class="wm-nav" aria-label="Shop categories">
 						${allCategories(state).map((category) => `
 							<button type="button" class="${state.category === category.id ? 'is-active' : ''}" ${actionAttr(actions, stateAction(state, {
@@ -971,6 +1187,7 @@ function renderProducts(state) {
 								selectedProductId: (category.id === 'all' ? catalogProducts(state)[0] : productsByCategory(category.id, state)[0])?.id || state.selectedProductId
 							}))}>${escapeHtml(category.label)}</button>
 						`).join('')}
+						<button type="button" class="${state.view === 'contact' ? 'is-active' : ''}" ${actionAttr(actions, stateAction(state, { view: 'contact' }))}>Contact</button>
 					</nav>
 				</aside>
 				<main class="wm-main">
@@ -979,22 +1196,28 @@ function renderProducts(state) {
 							<p class="wm-kicker">Browse category</p>
 							<h1 class="wm-title">${escapeHtml(categoryTitle(state))}</h1>
 						</div>
-						<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'cart' }))}>Cart <span>${cartCount(state)}</span></button>
+						<div class="wm-actions">
+							${renderThemeSwitcher(actions, state)}
+							<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'contact' }))}>${icon('mail', 17)} <span>Contact</span></button>
+							<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'cart' }))}>${icon('cart', 17)} <span>Cart ${cartCount(state)}</span></button>
+						</div>
 					</div>
 					<div class="wm-grid">
 						${visibleProducts.map((product) => `
 							<article class="wm-product">
-								<div class="wm-product-media">
-									${renderProductImage(state, product)}
-									${product.badge ? `<span class="wm-badge">${escapeHtml(product.badge)}</span>` : ''}
-								</div>
-								<button type="button" class="wm-product-open" ${actionAttr(actions, productOpenAction(state, product))}>
+								<button type="button" class="wm-product-card" ${actionAttr(actions, productOpenAction(state, product))}>
+									<div class="wm-product-media">
+										${renderProductImage(state, product)}
+										${product.badge ? `<span class="wm-badge">${escapeHtml(product.badge)}</span>` : ''}
+									</div>
 									<p class="wm-product-meta">${escapeHtml(product.vendor || SHOP_CONFIG.name)}</p>
 									<h2 class="wm-product-name">${escapeHtml(product.name)}</h2>
 									<p class="wm-product-pack">${escapeHtml(product.packLabel || 'Standard pack')}</p>
 									<p class="wm-product-price">${escapeHtml(productPrice(state, product))}</p>
 								</button>
-								${frameButton(actions, 'Add to cart', stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`))}
+								<button type="button" class="wm-btn wm-btn-${state.lastAddedProductId === product.id ? 'success wm-added' : 'primary'} wm-product-add" ${actionAttr(actions, stateAction({ ...addToCart(state, product.id), lastAddedProductId: product.id }, {}, `${product.name} added to cart`))}>
+									<span class="wm-add-normal">Add to cart</span><span class="wm-add-added">${icon('check', 16)} Added</span>
+								</button>
 							</article>
 						`).join('')}
 					</div>
@@ -1014,16 +1237,9 @@ function renderProductDetail(state) {
 	const product = selectedProduct(state);
 	if (!product) return renderProducts(state);
 	const actions = {};
-	const logo = shopLogoUrl();
 	return pluginFrame(product.name, `
-		<div class="wm-page">
-			<header class="wm-header wm-shell">
-				<button type="button" class="wm-brand" ${actionAttr(actions, stateAction(state, { view: 'products', category: 'all', page: 1 }))}>
-					${logo ? `<img class="wm-logo" src="${escapeHtml(logo)}" alt="" />` : ''}
-					<span>${escapeHtml(SHOP_CONFIG.name)}</span>
-				</button>
-				<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'cart' }))}>Cart ${cartCount(state)}</button>
-			</header>
+		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
+			${renderShopHeader(actions, state)}
 			<main class="wm-detail">
 				<section>
 					${frameButton(actions, 'Back to products', stateAction(state, { view: 'products', category: product.category }), 'secondary')}
@@ -1038,12 +1254,14 @@ function renderProductDetail(state) {
 					<p><span class="wm-btn wm-btn-secondary">${escapeHtml(product.packLabel || 'Standard pack')}</span></p>
 					<p class="wm-product-meta">Quantity</p>
 					<div class="wm-qty">
-						<button type="button" ${actionAttr(actions, stateAction(decrementProductQuantity(state, product.id), {}))}>−</button>
+						<button type="button" ${actionAttr(actions, stateAction(decrementProductQuantity(state, product.id), {}))}>${icon('minus', 15)}</button>
 						<span>${productQuantity(state, product.id)}</span>
-						<button type="button" ${actionAttr(actions, stateAction(incrementProductQuantity(state, product.id), {}))}>+</button>
+						<button type="button" ${actionAttr(actions, stateAction(incrementProductQuantity(state, product.id), {}))}>${icon('plus', 15)}</button>
 					</div>
 					<div class="wm-inline-actions">
-						${frameButton(actions, 'Add to cart', stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`), 'secondary')}
+						<button type="button" class="wm-btn wm-btn-${state.lastAddedProductId === product.id ? 'success wm-added' : 'secondary'} wm-product-add" ${actionAttr(actions, stateAction({ ...addQuantityToCart(state, product.id, productQuantity(state, product.id)), lastAddedProductId: product.id }, {}, `${product.name} added to cart`))}>
+							<span class="wm-add-normal">Add to cart</span><span class="wm-add-added">${icon('check', 16)} Added</span>
+						</button>
 						${frameButton(actions, 'Buy now', stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), { view: 'cart' }))}
 					</div>
 					<div style="margin-top:2rem;border-top:1px solid rgba(148,163,184,.25);padding-top:1.5rem">
@@ -1061,15 +1279,9 @@ function renderProductDetail(state) {
 function renderCart(state) {
 	const actions = {};
 	const items = cartItems(state);
-	const logo = shopLogoUrl();
 	return pluginFrame('Cart', `
-		<div class="wm-page">
-			<header class="wm-header wm-shell">
-				<button type="button" class="wm-brand" ${actionAttr(actions, stateAction(state, { view: 'products', category: 'all', page: 1 }))}>
-					${logo ? `<img class="wm-logo" src="${escapeHtml(logo)}" alt="" />` : ''}
-					<span>${escapeHtml(SHOP_CONFIG.name)}</span>
-				</button>
-			</header>
+		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
+			${renderShopHeader(actions, state)}
 			<section class="wm-card wm-cart">
 				<div class="wm-main-head">
 					<div>
@@ -1087,10 +1299,10 @@ function renderCart(state) {
 								<h2 class="wm-product-name">${escapeHtml(item.product.name)}</h2>
 								<p class="wm-product-pack">${escapeHtml(item.product.packLabel || 'Standard pack')}</p>
 								<div class="wm-qty" style="margin-top:.8rem">
-									<button type="button" ${actionAttr(actions, stateAction(removeProductFromCart(state, item.product.id), {}))}>×</button>
-									<button type="button" ${actionAttr(actions, stateAction(removeOneFromCart(state, item.product.id), {}))}>−</button>
+									<button type="button" title="Remove item" ${actionAttr(actions, stateAction(removeProductFromCart(state, item.product.id), {}))}>${icon('x', 14)}</button>
+									<button type="button" title="Decrease" ${actionAttr(actions, stateAction(removeOneFromCart(state, item.product.id), {}))}>${icon('minus', 14)}</button>
 									<span>${item.quantity}</span>
-									<button type="button" ${actionAttr(actions, stateAction(addToCart(state, item.product.id), {}))}>+</button>
+									<button type="button" title="Increase" ${actionAttr(actions, stateAction(addToCart(state, item.product.id), {}))}>${icon('plus', 14)}</button>
 								</div>
 							</div>
 							<strong>${escapeHtml(formatMoney(item.product.price * item.quantity, state.settings.currency))}</strong>
@@ -1099,9 +1311,9 @@ function renderCart(state) {
 					<div class="wm-total"><span>Subtotal</span><span>${escapeHtml(formatMoney(cartSubtotal(state), state.settings.currency))}</span></div>
 					<div class="wm-inline-actions">
 						${frameButton(actions, 'Continue shopping', stateAction(state, { view: 'products', category: 'all', page: 1 }), 'secondary')}
-						${frameButton(actions, 'Clear cart', stateAction(state, { cart: {}, checkoutStatus: 'draft' }, 'Cart cleared'), 'ghost')}
 						${frameButton(actions, 'Continue to checkout', stateAction(checkoutReadyState(state), {}))}
 					</div>
+					<div style="margin-top:.75rem">${frameButton(actions, 'Clear cart', stateAction(state, { cart: {}, checkoutStatus: 'draft' }, 'Cart cleared'), 'link')}</div>
 				` : `
 					<div style="padding:2rem;text-align:center">
 						<p style="font-weight:950">Your cart is empty.</p>
@@ -1146,15 +1358,17 @@ function renderDeliveryForm(state) {
 				required: true
 			}
 		);
-		fields.push({
-			name: 'delivery.state',
-			label: 'State (US only)',
-			type: 'select',
-			value: deliveryDraft.state,
-			placeholder: 'California',
-			options: US_STATE_OPTIONS,
-			required: hasUnitedStates
-		});
+		if (hasUnitedStates) {
+			fields.push({
+				name: 'delivery.state',
+				label: 'State',
+				type: 'select',
+				value: deliveryDraft.state,
+				placeholder: 'California',
+				options: US_STATE_OPTIONS,
+				required: true
+			});
+		}
 		fields.push({ name: 'delivery.notes', label: 'Delivery notes', value: deliveryDraft.notes, placeholder: 'Floor, flat number, …' });
 	}
 
@@ -1330,10 +1544,11 @@ function checkoutRequiredMessage(state, hasPhysicalItems) {
 function renderCheckoutField(field, storageActionId) {
 	const value = escapeHtml(field.value || '');
 	const required = field.required ? 'required' : '';
+	const label = `${escapeHtml(field.label || field.name)}${field.required ? ' <span class="wm-required">*</span>' : ''}`;
 	const common = `class="wm-input" name="${escapeHtml(field.name)}" data-plugin-storage-action="${escapeHtml(storageActionId)}" data-plugin-field="${escapeHtml(field.name)}" ${required}`;
 	if (field.type === 'select') {
 		return `<label>
-			<span class="wm-product-meta">${escapeHtml(field.label || field.name)}</span>
+			<span class="wm-field-label">${label}</span>
 			<select ${common}>
 				<option value="">${escapeHtml(field.placeholder || field.label || '')}</option>
 				${(field.options || []).map((option) => {
@@ -1344,7 +1559,7 @@ function renderCheckoutField(field, storageActionId) {
 		</label>`;
 	}
 	return `<label class="${field.name === 'delivery.notes' || field.name === 'delivery.address' || field.name === 'delivery.address2' ? 'wm-span-2' : ''}">
-		<span class="wm-product-meta">${escapeHtml(field.label || field.name)}</span>
+		<span class="wm-field-label">${label}</span>
 		<input ${common} type="${escapeHtml(field.type || 'text')}" value="${value}" placeholder="${escapeHtml(field.placeholder || field.label || '')}" />
 	</label>`;
 }
@@ -1393,6 +1608,22 @@ function renderCheckout(state) {
 	const deliveryForm = renderDeliveryForm(checkoutState);
 	const storageActionId = addFrameAction(actions, deliveryForm.autoSaveAction || deliveryForm.action);
 	const profiles = savedDeliveryProfileOptions(checkoutState);
+	const savedAddressPanel = hasPhysicalItems && profiles.length ? `
+		<details class="wm-saved">
+			<summary>Saved addresses</summary>
+			${profiles.map((profile) => `
+				<div class="wm-saved-row">
+					<button type="button" class="wm-btn wm-btn-ghost" ${actionAttr(actions, profile.selectAction)}>
+						<span>
+							<span class="wm-saved-title">${escapeHtml(profile.label)}</span>
+							${profile.description ? `<span class="wm-saved-sub">${escapeHtml(profile.description)}</span>` : ''}
+						</span>
+					</button>
+					<button type="button" class="wm-icon-btn" title="Delete saved address" ${actionAttr(actions, profile.removeAction)}>${icon('trash', 15)}</button>
+				</div>
+			`).join('')}
+		</details>
+	` : '';
 	const payAction = developmentMessage
 		? { type: 'notify', message: developmentMessage, level: 'error' }
 		: workerDomainMessage
@@ -1406,50 +1637,32 @@ function renderCheckout(state) {
 		: stockManagedPaymentAction(finalCheckoutState, paymentRequest);
 
 	return pluginFrame('Checkout', `
-		<div class="wm-page">
-			<header class="wm-header wm-shell">
-				<button type="button" class="wm-brand" ${actionAttr(actions, stateAction(state, { view: 'products', category: 'all', page: 1 }))}>
-					${shopLogoUrl() ? `<img class="wm-logo" src="${escapeHtml(shopLogoUrl())}" alt="" />` : ''}
-					<span>${escapeHtml(SHOP_CONFIG.name)}</span>
-				</button>
-				<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'cart' }))}>Cart ${cartCount(state)}</button>
-			</header>
+		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
+			${renderShopHeader(actions, state)}
 			<main class="wm-checkout">
 				<section class="wm-card">
 					<h1 style="margin:0;font-size:1.5rem;font-weight:950">${hasPhysicalItems ? 'Delivery details' : 'Contact details'}</h1>
 					<p class="wm-muted">${hasPhysicalItems ? 'These details are sent to the shop admin only after successful payment.' : 'Digital orders only need an email address and Core ID.'}</p>
-					${hasPhysicalItems && profiles.length ? `
-						<label>
-							<span class="wm-product-meta">Saved address</span>
-							<select class="wm-input">
-								<option value="">Select saved address</option>
-								${profiles.map((profile) => `<option value="${escapeHtml(profile.id)}" data-plugin-action="${addFrameAction(actions, profile.selectAction)}" ${profile.id === checkoutState.selectedDeliveryProfileId ? 'selected' : ''}>${escapeHtml(profile.description ? `${profile.label} - ${profile.description}` : profile.label)}</option>`).join('')}
-							</select>
-						</label>
+					${hasPhysicalItems ? `
+						<div class="wm-form-actions-top">
+							<div class="wm-switch" role="group" aria-label="Delivery saving">
+								<button type="button" class="${checkoutState.saveDelivery ? 'is-active' : ''}" ${actionAttr(actions, stateAction(checkoutState, { saveDelivery: true }))}>Saving</button>
+								<button type="button" class="${checkoutState.saveDelivery ? '' : 'is-active'}" ${actionAttr(actions, stateAction(checkoutState, { saveDelivery: false, selectedDeliveryProfileId: '' }))}>One time</button>
+							</div>
+							${frameButton(actions, 'Clear form', stateAction(state, { delivery: { ...emptyDelivery(), email: state.userEmail || '' }, checkoutStatus: 'draft' }, 'Delivery form cleared'), 'link')}
+						</div>
+						${savedAddressPanel}
 					` : ''}
 					<form class="wm-form-grid">
 						${deliveryForm.fields.map((field) => renderCheckoutField(field, storageActionId)).join('')}
 					</form>
-					${hasPhysicalItems ? `
-						<div class="wm-inline-actions">
-							${frameButton(actions, checkoutState.saveDelivery ? 'Saving delivery' : 'Save delivery', stateAction(checkoutState, { saveDelivery: true }), checkoutState.saveDelivery ? 'primary' : 'secondary')}
-							${frameButton(actions, 'This order only', stateAction(checkoutState, { saveDelivery: false, selectedDeliveryProfileId: '' }), checkoutState.saveDelivery ? 'secondary' : 'primary')}
-							${frameButton(actions, 'Clear form', stateAction(state, { delivery: { ...emptyDelivery(), email: state.userEmail || '' }, checkoutStatus: 'draft' }, 'Delivery form cleared'), 'ghost')}
-							${checkoutState.savedDelivery ? frameButton(actions, 'Remove saved delivery', stateAction(checkoutState, {
-								savedDelivery: null,
-								savedDeliveries: [],
-								selectedDeliveryProfileId: '',
-								saveDelivery: false,
-								checkoutStatus: 'draft'
-							}, 'Saved delivery profile removed'), 'ghost') : ''}
-						</div>
-					` : ''}
+					<p class="wm-required-note"><span class="wm-required">*</span> Required fields</p>
 				</section>
 				<aside class="wm-card">
 					<h2 style="margin:0;font-size:1.25rem;font-weight:950">Order summary</h2>
 					${items.map((item) => `<div class="wm-summary-line"><span>${escapeHtml(item.product.name)} × ${item.quantity}</span><strong>${escapeHtml(formatMoney(item.product.price * item.quantity, state.settings.currency))}</strong></div>`).join('')}
 					<div class="wm-total"><span>Total</span><span>${escapeHtml(formatMoney(total, state.settings.currency))}</span></div>
-					<p class="wm-muted">Core ID: ${escapeHtml(state.coreId || 'Not provided')}</p>
+					<p class="wm-muted wm-summary-core">Core ID:<br><span class="wm-coreid">${escapeHtml(state.coreId ? compactCoreId(state.coreId) : 'Not provided')}</span></p>
 					<p class="wm-muted">Collector: ${escapeHtml(collectorAccount())}</p>
 					${hasPhysicalItems ? `<p class="wm-muted">Delivery: ${escapeHtml(deliverySummary(delivery))}</p>` : ''}
 					${blockedMessage ? `<p class="wm-warning">${escapeHtml(blockedMessage)}</p>` : ''}
@@ -1466,43 +1679,37 @@ function renderCheckout(state) {
 
 // src/ui/orders.js
 function renderOrders(state) {
+	const actions = {};
 	const order = state.lastOrder;
-	return {
-		type: 'section',
-		title: 'Orders',
-		description: 'Order history is local and intentionally small. Fulfillment should reconcile the Wall Money payment reference with the merchant catalog/order process.',
-		children: order
-			? [
-				{
-					type: 'badgeGrid',
-					items: [
-						{ label: 'Status', value: order.status || 'unknown', tone: order.status === 'paid' ? 'success' : 'warning' },
-						...(order.deliveryFee ? [{ label: 'Delivery', value: formatMoney(order.deliveryFee, order.currency), tone: 'muted' }] : []),
-						{ label: 'Total', value: formatMoney(order.total, order.currency), tone: 'success' },
-						{ label: 'Reference', value: order.reference, tone: 'muted' }
-					]
-				},
-				{
-					type: 'list',
-					items: [
-						{ label: 'Paid at', value: order.paidAt || 'Pending' },
-						{ label: 'Delivery', value: order.delivery || 'Not saved' },
-						{ label: 'Payment session', value: order.sessionId || 'Not available' }
-					]
-				},
-				{
-					type: 'buttonRow',
-					buttons: [
-						{ label: 'Open catalog', variant: 'secondary', action: { type: 'navigate', href: catalogUrl(state) } },
-						{ label: 'New order', variant: 'primary', action: stateAction(state, { view: 'products', cart: {}, checkoutStatus: 'draft' }, 'Ready for a new order') }
-					]
-				}
-			]
-			: [
-				{ type: 'text', text: 'No paid order recorded yet on this device.', tone: 'muted' },
-				{ type: 'button', label: 'Browse products', variant: 'primary', action: stateAction(state, { view: 'products' }) }
-			]
-	};
+	return pluginFrame('Orders', `
+		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
+			${renderShopHeader(actions, state)}
+			<section class="wm-card wm-cart">
+				<div class="wm-main-head">
+					<div>
+						<p class="wm-kicker">Local order history</p>
+						<h1 class="wm-title" style="font-size:2rem">Orders</h1>
+					</div>
+				</div>
+				${order ? `
+					<div class="wm-summary-line"><span class="wm-muted">Status</span><strong>${escapeHtml(order.status || 'unknown')}</strong></div>
+					<div class="wm-summary-line"><span class="wm-muted">Total</span><strong>${escapeHtml(formatMoney(order.total, order.currency))}</strong></div>
+					${order.deliveryFee ? `<div class="wm-summary-line"><span class="wm-muted">Delivery</span><strong>${escapeHtml(formatMoney(order.deliveryFee, order.currency))}</strong></div>` : ''}
+					${order.reference ? `<div class="wm-summary-line"><span class="wm-muted">Reference</span><strong class="wm-coreid">${escapeHtml(order.reference)}</strong></div>` : ''}
+					${order.paidAt ? `<div class="wm-summary-line"><span class="wm-muted">Paid at</span><strong>${escapeHtml(order.paidAt)}</strong></div>` : ''}
+					${order.delivery ? `<div class="wm-summary-line"><span class="wm-muted">Delivery</span><strong>${escapeHtml(order.delivery)}</strong></div>` : ''}
+					<div class="wm-inline-actions">
+						${frameButton(actions, 'New order', stateAction(state, { view: 'products', cart: {}, checkoutStatus: 'draft' }, 'Ready for a new order'))}
+					</div>
+				` : `
+					<div style="padding:2rem;text-align:center">
+						<p class="wm-muted">No paid order recorded yet on this device.</p>
+						${frameButton(actions, 'Browse products', stateAction(state, { view: 'products' }))}
+					</div>
+				`}
+			</section>
+		</div>
+	`, actions);
 }
 
 
@@ -1510,19 +1717,13 @@ function renderOrders(state) {
 function renderSuccess(state) {
 	const actions = {};
 	const order = state.lastOrder;
-	const logo = shopLogoUrl();
 	return pluginFrame('Payment successful', `
-		<div class="wm-page">
-			<header class="wm-header wm-shell">
-				<button type="button" class="wm-brand" ${actionAttr(actions, stateAction(state, { view: 'products', category: 'all', page: 1 }))}>
-					${logo ? `<img class="wm-logo" src="${escapeHtml(logo)}" alt="" />` : ''}
-					<span>${escapeHtml(SHOP_CONFIG.name)}</span>
-				</button>
-			</header>
+		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
+			${renderShopHeader(actions, state)}
 			<section class="wm-card wm-success">
-				<div class="wm-success-mark">✓</div>
-				<h1 class="wm-title" style="font-size:2.25rem;margin-top:1.25rem">Payment successful</h1>
-				<p class="wm-muted">Your order was paid and sent to the shop admin.</p>
+				<div class="wm-success-mark">${icon('check', 28)}</div>
+				<h1 class="wm-title" style="font-size:2.25rem;margin-top:1.25rem">Congratulations</h1>
+				<p class="wm-muted">Your products have been paid. You will receive an email with order details and next steps.</p>
 				${order ? `
 					<div class="wm-card" style="max-width:24rem;margin:1.5rem auto 0;text-align:left">
 						<div class="wm-summary-line"><span class="wm-muted">Total</span><strong>${escapeHtml(formatMoney(order.total, order.currency))}</strong></div>
@@ -1532,6 +1733,25 @@ function renderSuccess(state) {
 				` : ''}
 				<div class="wm-inline-actions" style="justify-content:center">
 					${frameButton(actions, 'Continue shopping', stateAction(state, { view: 'products', category: 'all', page: 1 }))}
+				</div>
+			</section>
+		</div>
+	`, actions);
+}
+
+function renderPaymentFailed(state) {
+	const actions = {};
+	return pluginFrame('Payment could not be processed', `
+		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
+			${renderShopHeader(actions, state)}
+			<section class="wm-card wm-success">
+				<div class="wm-success-mark wm-fail-mark">${icon('x', 28)}</div>
+				<h1 class="wm-title" style="font-size:2.25rem;margin-top:1.25rem">Payment cannot be processed</h1>
+				<p class="wm-muted">The payment was not completed. Your cart is still available, so you can review it and retry checkout.</p>
+				${state.checkoutStatus ? `<p class="wm-warning">Status: ${escapeHtml(state.checkoutStatus)}</p>` : ''}
+				<div class="wm-inline-actions" style="justify-content:center">
+					${frameButton(actions, 'Back to cart', stateAction(state, { view: 'cart' }), 'secondary')}
+					${frameButton(actions, 'Retry checkout', stateAction(checkoutReadyState(state), {}))}
 				</div>
 			</section>
 		</div>
@@ -1923,7 +2143,7 @@ module.exports = {
 				} else if (result.status === 'failed' || result.status === 'cancelled' || result.status === 'expired') {
 					saveState(hostApi, {
 						...state,
-						view: 'cart',
+						view: 'failed',
 						checkoutStatus: result.status
 					});
 				}

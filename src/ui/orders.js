@@ -1,39 +1,33 @@
 function renderOrders(state) {
+	const actions = {};
 	const order = state.lastOrder;
-	return {
-		type: 'section',
-		title: 'Orders',
-		description: 'Order history is local and intentionally small. Fulfillment should reconcile the Wall Money payment reference with the merchant catalog/order process.',
-		children: order
-			? [
-				{
-					type: 'badgeGrid',
-					items: [
-						{ label: 'Status', value: order.status || 'unknown', tone: order.status === 'paid' ? 'success' : 'warning' },
-						...(order.deliveryFee ? [{ label: 'Delivery', value: formatMoney(order.deliveryFee, order.currency), tone: 'muted' }] : []),
-						{ label: 'Total', value: formatMoney(order.total, order.currency), tone: 'success' },
-						{ label: 'Reference', value: order.reference, tone: 'muted' }
-					]
-				},
-				{
-					type: 'list',
-					items: [
-						{ label: 'Paid at', value: order.paidAt || 'Pending' },
-						{ label: 'Delivery', value: order.delivery || 'Not saved' },
-						{ label: 'Payment session', value: order.sessionId || 'Not available' }
-					]
-				},
-				{
-					type: 'buttonRow',
-					buttons: [
-						{ label: 'Open catalog', variant: 'secondary', action: { type: 'navigate', href: catalogUrl(state) } },
-						{ label: 'New order', variant: 'primary', action: stateAction(state, { view: 'products', cart: {}, checkoutStatus: 'draft' }, 'Ready for a new order') }
-					]
-				}
-			]
-			: [
-				{ type: 'text', text: 'No paid order recorded yet on this device.', tone: 'muted' },
-				{ type: 'button', label: 'Browse products', variant: 'primary', action: stateAction(state, { view: 'products' }) }
-			]
-	};
+	return pluginFrame('Orders', `
+		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
+			${renderShopHeader(actions, state)}
+			<section class="wm-card wm-cart">
+				<div class="wm-main-head">
+					<div>
+						<p class="wm-kicker">Local order history</p>
+						<h1 class="wm-title" style="font-size:2rem">Orders</h1>
+					</div>
+				</div>
+				${order ? `
+					<div class="wm-summary-line"><span class="wm-muted">Status</span><strong>${escapeHtml(order.status || 'unknown')}</strong></div>
+					<div class="wm-summary-line"><span class="wm-muted">Total</span><strong>${escapeHtml(formatMoney(order.total, order.currency))}</strong></div>
+					${order.deliveryFee ? `<div class="wm-summary-line"><span class="wm-muted">Delivery</span><strong>${escapeHtml(formatMoney(order.deliveryFee, order.currency))}</strong></div>` : ''}
+					${order.reference ? `<div class="wm-summary-line"><span class="wm-muted">Reference</span><strong class="wm-coreid">${escapeHtml(order.reference)}</strong></div>` : ''}
+					${order.paidAt ? `<div class="wm-summary-line"><span class="wm-muted">Paid at</span><strong>${escapeHtml(order.paidAt)}</strong></div>` : ''}
+					${order.delivery ? `<div class="wm-summary-line"><span class="wm-muted">Delivery</span><strong>${escapeHtml(order.delivery)}</strong></div>` : ''}
+					<div class="wm-inline-actions">
+						${frameButton(actions, 'New order', stateAction(state, { view: 'products', cart: {}, checkoutStatus: 'draft' }, 'Ready for a new order'))}
+					</div>
+				` : `
+					<div style="padding:2rem;text-align:center">
+						<p class="wm-muted">No paid order recorded yet on this device.</p>
+						${frameButton(actions, 'Browse products', stateAction(state, { view: 'products' }))}
+					</div>
+				`}
+			</section>
+		</div>
+	`, actions);
 }

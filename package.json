@@ -76,6 +76,7 @@
 		"src/catalog.js",
 		"src/cart.js",
 		"src/ui/shared.js",
+		"src/ui/contact.js",
 		"src/ui/products.js",
 		"src/ui/cart.js",
 		"src/ui/checkout.js",
@@ -86,10 +87,12 @@
 		"src/plugin.js"
 	],
 	"devDependencies": {
+		"@blockchainhub/blo": "^1.2.7",
 		"@sveltejs/adapter-static": "^3.0.8",
 		"@sveltejs/kit": "^2.61.1",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
 		"@types/node": "^24.0.0",
+		"lucide-static": "^1.21.0",
 		"svelte": "^5.56.0",
 		"svelte-check": "^4.5.0",
 		"typescript": "^6.0.3",
