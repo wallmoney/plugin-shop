@@ -8,7 +8,7 @@ function shopLogoUrl() {
 
 function shopLogoMarkup() {
 	const logo = shopLogoUrl();
-	return logo ? `<img class="h-8 w-8 rounded-xl object-cover" src="${escapeHtml(logo)}" alt="" />` : '';
+	return logo ? `<img class="h-9 w-9 rounded-xl object-cover" src="${escapeHtml(logo)}" alt="" />` : '';
 }
 
 function escapeHtml(value) {
@@ -65,8 +65,7 @@ function prefixClasses(prefix, classes) {
 
 function themeClasses(state, lightClasses, darkClasses) {
 	if (state && state.theme === 'light') return lightClasses;
-	if (state && state.theme === 'dark') return darkClasses;
-	return `${lightClasses} ${prefixClasses('dark', darkClasses)}`;
+	return darkClasses;
 }
 
 function shellClass() {
@@ -110,7 +109,7 @@ function warningClass(state) {
 }
 
 function buttonClass(variant = 'primary', extraClass = '') {
-	const base = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold tracking-normal transition hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-55';
+	const base = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold tracking-normal transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0';
 	const variants = {
 		primary: 'border-0 bg-violet-700 text-white',
 		secondary: 'border border-slate-500/40 bg-transparent text-inherit',
@@ -121,11 +120,11 @@ function buttonClass(variant = 'primary', extraClass = '') {
 }
 
 function iconButtonClass(state, extra = '') {
-	return `inline-flex h-11 w-11 items-center justify-center rounded-full border p-0 ${themeClasses(state, 'border-stone-300 bg-white text-stone-800 shadow-[0_10px_30px_rgba(28,25,23,.08)]', 'border-slate-700 bg-slate-900 text-slate-50 shadow-none')} ${extra}`;
+	return `inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border p-0 ${themeClasses(state, 'border-stone-300 bg-white text-stone-800 shadow-[0_10px_30px_rgba(28,25,23,.08)]', 'border-slate-700 bg-slate-900 text-slate-50 shadow-none')} ${extra}`;
 }
 
 function chipClass(state, extra = '') {
-	return `inline-flex min-h-11 items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold ${themeClasses(state, 'border-stone-300 bg-white text-stone-800 shadow-[0_10px_30px_rgba(28,25,23,.08)]', 'border-slate-700 bg-slate-900 text-slate-50 shadow-none')} ${extra}`;
+	return `inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold ${themeClasses(state, 'border-stone-300 bg-white text-stone-800 shadow-[0_10px_30px_rgba(28,25,23,.08)]', 'border-slate-700 bg-slate-900 text-slate-50 shadow-none')} ${extra}`;
 }
 
 function summaryLineClass() {
@@ -141,7 +140,7 @@ function quantityClass(state, extra = '') {
 }
 
 function quantityButtonClass() {
-	return 'inline-flex items-center justify-center px-3 py-2 text-inherit hover:bg-violet-600/20';
+	return 'inline-flex cursor-pointer items-center justify-center px-3 py-2 text-inherit hover:bg-violet-600/20';
 }
 
 function productMetaClass(state, extra = '') {

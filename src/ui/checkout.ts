@@ -332,7 +332,7 @@ function renderCheckout(state) {
 					<p class="${mutedClass(state)}">${hasPhysicalItems ? 'These details are sent to the shop admin only after successful payment.' : 'Digital orders only need an email address and Core ID.'}</p>
 					${hasPhysicalItems ? `
 						<div class="mt-4 flex flex-wrap items-center gap-3">
-							<button type="button" class="inline-flex items-center gap-2 border-0 bg-transparent p-0 font-medium text-inherit" role="checkbox" aria-checked="${checkoutState.saveDelivery ? 'true' : 'false'}" ${actionAttr(actions, stateAction(checkoutState, { saveDelivery: !checkoutState.saveDelivery, selectedDeliveryProfileId: checkoutState.saveDelivery ? '' : checkoutState.selectedDeliveryProfileId }))}>
+							<button type="button" class="inline-flex cursor-pointer items-center gap-2 border-0 bg-transparent p-0 font-medium text-inherit" role="checkbox" aria-checked="${checkoutState.saveDelivery ? 'true' : 'false'}" ${actionAttr(actions, stateAction(checkoutState, { saveDelivery: !checkoutState.saveDelivery, selectedDeliveryProfileId: checkoutState.saveDelivery ? '' : checkoutState.selectedDeliveryProfileId }))}>
 								<input class="h-4 w-4 accent-violet-600" type="checkbox" tabindex="-1" ${checkoutState.saveDelivery ? 'checked' : ''} />
 								<span>Save address for next order</span>
 							</button>

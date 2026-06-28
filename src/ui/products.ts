@@ -57,14 +57,13 @@ function productDetailBadges(product) {
 }
 
 function addButtonClass(isAdded, extraClass = '') {
-	return buttonClass('primary', `relative w-full overflow-hidden ${extraClass}`);
+	return buttonClass('primary', `relative w-full overflow-hidden ${isAdded ? 'bg-emerald-600 text-white' : ''} ${extraClass}`);
 }
 
 function addToCartButton(actions, state, product, extraClass = '') {
 	const isAdded = state.lastAddedProductId === product.id;
 	return `<button type="button" class="${addButtonClass(isAdded, extraClass)}" ${actionAttr(actions, stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`))}>
-		<span>Add to cart</span>
-		${isAdded ? '<span class="absolute inset-0 flex items-center justify-center rounded-full bg-emerald-600 text-white animate-ping">Added</span>' : ''}
+		<span>${isAdded ? 'Added' : 'Add to cart'}</span>
 	</button>`;
 }
 
@@ -80,14 +79,14 @@ function renderProducts(state) {
 		<div class="${shopClass(state)}">
 			<div class="${shellClass()} flex h-[max(100vh,100dvh,100svh,820px)] min-h-[max(100vh,100dvh,100svh,820px)] overflow-hidden max-[900px]:block max-[900px]:h-auto max-[900px]:overflow-visible">
 				<aside class="h-full w-60 shrink-0 overflow-y-auto overscroll-contain border-r p-5 max-[900px]:h-auto max-[900px]:w-auto max-[900px]:border-b max-[900px]:border-r-0 ${themeClasses(state, 'border-stone-200 bg-stone-50/95', 'border-slate-800 bg-slate-900/95')}">
-					<button type="button" class="inline-flex items-center gap-3 border-0 bg-transparent text-2xl font-semibold tracking-normal text-inherit" ${actionAttr(actions, shopNavigateAction())}>
+					<button type="button" class="inline-flex cursor-pointer items-center gap-3 border-0 bg-transparent text-2xl font-semibold tracking-normal text-inherit" ${actionAttr(actions, shopNavigateAction())}>
 						${shopLogoMarkup()}
 						<span>${escapeHtml(SHOP_CONFIG.name)}</span>
 					</button>
 					<p class="mt-2 text-sm font-medium leading-6 ${mutedClass(state)}">${escapeHtml(SHOP_CONFIG.tagline || '')}</p>
 					<nav class="mt-6 flex flex-col gap-2 max-[900px]:flex-row max-[900px]:overflow-x-auto" aria-label="Shop categories">
 						${allCategories(state).map((category) => `
-							<button type="button" class="rounded-2xl px-4 py-3 text-left font-semibold ${state.category === category.id ? themeClasses(state, 'bg-white text-stone-950 shadow-[0_18px_40px_rgba(28,25,23,.12)]', 'bg-slate-50 text-slate-950') : mutedClass(state)}" ${actionAttr(actions, stateAction(state, {
+							<button type="button" class="cursor-pointer rounded-2xl px-4 py-3 text-left font-semibold ${state.category === category.id ? themeClasses(state, 'bg-white text-stone-950 shadow-[0_18px_40px_rgba(28,25,23,.12)]', 'bg-slate-50 text-slate-950') : mutedClass(state)}" ${actionAttr(actions, stateAction(state, {
 								category: category.id,
 								view: 'products',
 								page: 1,
@@ -112,7 +111,7 @@ function renderProducts(state) {
 					<div class="mt-8 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
 						${visibleProducts.map((product) => `
 							<article class="text-left">
-								<button type="button" class="block w-full border-0 bg-transparent p-0 text-left text-inherit transition hover:-translate-y-1" ${actionAttr(actions, shopNavigateAction(product.id))}>
+								<button type="button" class="block w-full cursor-pointer border-0 bg-transparent p-0 text-left text-inherit transition hover:-translate-y-1" ${actionAttr(actions, shopNavigateAction(product.id))}>
 									<div class="${mediaBoxClass(state, 'rounded-[1.75rem] transition hover:border-violet-600 hover:shadow-[0_18px_44px_rgba(15,23,42,.2)]')}">
 										${renderProductImage(state, product)}
 										${productBadges(product)}
@@ -152,7 +151,7 @@ function renderProductDetail(state) {
 					<div class="${mediaBoxClass(state, 'mt-4 rounded-[2.25rem]')}">${renderProductImage(state, product)}</div>
 				</section>
 				<section class="pt-12 max-[900px]:mt-6 max-[900px]:pt-0">
-					<button type="button" class="inline-flex border-0 bg-transparent p-0 text-sm font-medium text-inherit hover:underline" ${actionAttr(actions, stateAction(state, { view: 'products', category: product.category, page: 1, lastAddedProductId: '' }))}>${escapeHtml(product.vendor || SHOP_CONFIG.name)}</button>
+					<button type="button" class="inline-flex cursor-pointer border-0 bg-transparent p-0 text-sm font-medium text-inherit hover:underline" ${actionAttr(actions, stateAction(state, { view: 'products', category: product.category, page: 1, lastAddedProductId: '' }))}>${escapeHtml(product.vendor || SHOP_CONFIG.name)}</button>
 					<h1 class="${titleClass()}">${escapeHtml(product.name)}</h1>
 					<p class="mt-4 flex flex-wrap gap-2">${productDetailBadges(product)}</p>
 					<p class="my-8 text-3xl font-semibold">${escapeHtml(productPrice(state, product))}</p>
@@ -171,9 +170,8 @@ function renderProductDetail(state) {
 						</div>
 					</div>
 					<div class="${inlineActionsClass()}">
-						<button type="button" class="${buttonClass('secondary', 'relative overflow-hidden')}" ${actionAttr(actions, stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`))}>
-							<span>Add to cart</span>
-							${state.lastAddedProductId === product.id ? '<span class="absolute inset-0 flex items-center justify-center rounded-full bg-emerald-600 text-white animate-ping">Added</span>' : ''}
+						<button type="button" class="${buttonClass('secondary', `relative overflow-hidden ${state.lastAddedProductId === product.id ? 'border-emerald-600 bg-emerald-600 text-white' : ''}`)}" ${actionAttr(actions, stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`))}>
+							<span>${state.lastAddedProductId === product.id ? 'Added' : 'Add to cart'}</span>
 						</button>
 						${frameButton(actions, 'Buy now', stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), { view: 'cart' }))}
 					</div>
@@ -181,7 +179,7 @@ function renderProductDetail(state) {
 						${product.skuid ? `
 							<div class="mb-4 flex flex-wrap items-center gap-3 max-[900px]:flex-col max-[900px]:items-start">
 								<span class="text-xs font-normal tracking-normal ${mutedClass(state)}">SKU:</span>
-								<button type="button" class="border-0 bg-transparent p-0 text-xs font-normal tracking-normal ${mutedClass(state)} hover:underline" title="Copy SKU" ${actionAttr(actions, { type: 'copy', text: product.skuid, message: 'SKU copied.' })}>${escapeHtml(product.skuid)}</button>
+								<button type="button" class="cursor-pointer border-0 bg-transparent p-0 text-xs font-normal tracking-normal ${mutedClass(state)} hover:underline" title="Copy SKU" ${actionAttr(actions, { type: 'copy', text: product.skuid, message: 'SKU copied.' })}>${escapeHtml(product.skuid)}</button>
 								<button type="button" class="${buttonClass('link', 'gap-1')}" ${actionAttr(actions, stateAction(state, {
 									view: 'contact',
 									contactSku: product.skuid,

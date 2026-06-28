@@ -92,8 +92,8 @@ function renderContactPage(state) {
 							<button type="button" class="${buttonClass('link', 'gap-1')}" ${actionAttr(actions, { type: 'navigate', href: company.website })}>${icon('externalLink', 15)} Open</button>
 						</div>
 					` : ''}
-					${email ? `<div class="${summaryLineClass()} items-center"><span class="font-semibold">Email</span><button type="button" class="inline-flex items-center justify-end gap-2 border-0 bg-transparent p-0 text-right font-normal text-inherit hover:underline" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, 'Shop contact', 'Hello, I would like to contact your shop.') })}><span>${escapeHtml(email)}</span>${icon('mail', 15)}</button></div>` : ''}
-					${mobile ? `<div class="${summaryLineClass()} items-center"><span class="font-semibold">Phone</span><button type="button" class="inline-flex items-center justify-end gap-2 border-0 bg-transparent p-0 text-right font-normal text-inherit hover:underline" ${actionAttr(actions, { type: 'navigate', href: contactPhoneUrl(mobile) })}><span>${escapeHtml(formattedMobile || mobile)}</span>${icon('phone', 15)}</button></div>` : ''}
+					${email ? `<div class="${summaryLineClass()} items-center"><span class="font-semibold">Email</span><button type="button" class="inline-flex cursor-pointer items-center justify-end gap-2 border-0 bg-transparent p-0 text-right font-normal text-inherit hover:underline" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, 'Shop contact', 'Hello, I would like to contact your shop.') })}><span>${escapeHtml(email)}</span>${icon('mail', 15)}</button></div>` : ''}
+					${mobile ? `<div class="${summaryLineClass()} items-center"><span class="font-semibold">Phone</span><button type="button" class="inline-flex cursor-pointer items-center justify-end gap-2 border-0 bg-transparent p-0 text-right font-normal text-inherit hover:underline" ${actionAttr(actions, { type: 'navigate', href: contactPhoneUrl(mobile) })}><span>${escapeHtml(formattedMobile || mobile)}</span>${icon('phone', 15)}</button></div>` : ''}
 				</aside>
 			</main>
 		</div>
