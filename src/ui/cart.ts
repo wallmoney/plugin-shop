@@ -40,7 +40,7 @@ function renderCart(state) {
 					`).join('')}
 					<div class="mt-8 flex justify-between gap-4 border-t border-slate-500/25 pt-5 text-lg font-semibold"><span>Subtotal</span><span>${escapeHtml(formatMoney(cartSubtotal(state), state.settings.currency))}</span></div>
 					<div class="mt-4 flex items-center justify-between gap-4">
-						<div class="flex justify-start">${frameButton(actions, 'Clear cart', stateAction(state, { cart: {}, checkoutStatus: 'draft' }, 'Cart cleared'), 'link')}</div>
+						<div class="flex justify-start">${frameButton(actions, 'Clear cart', stateAction(state, { cart: {}, checkoutStatus: 'draft' }, 'Cart cleared'), 'link', '-ml-1.5')}</div>
 						<div class="flex flex-wrap justify-end gap-3">
 							${frameButton(actions, 'Shop more', stateAction(state, { view: 'products', category: 'all', page: 1 }), 'secondary')}
 							${frameButton(actions, 'Checkout', stateAction(checkoutReadyState(state), {}))}

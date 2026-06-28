@@ -69,9 +69,12 @@ function renderContactPage(state) {
 					<p class="${mutedClass(state)}">Choose a topic to open your mail client with a prepared subject.</p>
 					<label class="mt-6 block max-w-md">
 						<span class="${fieldLabelClass(state)}">Topic</span>
-						<select class="${inputClass(state)}" name="contactSubjectIndex" data-plugin-storage-action="${escapeHtml(contactSelectActionId)}" data-plugin-field="contactSubjectIndex">
-							${subjects.length ? subjects.map((item, index) => `<option value="${escapeHtml(String(index))}" ${index === selectedSubjectIndex ? 'selected' : ''}>${escapeHtml(item.label)}</option>`).join('') : '<option value="0">Shop contact</option>'}
-						</select>
+						<span class="relative block">
+							<span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 ${mutedClass(state)}">${icon('contextMenu', 17)}</span>
+							<select class="${inputClass(state, 'pl-11')}" name="contactSubjectIndex" data-plugin-storage-action="${escapeHtml(contactSelectActionId)}" data-plugin-field="contactSubjectIndex">
+								${subjects.length ? subjects.map((item, index) => `<option value="${escapeHtml(String(index))}" ${index === selectedSubjectIndex ? 'selected' : ''}>${escapeHtml(item.label)}</option>`).join('') : '<option value="0">Shop contact</option>'}
+							</select>
+						</span>
 					</label>
 					${email ? `
 						<button type="button" class="${buttonClass('primary', 'mt-4 w-full max-w-72 gap-3 max-[900px]:max-w-none')}" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, selectedSubject.subject, body) })}>
