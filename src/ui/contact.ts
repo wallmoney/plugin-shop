@@ -4,10 +4,10 @@ function contactSettings(state) {
 }
 
 function contactMailUrl(email, subject, body) {
-	const params = new URLSearchParams();
-	if (subject) params.set('subject', subject);
-	if (body) params.set('body', body);
-	const query = params.toString();
+	const params = [];
+	if (subject) params.push(`subject=${encodeURIComponent(subject)}`);
+	if (body) params.push(`body=${encodeURIComponent(body)}`);
+	const query = params.join('&');
 	return `mailto:${encodeURIComponent(email)}${query ? `?${query}` : ''}`;
 }
 
