@@ -478,6 +478,7 @@ function defaultState() {
 		countryCode: '',
 		theme: 'auto',
 		lastAddedProductId: '',
+		contactSubjectIndex: '0',
 		query: '',
 		page: 1,
 		productQuantities: {},
@@ -790,6 +791,7 @@ function normalizeState(raw) {
 		countryCode: cleanString(value.countryCode, fallback.countryCode).toUpperCase(),
 		theme: normalizeTheme(value.theme),
 		lastAddedProductId: cleanString(value.lastAddedProductId, fallback.lastAddedProductId),
+		contactSubjectIndex: cleanString(value.contactSubjectIndex, fallback.contactSubjectIndex),
 		query: typeof value.query === 'string' ? value.query : fallback.query,
 		page: Number.isFinite(Number(value.page)) && Number(value.page) > 0 ? Math.floor(Number(value.page)) : fallback.page,
 		productQuantities: normalizeQuantities(value.productQuantities, catalog),
@@ -1085,6 +1087,7 @@ function setProductQuantity(state, productId, quantity) {
 	if (!product) return state;
 	return normalizeState({
 		...state,
+		lastAddedProductId: '',
 		productQuantities: {
 			...state.productQuantities,
 			[productId]: wholeQuantity(quantity)
@@ -1121,13 +1124,13 @@ function removeOneFromCart(state, productId) {
 	} else {
 		cart[productId] = current - 1;
 	}
-	return normalizeState({ ...state, cart, checkoutStatus: 'draft' });
+	return normalizeState({ ...state, cart, checkoutStatus: 'draft', lastAddedProductId: '' });
 }
 
 function removeProductFromCart(state, productId) {
 	const cart = { ...state.cart };
 	delete cart[productId];
-	return normalizeState({ ...state, cart, checkoutStatus: 'draft' });
+	return normalizeState({ ...state, cart, checkoutStatus: 'draft', lastAddedProductId: '' });
 }
 
 function orderReference(state) {
@@ -1281,7 +1284,7 @@ function pluginFrame(title, body, actions, options = {}) {
 	return {
 		type: 'pluginFrame',
 		title,
-		minHeight: options.minHeight || 1200,
+		minHeight: options.minHeight || 820,
 		actions,
 		html: `<style>
 			:root{color-scheme:dark light;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -1292,6 +1295,7 @@ function pluginFrame(title, body, actions, options = {}) {
 			@media (max-width:900px){.wm-layout{display:block}.wm-sidebar{width:auto;border-right:0;border-bottom:1px solid #e7e5e4}.wm-nav{flex-direction:row;overflow-x:auto}.wm-main{padding:1.25rem}.wm-main-head{align-items:flex-start;flex-direction:column}.wm-detail,.wm-checkout{display:block;padding:1.25rem}.wm-detail-copy,.wm-checkout aside{margin-top:1.5rem;padding-top:0}.wm-row{grid-template-columns:5.5rem minmax(0,1fr)}.wm-row>strong{grid-column:2}.wm-form-grid{grid-template-columns:1fr}.wm-span-2{grid-column:auto}}
 			html:has(.wm-theme-light),body:has(.wm-theme-light){background:#f6f4ee;color:#0c0a09}html:has(.wm-theme-dark),body:has(.wm-theme-dark){background:#020617;color:#f8fafc}
 			.wm-theme-light{background:#f6f4ee!important;color:#0c0a09!important}.wm-theme-dark{background:#020617!important;color:#f8fafc!important}.wm-theme-light .wm-sidebar{background:rgba(251,250,247,.96)!important;border-color:#e7e5e4!important}.wm-theme-light .wm-card,.wm-theme-light .wm-chip,.wm-theme-light .wm-icon-btn,.wm-theme-light .wm-btn-secondary,.wm-theme-light .wm-qty{background:#fff!important;color:#292524!important;border-color:#d6d3d1!important}.wm-theme-light .wm-product-media,.wm-theme-light .wm-detail-media,.wm-theme-light .wm-row-media,.wm-theme-light .wm-input{background:#fafaf9!important;color:#0c0a09!important;border-color:#d6d3d1!important}.wm-theme-light .wm-muted,.wm-theme-light .wm-subtitle,.wm-theme-light .wm-kicker,.wm-theme-light .wm-product-meta,.wm-theme-light .wm-product-pack{color:#6b7280!important}.wm-theme-dark .wm-sidebar{background:rgba(15,23,42,.96)!important;border-color:#1e293b!important}.wm-theme-dark .wm-card,.wm-theme-dark .wm-chip,.wm-theme-dark .wm-icon-btn,.wm-theme-dark .wm-btn-secondary,.wm-theme-dark .wm-qty{background:#0f172a!important;color:#f8fafc!important;border-color:#334155!important}.wm-theme-dark .wm-product-media,.wm-theme-dark .wm-detail-media,.wm-theme-dark .wm-row-media,.wm-theme-dark .wm-input{background:#1e293b!important;color:#fff!important;border-color:#334155!important}.wm-theme-dark .wm-muted,.wm-theme-dark .wm-subtitle,.wm-theme-dark .wm-kicker,.wm-theme-dark .wm-product-meta,.wm-theme-dark .wm-product-pack{color:#cbd5e1!important}.wm-svg{display:inline-block;flex:0 0 auto}.wm-identicon{width:100%;height:100%;border-radius:999px}.wm-user-btn{overflow:hidden;border-radius:999px}.wm-brand,.wm-title,.wm-product-name,.wm-btn,.wm-chip,.wm-icon-btn,.wm-nav button,.wm-product-price,.wm-price,.wm-total,.wm-qty span{font-weight:650;letter-spacing:0}.wm-title{font-weight:750}.wm-product-meta,.wm-product-pack,.wm-muted,.wm-subtitle,.wm-kicker{font-weight:500}.wm-product-card{display:block;width:100%;padding:0;border:0;background:transparent;color:inherit;text-align:left;transition:transform .16s ease}.wm-product-card:hover{transform:translateY(-3px)}.wm-product-card:hover .wm-product-media{border-color:#7c3aed!important;box-shadow:0 18px 44px rgba(15,23,42,.2)}.wm-product-media,.wm-detail-media{cursor:pointer}.wm-product-media{transition:border-color .16s ease,box-shadow .16s ease}.wm-theme-switch{display:inline-flex;align-items:center;gap:.15rem;border:1px solid rgba(148,163,184,.35);background:rgba(148,163,184,.12);border-radius:999px;padding:.2rem}.wm-theme-switch button{display:inline-flex;align-items:center;justify-content:center;width:2rem;height:2rem;border:0;border-radius:999px;background:transparent;color:inherit;opacity:.65;cursor:pointer}.wm-theme-switch button.is-active{background:rgba(255,255,255,.14);opacity:1}.wm-icon-btn{display:inline-flex;align-items:center;justify-content:center;width:2.7rem;height:2.7rem;padding:0}.wm-chip{display:inline-flex;align-items:center;gap:.45rem;cursor:pointer}.wm-qty{background:rgba(148,163,184,.11)}.wm-qty button{display:inline-flex;align-items:center;justify-content:center;color:inherit;cursor:pointer}.wm-qty button:hover{background:rgba(124,58,237,.16)}.wm-btn-link{min-height:auto;padding:.2rem .35rem;border-radius:.45rem;background:transparent!important;color:#94a3b8!important;font-size:.85rem}.wm-btn-success{background:#059669!important;color:#fff!important}.wm-product-add{display:flex;align-items:center;justify-content:center;position:relative;text-align:center}.wm-add-added{display:none}.wm-is-added{animation:wm-added-bg 1.6s ease both}.wm-is-added .wm-add-default{animation:wm-added-default-text 1.6s ease both}.wm-is-added .wm-add-added{display:inline;position:absolute;inset:auto;animation:wm-added-text 1.6s ease both}@keyframes wm-added-bg{0%,72%{background:#059669;color:#fff}100%{background:#6d28d9;color:#fff}}@keyframes wm-added-text{0%,72%{opacity:1}100%{opacity:0}}@keyframes wm-added-default-text{0%,72%{opacity:0}100%{opacity:1}}.wm-detail-badges{display:flex;flex-wrap:wrap;gap:.5rem;margin:1rem 0 0}.wm-detail-badges .wm-badge{position:static;display:inline-flex}.wm-detail-badges .wm-badge-digital{top:auto}.wm-cart-actions{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-top:1rem}.wm-cart-right{display:flex;flex-wrap:wrap;gap:.65rem;justify-content:flex-end}.wm-pay-btn[disabled]{opacity:.55;transform:none!important}.wm-field-label{display:flex;align-items:center;gap:.25rem;margin-bottom:.4rem;color:#94a3b8;font-size:.85rem;font-weight:600}.wm-required{color:#ef4444}.wm-required-note{margin:1rem 0 0;color:#94a3b8;font-size:.82rem}.wm-coreid{overflow-wrap:anywhere;word-break:break-word;letter-spacing:.03em}.wm-checkbox{display:inline-flex;align-items:center;gap:.5rem;color:inherit;font-weight:500}.wm-checkbox input{width:1rem;height:1rem;accent-color:#7c3aed}.wm-form-actions-top{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem;margin-top:1rem}.wm-saved-select{min-width:min(100%,18rem)}.wm-saved{margin-top:1rem;border:1px solid rgba(148,163,184,.35);border-radius:1rem;background:rgba(148,163,184,.1);overflow:hidden}.wm-saved summary{padding:.85rem 1rem;cursor:pointer;font-weight:650}.wm-saved-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem;align-items:center;border-top:1px solid rgba(148,163,184,.25);padding:.65rem}.wm-saved-title{font-weight:650}.wm-saved-sub{display:block;margin:.15rem 0 0;color:#94a3b8;font-size:.8rem}.wm-summary-core{max-width:100%;overflow-wrap:anywhere}.wm-fail-mark{background:#fee2e2;color:#991b1b}.wm-form-grid label[hidden]{display:none}
+			.wm-checkbox{border:0!important;background:transparent!important;box-shadow:none!important;padding:.2rem 0;color:inherit}.wm-checkbox input{background:transparent}.wm-contact-topic{display:block;max-width:28rem;margin-top:1.5rem}.wm-contact-compose{width:100%;max-width:18rem;margin-top:1rem}.wm-contact-value{display:inline-flex;align-items:center;justify-content:flex-end;gap:.5rem;text-align:right}.wm-contact-value .wm-icon-btn{width:2rem;height:2rem;min-width:2rem}.wm-contact-layout .wm-summary-line{align-items:center}@media (max-width:900px){.wm-contact-compose{max-width:none}.wm-contact-value{max-width:100%;flex-wrap:wrap}}
 		</style>${body}`
 	};
 }
@@ -1383,6 +1387,11 @@ function renderCompanyDetail(label, value) {
 	return value ? `<div class="wm-summary-line"><span class="wm-muted">${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>` : '';
 }
 
+function contactSubjectIndex(state, subjects) {
+	const index = Number(state.contactSubjectIndex);
+	return Number.isFinite(index) && index >= 0 && index < subjects.length ? Math.floor(index) : 0;
+}
+
 function renderContactPage(state) {
 	const actions = {};
 	const contact = contactSettings(state);
@@ -1390,33 +1399,34 @@ function renderContactPage(state) {
 	const mobile = contact.mobile || '';
 	const formattedMobile = formatContactPhone(mobile);
 	const subjects = Array.isArray(contact.subjects) ? contact.subjects : [];
+	const selectedSubjectIndex = contactSubjectIndex(state, subjects);
+	const selectedSubject = subjects[selectedSubjectIndex] || {
+		label: 'Shop contact',
+		subject: 'Shop contact',
+		body: 'Hello, I would like to contact your shop.'
+	};
+	const contactSelectActionId = addFrameAction(actions, stateAction(state, { contactSubjectIndex: String(selectedSubjectIndex) }));
 	const company = contact.company || {};
 
 	return pluginFrame('Contact', `
 		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
 			${renderShopHeader(actions, state)}
-			<main class="wm-checkout">
+			<main class="wm-checkout wm-contact-layout">
 				<section class="wm-card">
 					<p class="wm-kicker">Shop support</p>
 					<h1 class="wm-title" style="font-size:2.25rem">Contact</h1>
 					<p class="wm-muted">Choose a topic to open your mail client with a prepared subject.</p>
-					<div class="wm-inline-actions" style="margin-top:1.5rem">
-						${email ? subjects.map((item) => `
-							<button type="button" class="wm-btn wm-btn-primary" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, item.subject, item.body) })}>
-								${icon('mail', 17)} ${escapeHtml(item.label)}
-							</button>
-						`).join('') : ''}
-						${email ? `
-							<button type="button" class="wm-btn wm-btn-secondary" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, 'Shop contact', 'Hello, I would like to contact your shop.') })}>
-								${icon('mail', 17)} Email shop
-							</button>
-						` : ''}
-						${mobile ? `
-							<button type="button" class="wm-btn wm-btn-secondary" ${actionAttr(actions, { type: 'navigate', href: contactPhoneUrl(mobile) })}>
-								${icon('phone', 17)} Call shop
-							</button>
-						` : ''}
-					</div>
+					<label class="wm-contact-topic">
+						<span class="wm-field-label">Topic</span>
+						<select class="wm-input" name="contactSubjectIndex" data-plugin-storage-action="${escapeHtml(contactSelectActionId)}" data-plugin-field="contactSubjectIndex">
+							${subjects.length ? subjects.map((item, index) => `<option value="${escapeHtml(String(index))}" ${index === selectedSubjectIndex ? 'selected' : ''}>${escapeHtml(item.label)}</option>`).join('') : '<option value="0">Shop contact</option>'}
+						</select>
+					</label>
+					${email ? `
+						<button type="button" class="wm-btn wm-btn-primary wm-contact-compose" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, selectedSubject.subject, selectedSubject.body) })}>
+							${icon('mail', 17)} Compose via Email
+						</button>
+					` : ''}
 					${!email && !mobile ? `<p class="wm-warning">No shop contact is configured.</p>` : ''}
 				</section>
 				<aside class="wm-card">
@@ -1431,8 +1441,8 @@ function renderContactPage(state) {
 							<button type="button" class="wm-btn wm-btn-link" ${actionAttr(actions, { type: 'navigate', href: company.website })}>${icon('externalLink', 15)} Open</button>
 						</div>
 					` : ''}
-					${email ? `<div class="wm-summary-line"><span class="wm-muted">Email</span><strong>${escapeHtml(email)}</strong></div>` : ''}
-					${mobile ? `<div class="wm-summary-line"><span class="wm-muted">Mobile</span><strong>${escapeHtml(formattedMobile || mobile)}</strong></div>` : ''}
+					${email ? `<div class="wm-summary-line"><span class="wm-muted">Email</span><span class="wm-contact-value"><strong>${escapeHtml(email)}</strong><button type="button" class="wm-icon-btn" title="Email shop" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, 'Shop contact', 'Hello, I would like to contact your shop.') })}>${icon('mail', 15)}</button></span></div>` : ''}
+					${mobile ? `<div class="wm-summary-line"><span class="wm-muted">Mobile</span><span class="wm-contact-value"><strong>${escapeHtml(formattedMobile || mobile)}</strong><button type="button" class="wm-icon-btn" title="Call shop" ${actionAttr(actions, { type: 'navigate', href: contactPhoneUrl(mobile) })}>${icon('phone', 15)}</button></span></div>` : ''}
 				</aside>
 			</main>
 		</div>
