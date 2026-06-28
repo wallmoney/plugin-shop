@@ -69,7 +69,6 @@ function renderProducts(state) {
 								selectedProductId: (category.id === 'all' ? catalogProducts(state)[0] : productsByCategory(category.id, state)[0])?.id || state.selectedProductId
 							}))}>${escapeHtml(category.label)}</button>
 						`).join('')}
-						<button type="button" class="${state.view === 'contact' ? 'is-active' : ''}" ${actionAttr(actions, stateAction(state, { view: 'contact' }))}>Contact</button>
 					</nav>
 				</aside>
 				<main class="wm-main">

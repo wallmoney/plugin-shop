@@ -232,12 +232,14 @@ function renderCheckoutField(field, storageActionId) {
 		</label>`;
 	}
 	if (field.type === 'country') {
+		const countryCode = countryCodeFromValue(field.value);
+		const displayValue = countryCode ? countryDisplayValue(countryCode) : '';
 		return `<label>
 			<span class="wm-field-label">${label}</span>
-			<select ${common} autocomplete="country">
-				<option value="">${escapeHtml(field.placeholder || field.label || '')}</option>
-				${(field.options || []).map((option) => `<option value="${escapeHtml(option.code || '')}" ${option.code === field.value ? 'selected' : ''}>${escapeHtml(option.name || option.code || '')}</option>`).join('')}
-			</select>
+			<input ${common} type="text" list="wm-country-options" value="${escapeHtml(displayValue)}" placeholder="${escapeHtml(field.placeholder || field.label || '')}" autocomplete="country-name" />
+			<datalist id="wm-country-options">
+				${(field.options || []).map((option) => `<option value="${escapeHtml(countryDisplayValue(option.code))}"></option>`).join('')}
+			</datalist>
 		</label>`;
 	}
 	return `<label class="${field.name === 'delivery.notes' || field.name === 'delivery.address' || field.name === 'delivery.address2' ? 'wm-span-2' : ''}">

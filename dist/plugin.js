@@ -180,26 +180,256 @@ const SHOP_PRODUCTS = [
 // src/countries.ts
 // @ts-nocheck
 const COUNTRY_OPTIONS = [
-	{ code: 'US', name: 'United States' },
-	{ code: 'CA', name: 'Canada' },
-	{ code: 'GB', name: 'United Kingdom' },
-	{ code: 'AT', name: 'Austria' },
-	{ code: 'SK', name: 'Slovakia' },
-	{ code: 'CZ', name: 'Czechia' },
-	{ code: 'DE', name: 'Germany' },
-	{ code: 'FR', name: 'France' },
-	{ code: 'IT', name: 'Italy' },
-	{ code: 'ES', name: 'Spain' },
-	{ code: 'NL', name: 'Netherlands' },
-	{ code: 'PL', name: 'Poland' },
+	{ code: 'AF', name: 'Afghanistan' },
+	{ code: 'AX', name: 'Åland Islands' },
+	{ code: 'AL', name: 'Albania' },
+	{ code: 'DZ', name: 'Algeria' },
+	{ code: 'AS', name: 'American Samoa' },
+	{ code: 'AD', name: 'Andorra' },
+	{ code: 'AO', name: 'Angola' },
+	{ code: 'AI', name: 'Anguilla' },
+	{ code: 'AQ', name: 'Antarctica' },
+	{ code: 'AG', name: 'Antigua and Barbuda' },
+	{ code: 'AR', name: 'Argentina' },
+	{ code: 'AM', name: 'Armenia' },
+	{ code: 'AW', name: 'Aruba' },
 	{ code: 'AU', name: 'Australia' },
-	{ code: 'NZ', name: 'New Zealand' },
-	{ code: 'JP', name: 'Japan' },
-	{ code: 'KR', name: 'South Korea' },
-	{ code: 'SG', name: 'Singapore' },
+	{ code: 'AT', name: 'Austria' },
+	{ code: 'AZ', name: 'Azerbaijan' },
+	{ code: 'BS', name: 'Bahamas' },
+	{ code: 'BH', name: 'Bahrain' },
+	{ code: 'BD', name: 'Bangladesh' },
+	{ code: 'BB', name: 'Barbados' },
+	{ code: 'BY', name: 'Belarus' },
+	{ code: 'BE', name: 'Belgium' },
+	{ code: 'BZ', name: 'Belize' },
+	{ code: 'BJ', name: 'Benin' },
+	{ code: 'BM', name: 'Bermuda' },
+	{ code: 'BT', name: 'Bhutan' },
+	{ code: 'BO', name: 'Bolivia' },
+	{ code: 'BQ', name: 'Bonaire, Sint Eustatius and Saba' },
+	{ code: 'BA', name: 'Bosnia and Herzegovina' },
+	{ code: 'BW', name: 'Botswana' },
+	{ code: 'BV', name: 'Bouvet Island' },
 	{ code: 'BR', name: 'Brazil' },
+	{ code: 'IO', name: 'British Indian Ocean Territory' },
+	{ code: 'BN', name: 'Brunei Darussalam' },
+	{ code: 'BG', name: 'Bulgaria' },
+	{ code: 'BF', name: 'Burkina Faso' },
+	{ code: 'BI', name: 'Burundi' },
+	{ code: 'KH', name: 'Cambodia' },
+	{ code: 'CM', name: 'Cameroon' },
+	{ code: 'CA', name: 'Canada' },
+	{ code: 'CV', name: 'Cape Verde' },
+	{ code: 'KY', name: 'Cayman Islands' },
+	{ code: 'CF', name: 'Central African Republic' },
+	{ code: 'TD', name: 'Chad' },
+	{ code: 'CL', name: 'Chile' },
+	{ code: 'CX', name: 'Christmas Island' },
+	{ code: 'CC', name: 'Cocos (Keeling) Islands' },
+	{ code: 'CO', name: 'Colombia' },
+	{ code: 'KM', name: 'Comoros' },
+	{ code: 'CK', name: 'Cook Islands' },
+	{ code: 'CR', name: 'Costa Rica' },
+	{ code: 'CI', name: 'Cote d\'Ivoire' },
+	{ code: 'HR', name: 'Croatia' },
+	{ code: 'CU', name: 'Cuba' },
+	{ code: 'CW', name: 'Curaçao' },
+	{ code: 'CY', name: 'Cyprus' },
+	{ code: 'CZ', name: 'Czechia' },
+	{ code: 'CD', name: 'Democratic Republic of the Congo' },
+	{ code: 'DK', name: 'Denmark' },
+	{ code: 'DJ', name: 'Djibouti' },
+	{ code: 'DM', name: 'Dominica' },
+	{ code: 'DO', name: 'Dominican Republic' },
+	{ code: 'EC', name: 'Ecuador' },
+	{ code: 'EG', name: 'Egypt' },
+	{ code: 'SV', name: 'El Salvador' },
+	{ code: 'GQ', name: 'Equatorial Guinea' },
+	{ code: 'ER', name: 'Eritrea' },
+	{ code: 'EE', name: 'Estonia' },
+	{ code: 'SZ', name: 'Eswatini' },
+	{ code: 'ET', name: 'Ethiopia' },
+	{ code: 'FK', name: 'Falkland Islands (Malvinas)' },
+	{ code: 'FO', name: 'Faroe Islands' },
+	{ code: 'FJ', name: 'Fiji' },
+	{ code: 'FI', name: 'Finland' },
+	{ code: 'FR', name: 'France' },
+	{ code: 'GF', name: 'French Guiana' },
+	{ code: 'PF', name: 'French Polynesia' },
+	{ code: 'TF', name: 'French Southern Territories' },
+	{ code: 'GA', name: 'Gabon' },
+	{ code: 'GE', name: 'Georgia' },
+	{ code: 'DE', name: 'Germany' },
+	{ code: 'GH', name: 'Ghana' },
+	{ code: 'GI', name: 'Gibraltar' },
+	{ code: 'GR', name: 'Greece' },
+	{ code: 'GL', name: 'Greenland' },
+	{ code: 'GD', name: 'Grenada' },
+	{ code: 'GP', name: 'Guadeloupe' },
+	{ code: 'GU', name: 'Guam' },
+	{ code: 'GT', name: 'Guatemala' },
+	{ code: 'GG', name: 'Guernsey' },
+	{ code: 'GN', name: 'Guinea' },
+	{ code: 'GW', name: 'Guinea-Bissau' },
+	{ code: 'GY', name: 'Guyana' },
+	{ code: 'HT', name: 'Haiti' },
+	{ code: 'HM', name: 'Heard Island and McDonald Islands' },
+	{ code: 'VA', name: 'Holy See (Vatican City State)' },
+	{ code: 'HN', name: 'Honduras' },
+	{ code: 'HK', name: 'Hong Kong' },
+	{ code: 'HU', name: 'Hungary' },
+	{ code: 'IS', name: 'Iceland' },
+	{ code: 'IN', name: 'India' },
+	{ code: 'ID', name: 'Indonesia' },
+	{ code: 'IR', name: 'Iran' },
+	{ code: 'IQ', name: 'Iraq' },
+	{ code: 'IE', name: 'Ireland' },
+	{ code: 'IM', name: 'Isle of Man' },
+	{ code: 'IL', name: 'Israel' },
+	{ code: 'IT', name: 'Italy' },
+	{ code: 'JM', name: 'Jamaica' },
+	{ code: 'JP', name: 'Japan' },
+	{ code: 'JE', name: 'Jersey' },
+	{ code: 'JO', name: 'Jordan' },
+	{ code: 'KZ', name: 'Kazakhstan' },
+	{ code: 'KE', name: 'Kenya' },
+	{ code: 'KI', name: 'Kiribati' },
+	{ code: 'XK', name: 'Kosovo' },
+	{ code: 'KW', name: 'Kuwait' },
+	{ code: 'KG', name: 'Kyrgyzstan' },
+	{ code: 'LA', name: 'Laos' },
+	{ code: 'LV', name: 'Latvia' },
+	{ code: 'LB', name: 'Lebanon' },
+	{ code: 'LS', name: 'Lesotho' },
+	{ code: 'LR', name: 'Liberia' },
+	{ code: 'LY', name: 'Libya' },
+	{ code: 'LI', name: 'Liechtenstein' },
+	{ code: 'LT', name: 'Lithuania' },
+	{ code: 'LU', name: 'Luxembourg' },
+	{ code: 'MO', name: 'Macao' },
+	{ code: 'MG', name: 'Madagascar' },
+	{ code: 'MW', name: 'Malawi' },
+	{ code: 'MY', name: 'Malaysia' },
+	{ code: 'MV', name: 'Maldives' },
+	{ code: 'ML', name: 'Mali' },
+	{ code: 'MT', name: 'Malta' },
+	{ code: 'MH', name: 'Marshall Islands' },
+	{ code: 'MQ', name: 'Martinique' },
+	{ code: 'MR', name: 'Mauritania' },
+	{ code: 'MU', name: 'Mauritius' },
+	{ code: 'YT', name: 'Mayotte' },
 	{ code: 'MX', name: 'Mexico' },
-	{ code: 'ZA', name: 'South Africa' }
+	{ code: 'FM', name: 'Micronesia, Federated States of' },
+	{ code: 'MD', name: 'Moldova' },
+	{ code: 'MC', name: 'Monaco' },
+	{ code: 'MN', name: 'Mongolia' },
+	{ code: 'ME', name: 'Montenegro' },
+	{ code: 'MS', name: 'Montserrat' },
+	{ code: 'MA', name: 'Morocco' },
+	{ code: 'MZ', name: 'Mozambique' },
+	{ code: 'MM', name: 'Myanmar' },
+	{ code: 'NA', name: 'Namibia' },
+	{ code: 'NR', name: 'Nauru' },
+	{ code: 'NP', name: 'Nepal' },
+	{ code: 'NL', name: 'Netherlands' },
+	{ code: 'NC', name: 'New Caledonia' },
+	{ code: 'NZ', name: 'New Zealand' },
+	{ code: 'NI', name: 'Nicaragua' },
+	{ code: 'NE', name: 'Niger' },
+	{ code: 'NG', name: 'Nigeria' },
+	{ code: 'NU', name: 'Niue' },
+	{ code: 'NF', name: 'Norfolk Island' },
+	{ code: 'KP', name: 'North Korea' },
+	{ code: 'MP', name: 'Northern Mariana Islands' },
+	{ code: 'NO', name: 'Norway' },
+	{ code: 'OM', name: 'Oman' },
+	{ code: 'PK', name: 'Pakistan' },
+	{ code: 'PW', name: 'Palau' },
+	{ code: 'PA', name: 'Panama' },
+	{ code: 'PG', name: 'Papua New Guinea' },
+	{ code: 'PY', name: 'Paraguay' },
+	{ code: 'CN', name: 'People\'s Republic of China' },
+	{ code: 'PE', name: 'Peru' },
+	{ code: 'PH', name: 'Philippines' },
+	{ code: 'PN', name: 'Pitcairn' },
+	{ code: 'PL', name: 'Poland' },
+	{ code: 'PT', name: 'Portugal' },
+	{ code: 'PR', name: 'Puerto Rico' },
+	{ code: 'QA', name: 'Qatar' },
+	{ code: 'CG', name: 'Republic of the Congo' },
+	{ code: 'GM', name: 'Republic of The Gambia' },
+	{ code: 'RE', name: 'Reunion' },
+	{ code: 'RO', name: 'Romania' },
+	{ code: 'RU', name: 'Russia' },
+	{ code: 'RW', name: 'Rwanda' },
+	{ code: 'BL', name: 'Saint Barthélemy' },
+	{ code: 'SH', name: 'Saint Helena' },
+	{ code: 'KN', name: 'Saint Kitts and Nevis' },
+	{ code: 'LC', name: 'Saint Lucia' },
+	{ code: 'MF', name: 'Saint Martin (French part)' },
+	{ code: 'PM', name: 'Saint Pierre and Miquelon' },
+	{ code: 'VC', name: 'Saint Vincent and the Grenadines' },
+	{ code: 'WS', name: 'Samoa' },
+	{ code: 'SM', name: 'San Marino' },
+	{ code: 'ST', name: 'Sao Tome and Principe' },
+	{ code: 'SA', name: 'Saudi Arabia' },
+	{ code: 'SN', name: 'Senegal' },
+	{ code: 'RS', name: 'Serbia' },
+	{ code: 'SC', name: 'Seychelles' },
+	{ code: 'SL', name: 'Sierra Leone' },
+	{ code: 'SG', name: 'Singapore' },
+	{ code: 'SX', name: 'Sint Maarten (Dutch part)' },
+	{ code: 'SK', name: 'Slovakia' },
+	{ code: 'SI', name: 'Slovenia' },
+	{ code: 'SB', name: 'Solomon Islands' },
+	{ code: 'SO', name: 'Somalia' },
+	{ code: 'ZA', name: 'South Africa' },
+	{ code: 'GS', name: 'South Georgia and the South Sandwich Islands' },
+	{ code: 'KR', name: 'South Korea' },
+	{ code: 'SS', name: 'South Sudan' },
+	{ code: 'ES', name: 'Spain' },
+	{ code: 'LK', name: 'Sri Lanka' },
+	{ code: 'PS', name: 'State of Palestine' },
+	{ code: 'SD', name: 'Sudan' },
+	{ code: 'SR', name: 'Suriname' },
+	{ code: 'SJ', name: 'Svalbard and Jan Mayen' },
+	{ code: 'SE', name: 'Sweden' },
+	{ code: 'CH', name: 'Switzerland' },
+	{ code: 'SY', name: 'Syria' },
+	{ code: 'TW', name: 'Taiwan' },
+	{ code: 'TJ', name: 'Tajikistan' },
+	{ code: 'TZ', name: 'Tanzania' },
+	{ code: 'TH', name: 'Thailand' },
+	{ code: 'MK', name: 'The Republic of North Macedonia' },
+	{ code: 'TL', name: 'Timor-Leste' },
+	{ code: 'TG', name: 'Togo' },
+	{ code: 'TK', name: 'Tokelau' },
+	{ code: 'TO', name: 'Tonga' },
+	{ code: 'TT', name: 'Trinidad and Tobago' },
+	{ code: 'TN', name: 'Tunisia' },
+	{ code: 'TR', name: 'Türkiye' },
+	{ code: 'TM', name: 'Turkmenistan' },
+	{ code: 'TC', name: 'Turks and Caicos Islands' },
+	{ code: 'TV', name: 'Tuvalu' },
+	{ code: 'UG', name: 'Uganda' },
+	{ code: 'UA', name: 'Ukraine' },
+	{ code: 'AE', name: 'United Arab Emirates' },
+	{ code: 'GB', name: 'United Kingdom' },
+	{ code: 'US', name: 'United States' },
+	{ code: 'UM', name: 'United States Minor Outlying Islands' },
+	{ code: 'UY', name: 'Uruguay' },
+	{ code: 'UZ', name: 'Uzbekistan' },
+	{ code: 'VU', name: 'Vanuatu' },
+	{ code: 'VE', name: 'Venezuela' },
+	{ code: 'VN', name: 'Vietnam' },
+	{ code: 'VG', name: 'Virgin Islands, British' },
+	{ code: 'VI', name: 'Virgin Islands, U.S.' },
+	{ code: 'WF', name: 'Wallis and Futuna' },
+	{ code: 'EH', name: 'Western Sahara' },
+	{ code: 'YE', name: 'Yemen' },
+	{ code: 'ZM', name: 'Zambia' },
+	{ code: 'ZW', name: 'Zimbabwe' }
 ];
 
 const US_STATE_OPTIONS = [
@@ -217,9 +447,17 @@ function countryNameFromCode(code) {
 	return COUNTRY_OPTIONS.find((country) => country.code === normalized)?.name || '';
 }
 
+function countryDisplayValue(code) {
+	const normalized = typeof code === 'string' ? code.trim().toUpperCase() : '';
+	const name = countryNameFromCode(normalized);
+	return name ? `${name} (${normalized})` : normalized;
+}
+
 function countryCodeFromValue(value) {
 	const normalized = typeof value === 'string' ? value.trim() : '';
 	if (!normalized) return '';
+	const parenthesizedCode = normalized.match(/\(([A-Za-z]{2})\)\s*$/);
+	if (parenthesizedCode) return parenthesizedCode[1].toUpperCase();
 	const upper = normalized.toUpperCase();
 	const lower = normalized.toLowerCase();
 	const country = COUNTRY_OPTIONS.find((item) => item.code === upper || item.name.toLowerCase() === lower);
@@ -1043,11 +1281,11 @@ function pluginFrame(title, body, actions, options = {}) {
 	return {
 		type: 'pluginFrame',
 		title,
-		minHeight: options.minHeight || 820,
+		minHeight: options.minHeight || 1200,
 		actions,
 		html: `<style>
 			:root{color-scheme:dark light;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-			*{box-sizing:border-box}html,body{margin:0;width:100%;min-width:100%;min-height:100%;background:#f6f4ee;color:#0c0a09}body{overflow-x:hidden}button,input,select{font:inherit}button,a[href],select{cursor:pointer}button:disabled{cursor:not-allowed}
+			*{box-sizing:border-box}html,body{margin:0;width:100%;min-width:100%;min-height:100%;background:#f6f4ee;color:#0c0a09}html{height:100%}body{overflow-x:hidden;min-height:100vh;min-height:100dvh}button,input,select{font:inherit}button,a[href],select{cursor:pointer}button:disabled{cursor:not-allowed}
 			.wm-shop{min-height:100vh;min-height:100dvh;background:#f6f4ee;color:#0c0a09}.wm-shell{max-width:1680px;margin:0 auto}.wm-header{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1.25rem 1.5rem}.wm-brand{display:inline-flex;align-items:center;gap:.65rem;border:0;background:transparent;color:inherit;font-size:1.5rem;font-weight:900;letter-spacing:-.03em;cursor:pointer}.wm-logo{width:2rem;height:2rem;border-radius:.75rem;object-fit:cover}.wm-actions{display:flex;align-items:center;gap:.75rem}.wm-icon-btn,.wm-chip{border:1px solid rgba(120,113,108,.25);background:#fff;color:#292524;border-radius:999px;box-shadow:0 10px 30px rgba(28,25,23,.08);font-weight:800}.wm-chip{padding:.6rem 1rem}.wm-layout{display:flex;min-height:100vh;min-height:100dvh}.wm-sidebar{width:15rem;flex:0 0 15rem;border-right:1px solid #e7e5e4;background:rgba(251,250,247,.96);padding:1.25rem}.wm-subtitle{margin:.5rem 0 0;color:#57534e;font-size:.9rem;font-weight:650;line-height:1.55}.wm-nav{display:flex;flex-direction:column;gap:.5rem;margin-top:1.5rem}.wm-nav button{border:0;border-radius:1rem;background:transparent;color:#57534e;text-align:left;padding:.85rem 1rem;font-weight:900;cursor:pointer}.wm-nav button.is-active{background:#fff;color:#0c0a09;box-shadow:0 18px 40px rgba(28,25,23,.12)}.wm-main{min-width:0;flex:1;padding:1.5rem 2.5rem}.wm-main-head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;border-bottom:1px solid #e7e5e4;padding-bottom:1.5rem}.wm-kicker{margin:0;color:#78716c;font-size:.9rem;font-weight:750}.wm-title{margin:.25rem 0 0;font-size:clamp(2rem,4vw,3.5rem);line-height:.95;font-weight:950;letter-spacing:-.045em}.wm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2rem 1rem;margin-top:2rem}.wm-product{text-align:left}.wm-product-media{position:relative;aspect-ratio:1;overflow:hidden;border-radius:1.75rem;background:#fff;box-shadow:0 8px 30px rgba(28,25,23,.08);border:1px solid rgba(214,211,209,.7)}.wm-product-media img{width:100%;height:100%;object-fit:cover;display:block}.wm-empty-icon{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:3rem}.wm-badge{position:absolute;left:.75rem;top:.75rem;border-radius:999px;background:rgba(255,255,255,.82);color:#1c1917;padding:.3rem .75rem;font-size:.75rem;font-weight:400;backdrop-filter:blur(8px)}.wm-badge-digital{top:2.75rem;background:rgba(187,247,208,.82);color:#14532d}.wm-product button.wm-product-open{display:block;width:100%;border:0;background:transparent;text-align:left;color:inherit;cursor:pointer}.wm-product-meta{margin:.75rem 0 0;color:#78716c;font-size:.85rem;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wm-product-name{margin:.25rem 0 0;min-height:2.5rem;font-size:1rem;line-height:1.25;font-weight:950}.wm-product-pack,.wm-product-price{margin:.3rem 0 0}.wm-product-pack{color:#78716c;font-size:.85rem;font-weight:750}.wm-product-price{font-weight:950}.wm-btn{min-height:2.65rem;border-radius:999px;padding:.65rem 1rem;border:0;font-size:.9rem;font-weight:950;cursor:pointer;transition:transform .15s ease,background .15s ease}.wm-btn:hover{transform:translateY(-1px)}.wm-btn-primary{background:#6d28d9;color:#fff}.wm-btn-secondary{background:#fff;color:#292524;border:1px solid #d6d3d1}.wm-btn-ghost{background:transparent;color:#57534e}.wm-product>.wm-btn{width:100%;margin-top:.75rem}.wm-page{min-height:100vh;min-height:100dvh;background:#f6f4ee;padding:1.25rem}.wm-card{background:#fff;border:1px solid #e7e5e4;border-radius:2rem;box-shadow:0 18px 50px rgba(28,25,23,.08);padding:1.25rem}.wm-cart{max-width:48rem;margin:2.5rem auto 0}.wm-row{display:grid;grid-template-columns:7rem minmax(0,1fr) auto;gap:1rem;margin-top:1.25rem}.wm-row-media{aspect-ratio:1;overflow:hidden;border-radius:1.5rem;background:#f5f5f4}.wm-row-media img{width:100%;height:100%;object-fit:cover}.wm-muted{color:#78716c}.wm-total{display:flex;justify-content:space-between;gap:1rem;border-top:1px solid #e7e5e4;margin-top:2rem;padding-top:1.25rem;font-size:1.1rem;font-weight:950}.wm-inline-actions{display:flex;flex-wrap:wrap;gap:.65rem;margin-top:1rem}.wm-qty{display:inline-flex;align-items:center;border:1px solid #d6d3d1;border-radius:999px;background:#fff}.wm-qty button{border:0;background:transparent;padding:.45rem .75rem;font-weight:950;cursor:pointer}.wm-qty span{min-width:2rem;text-align:center;font-weight:900}.wm-detail{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(24rem,.95fr);gap:2rem;max-width:80rem;margin:0 auto;padding:1.5rem}.wm-detail-media{overflow:hidden;border-radius:2.25rem;background:#fff;box-shadow:0 8px 30px rgba(28,25,23,.08);border:1px solid #e7e5e4}.wm-detail-media img{width:100%;aspect-ratio:1;object-fit:cover;display:block}.wm-detail-copy{padding-top:3rem}.wm-price{font-size:2rem;font-weight:950}.wm-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin-top:1.5rem}.wm-input{width:100%;border:1px solid #d6d3d1;background:#fafaf9;border-radius:1rem;padding:.85rem 1rem;font-weight:400;color:#0c0a09}.wm-span-2{grid-column:span 2}.wm-checkout{display:grid;grid-template-columns:minmax(0,1fr) 24rem;gap:1.5rem;max-width:72rem;margin:2.5rem auto 0}.wm-summary-line{display:flex;justify-content:space-between;gap:1rem;margin-top:.75rem}.wm-warning{border:1px solid rgba(245,158,11,.35);background:#fef3c7;color:#78350f;border-radius:1rem;padding:.75rem;margin-top:1rem;font-weight:850}.wm-success{text-align:center;max-width:48rem;margin:4rem auto 0}.wm-success-mark{display:flex;align-items:center;justify-content:center;width:3.5rem;height:3.5rem;margin:0 auto;border-radius:999px;background:#dcfce7;color:#166534;font-size:2rem;font-weight:950}
 			@media (min-width:640px){.wm-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media (min-width:1280px){.wm-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}@media (min-width:1536px){.wm-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
 			@media (prefers-color-scheme:dark){html,body,.wm-shop,.wm-page{background:#020617;color:#f8fafc}.wm-sidebar{background:rgba(15,23,42,.96);border-right-color:#1e293b}.wm-subtitle,.wm-kicker,.wm-product-meta,.wm-product-pack,.wm-muted{color:#cbd5e1}.wm-main-head,.wm-total{border-color:#1e293b}.wm-nav button{color:#cbd5e1}.wm-nav button.is-active{background:#f8fafc;color:#020617}.wm-card,.wm-chip,.wm-icon-btn,.wm-btn-secondary,.wm-qty{background:#0f172a;color:#f8fafc;border-color:#334155;box-shadow:none}.wm-product-media,.wm-detail-media,.wm-row-media{background:#1e293b;border-color:#334155}.wm-input{background:#0f172a;border-color:#334155;color:#fff}.wm-warning{background:rgba(245,158,11,.14);color:#fde68a}}
@@ -1114,10 +1352,10 @@ function contactSettings(state) {
 }
 
 function contactMailUrl(email, subject, body) {
-	const params = new URLSearchParams();
-	if (subject) params.set('subject', subject);
-	if (body) params.set('body', body);
-	const query = params.toString();
+	const params = [];
+	if (subject) params.push(`subject=${encodeURIComponent(subject)}`);
+	if (body) params.push(`body=${encodeURIComponent(body)}`);
+	const query = params.join('&');
 	return `mailto:${encodeURIComponent(email)}${query ? `?${query}` : ''}`;
 }
 
@@ -1274,7 +1512,6 @@ function renderProducts(state) {
 								selectedProductId: (category.id === 'all' ? catalogProducts(state)[0] : productsByCategory(category.id, state)[0])?.id || state.selectedProductId
 							}))}>${escapeHtml(category.label)}</button>
 						`).join('')}
-						<button type="button" class="${state.view === 'contact' ? 'is-active' : ''}" ${actionAttr(actions, stateAction(state, { view: 'contact' }))}>Contact</button>
 					</nav>
 				</aside>
 				<main class="wm-main">
@@ -1651,12 +1888,14 @@ function renderCheckoutField(field, storageActionId) {
 		</label>`;
 	}
 	if (field.type === 'country') {
+		const countryCode = countryCodeFromValue(field.value);
+		const displayValue = countryCode ? countryDisplayValue(countryCode) : '';
 		return `<label>
 			<span class="wm-field-label">${label}</span>
-			<select ${common} autocomplete="country">
-				<option value="">${escapeHtml(field.placeholder || field.label || '')}</option>
-				${(field.options || []).map((option) => `<option value="${escapeHtml(option.code || '')}" ${option.code === field.value ? 'selected' : ''}>${escapeHtml(option.name || option.code || '')}</option>`).join('')}
-			</select>
+			<input ${common} type="text" list="wm-country-options" value="${escapeHtml(displayValue)}" placeholder="${escapeHtml(field.placeholder || field.label || '')}" autocomplete="country-name" />
+			<datalist id="wm-country-options">
+				${(field.options || []).map((option) => `<option value="${escapeHtml(countryDisplayValue(option.code))}"></option>`).join('')}
+			</datalist>
 		</label>`;
 	}
 	return `<label class="${field.name === 'delivery.notes' || field.name === 'delivery.address' || field.name === 'delivery.address2' ? 'wm-span-2' : ''}">
