@@ -140,15 +140,15 @@ function inlineActionsClass(extra = '') {
 }
 
 function quantityClass(state, extra = '') {
-	return `inline-flex items-center overflow-hidden rounded-full border ${themeClasses(state, 'border-stone-300 bg-stone-100 text-stone-950', 'border-slate-700 bg-slate-800/70 text-slate-50')} ${extra}`;
+	return `inline-flex h-9 items-stretch overflow-hidden rounded-full border ${themeClasses(state, 'border-stone-300 bg-stone-100 text-stone-950', 'border-slate-700 bg-slate-800/70 text-slate-50')} ${extra}`;
 }
 
 function quantityButtonClass() {
-	return 'inline-flex cursor-pointer items-center justify-center px-3 py-2 text-inherit hover:bg-violet-600/20';
+	return 'inline-flex h-full w-9 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-inherit hover:bg-violet-600/20';
 }
 
 function quantityInputClass() {
-	return 'min-w-8 w-12 border-0 bg-transparent px-1 py-2 text-center font-semibold text-inherit outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
+	return 'h-full min-w-8 w-12 border-0 bg-transparent px-1 py-0 text-center font-semibold text-inherit outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 }
 
 function productMetaClass(state, extra = '') {
@@ -299,41 +299,39 @@ function pluginFrame(title, body, actions, options = {}) {
 
 function renderView(state) {
 	if (usesRemoteCatalog(state) && state.catalogStatus === 'loading') {
-		return {
-			type: 'section',
-			title: 'Loading catalog',
-			description: `Fetching product JSON from ${catalogUrl(state)}.`,
-			children: [
-				{ type: 'text', tone: 'muted', text: catalogProvider(state) === 'd1' ? 'Loading categories and products from the configured D1 catalog Worker.' : 'IPFS/IPNS gateways can take a moment to resolve new content.' }
-			]
-		};
+		const actions = {};
+		return pluginFrame('Loading catalog', `
+			<div class="${pageClass(state)}">
+				${renderShopHeader(actions, state)}
+				<section class="${cardClass(state, 'mx-auto mt-10 max-w-3xl')}">
+					<h1 class="${titleClass('text-3xl')}">Loading catalog</h1>
+					<p class="mt-3 leading-7 ${mutedClass(state)}">Fetching product JSON from ${escapeHtml(catalogUrl(state))}.</p>
+				</section>
+			</div>
+		`, actions);
 	}
 	if (usesRemoteCatalog(state) && state.catalogStatus === 'error') {
-		return {
-			type: 'section',
-			title: 'Catalog unavailable',
-			description: state.catalogError || 'The remote catalog could not be loaded.',
-			children: [
-				{ type: 'text', tone: 'muted', text: catalogUrl(state) },
-				{
-					type: 'buttonRow',
-					buttons: [
-						{
-							label: 'Retry',
-							variant: 'primary',
-							action: stateAction(state, {
-								catalog: null,
-								catalogStatus: 'idle',
-								catalogError: '',
-								catalogSource: '',
-								page: 1
-							})
-						},
-						{ label: 'Use local catalog', variant: 'secondary', action: stateAction(state, { settings: { ...state.settings, catalogProvider: 'local', catalogRef: SHOP_CONFIG.defaultCatalogRef }, catalogStatus: 'idle', catalogError: '', catalogSource: '', catalog: null }) }
-					]
-				}
-			]
-		};
+		const actions = {};
+		return pluginFrame('Catalog unavailable', `
+			<div class="${pageClass(state)}">
+				${renderShopHeader(actions, state)}
+				<section class="${cardClass(state, 'mx-auto mt-10 max-w-3xl')}">
+					<h1 class="${titleClass('text-3xl')}">Catalog unavailable</h1>
+					<p class="mt-3 leading-7 ${mutedClass(state)}">${escapeHtml(state.catalogError || 'The remote catalog could not be loaded.')}</p>
+					<p class="mt-2 break-all text-sm ${mutedClass(state)}">${escapeHtml(catalogUrl(state))}</p>
+					<div class="${inlineActionsClass()}">
+						${frameButton(actions, 'Retry', stateAction(state, {
+							catalog: null,
+							catalogStatus: 'idle',
+							catalogError: '',
+							catalogSource: '',
+							page: 1
+						}))}
+						${frameButton(actions, 'Use local catalog', stateAction(state, { settings: { ...state.settings, catalogProvider: 'local', catalogRef: SHOP_CONFIG.defaultCatalogRef }, catalogStatus: 'idle', catalogError: '', catalogSource: '', catalog: null }), 'secondary')}
+					</div>
+				</section>
+			</div>
+		`, actions);
 	}
 	if (state.view === 'product') return renderProductDetail(state);
 	if (state.view === 'cart') return renderCart(state);

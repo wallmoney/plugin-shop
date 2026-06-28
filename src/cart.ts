@@ -48,6 +48,7 @@ function wholeQuantity(value) {
 }
 
 function productStock(product) {
+	if (!stockManagementEnabled()) return null;
 	const stock = Number(product && product.stock);
 	return Number.isFinite(stock) && stock >= 0 ? Math.floor(stock) : null;
 }

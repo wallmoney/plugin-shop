@@ -73,7 +73,7 @@ function addButtonClass(isAdded, extraClass = '') {
 
 function addToCartButton(actions, state, product, extraClass = '') {
 	const isAdded = productWasJustAdded(state, product);
-	return `<button type="button" class="${addButtonClass(isAdded, extraClass)}" ${actionAttr(actions, stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`))}>
+	return `<button type="button" class="${addButtonClass(isAdded, extraClass)}" ${actionAttr(actions, stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`, { resetMs: 1200, resetIf: { lastAddedProductId: product.id }, resetPatch: { lastAddedProductId: '' } }))}>
 		<span>${isAdded ? 'Added' : 'Add to cart'}</span>
 	</button>`;
 }
@@ -181,7 +181,7 @@ function renderProductDetail(state) {
 						</div>
 					</div>
 					<div class="${inlineActionsClass()}">
-						<button type="button" class="${buttonClass('secondary', `relative min-w-[7rem] overflow-hidden ${isAdded ? '!border-emerald-600 !bg-emerald-600 !text-white' : ''}`)}" ${actionAttr(actions, stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`))}>
+						<button type="button" class="${buttonClass('secondary', `relative min-w-[7rem] overflow-hidden ${isAdded ? '!border-emerald-600 !bg-emerald-600 !text-white' : ''}`)}" ${actionAttr(actions, stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`, { resetMs: 1200, resetIf: { lastAddedProductId: product.id }, resetPatch: { lastAddedProductId: '' } }))}>
 							<span>${isAdded ? 'Added' : 'Add to cart'}</span>
 						</button>
 						${frameButton(actions, 'Buy now', stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), { view: 'cart' }))}
@@ -191,24 +191,22 @@ function renderProductDetail(state) {
 							<div class="mb-4 flex flex-wrap items-center gap-3 max-[900px]:flex-col max-[900px]:items-start">
 								<span class="text-xs font-normal tracking-normal ${mutedClass(state)}">SKU:</span>
 								<button type="button" class="cursor-pointer border-0 bg-transparent p-0 text-xs font-normal tracking-normal ${mutedClass(state)} hover:underline" title="Copy SKU" ${actionAttr(actions, { type: 'copy', text: product.skuid, message: 'SKU copied.' })}>${escapeHtml(product.skuid)}</button>
-								<button type="button" class="${buttonClass('link', 'gap-1')}" ${actionAttr(actions, stateAction(state, {
+								<button type="button" class="inline-flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-xs font-normal tracking-normal ${mutedClass(state)} hover:underline" ${actionAttr(actions, stateAction(state, {
 									view: 'contact',
 									contactSku: product.skuid,
 									contactSubjectIndex: productQuestionSubjectIndex(state),
 									lastAddedProductId: ''
 								}))}>${icon('messageCircleQuestionMark', 15)} Ask about this product</button>
-								<button type="button" class="${buttonClass('link', 'gap-1')}" ${actionAttr(actions, {
+								<button type="button" class="inline-flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-xs font-normal tracking-normal ${mutedClass(state)} hover:underline" ${actionAttr(actions, {
 									type: 'share',
-									title: product.name,
 									text: product.name,
 									url: productShareUrl(product)
 								})}>${icon('share2', 15)} Share this product</button>
 							</div>
 						` : `
 							<div class="mb-4 flex flex-wrap items-center gap-3 max-[900px]:flex-col max-[900px]:items-start">
-								<button type="button" class="${buttonClass('link', 'gap-1')}" ${actionAttr(actions, {
+								<button type="button" class="inline-flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-xs font-normal tracking-normal ${mutedClass(state)} hover:underline" ${actionAttr(actions, {
 									type: 'share',
-									title: product.name,
 									text: product.name,
 									url: productShareUrl(product)
 								})}>${icon('share2', 15)} Share this product</button>

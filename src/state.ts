@@ -62,6 +62,14 @@ function objectValue(value) {
 	return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
+function stockManagementEnabled() {
+	const settings = SHOP_CONFIG.stockManagement && typeof SHOP_CONFIG.stockManagement === 'object'
+		? SHOP_CONFIG.stockManagement
+		: {};
+	const provider = String(settings.provider || '').trim().toLowerCase();
+	return Boolean(provider && provider !== 'none');
+}
+
 function cleanString(value, fallback) {
 	if (typeof value !== 'string') return fallback || '';
 	const trimmed = value.trim();
@@ -227,13 +235,15 @@ function normalizeCatalog(raw) {
 			badge: cleanString(product.badge, ''),
 			packLabel: cleanString(product.packLabel, ''),
 			digital: product.digital === true,
-			stock: Number.isFinite(Number(product.stock))
-				? Number(product.stock)
-				: Number.isFinite(Number(product.available))
-					? Number(product.available)
-					: Number.isFinite(Number(product.quantityAvailable))
-						? Number(product.quantityAvailable)
-						: null,
+			stock: stockManagementEnabled()
+				? Number.isFinite(Number(product.stock))
+					? Number(product.stock)
+					: Number.isFinite(Number(product.available))
+						? Number(product.available)
+						: Number.isFinite(Number(product.quantityAvailable))
+							? Number(product.quantityAvailable)
+							: null
+				: null,
 			order: Number(product.order)
 		}))
 		.filter((product) =>
@@ -291,7 +301,7 @@ function normalizeCart(raw, catalog) {
 		if (Number.isFinite(quantity) && quantity > 0) {
 			const rounded = Math.round(quantity);
 			const stock = Number(product.stock);
-			const max = Number.isFinite(stock) && stock >= 0 ? Math.floor(stock) : null;
+			const max = stockManagementEnabled() && Number.isFinite(stock) && stock >= 0 ? Math.floor(stock) : null;
 			if (max === null || max > 0) {
 				cart[product.id] = max === null ? rounded : Math.min(rounded, max);
 			}
@@ -306,7 +316,7 @@ function normalizeQuantities(raw, catalog) {
 	for (const product of activeCatalog(catalog).products) {
 		const quantity = Number(value[product.id]);
 		const stock = Number(product.stock);
-		const max = Number.isFinite(stock) && stock >= 0 ? Math.max(1, Math.floor(stock)) : null;
+		const max = stockManagementEnabled() && Number.isFinite(stock) && stock >= 0 ? Math.max(1, Math.floor(stock)) : null;
 		const normalized = Number.isFinite(quantity) && quantity > 0 ? Math.max(1, Math.round(quantity)) : 1;
 		quantities[product.id] = max === null ? normalized : Math.min(normalized, max);
 	}
@@ -381,7 +391,7 @@ function saveState(hostApi, next) {
 	}
 }
 
-function stateAction(state, patch, message) {
+function stateAction(state, patch, message, options) {
 	return {
 		type: 'storage',
 		key: STATE_KEY,
@@ -390,6 +400,7 @@ function stateAction(state, patch, message) {
 			...patch
 		}),
 		message,
-		level: message ? 'success' : undefined
+		level: message ? 'success' : undefined,
+		...(options && typeof options === 'object' ? options : {})
 	};
 }
