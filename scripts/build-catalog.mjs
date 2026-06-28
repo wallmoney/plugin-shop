@@ -24,6 +24,12 @@ function assertString(value, label) {
 	throw new Error(`Catalog ${label} must be a non-empty string.`);
 }
 
+function assertOptionalString(value, label) {
+	if (value === undefined || value === null || value === '') return '';
+	if (typeof value === 'string' && value.trim()) return value;
+	throw new Error(`Catalog ${label} must be a string when provided.`);
+}
+
 let catalogText = '';
 try {
 	catalogText = await readFile(catalogFile, 'utf8');
@@ -47,6 +53,7 @@ for (const category of categories) {
 
 for (const product of products) {
 	assertString(product.id, 'product.id');
+	assertOptionalString(product.skuid, `product ${product.id}.skuid`);
 	assertString(product.name, `product ${product.id}.name`);
 	const category = assertString(product.category, `product ${product.id}.category`);
 	if (!categoryIds.has(category)) throw new Error(`Product ${product.id} references unknown category ${category}.`);

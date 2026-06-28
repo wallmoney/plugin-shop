@@ -207,6 +207,7 @@ function normalizeCatalog(raw) {
 		.map((product) => objectValue(product))
 		.map((product) => ({
 			id: cleanString(product.id, ''),
+			skuid: cleanString(product.skuid, ''),
 			name: cleanString(product.name, ''),
 			category: cleanString(product.category, ''),
 			price: Number(product.price),

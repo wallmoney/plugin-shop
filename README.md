@@ -104,7 +104,7 @@ The active catalog is configured in `src/config.ts`. This shop currently loads a
 
 ```js
 defaultCatalogProvider: 'remote',
-defaultCatalogRef: 'ipfs://bafkreiaiwxorbucgdkdjfcpphzobys6ts5lr7v3qpic4icdbj6jlw53dc4'
+defaultCatalogRef: 'ipfs://bafkreihynddvac67beq63ecj2roefutctrjsyiitjrzlczhyh2amahm4va'
 ```
 
 The catalog JSON uses this shape:
@@ -147,7 +147,7 @@ Shop-level settings live in `src/config.ts`. Currency and minimum checkout amoun
 
 ```js
 defaultCatalogProvider: 'remote',
-defaultCatalogRef: 'ipfs://bafkreiaiwxorbucgdkdjfcpphzobys6ts5lr7v3qpic4icdbj6jlw53dc4',
+defaultCatalogRef: 'ipfs://bafkreihynddvac67beq63ecj2roefutctrjsyiitjrzlczhyh2amahm4va',
 catalogD1: {
   apiUrl: 'https://catalog.example.com/catalog'
 },

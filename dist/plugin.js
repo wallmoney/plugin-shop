@@ -11,7 +11,7 @@ const SHOP_CONFIG = {
 	tagline: 'Decentralized shopping listed as WM plugin.',
 	logoSrc: 'icon.svg',
 	defaultCatalogProvider: 'remote', // "local", "remote", or "d1"
-	defaultCatalogRef: 'ipfs://bafkreiaiwxorbucgdkdjfcpphzobys6ts5lr7v3qpic4icdbj6jlw53dc4',
+	defaultCatalogRef: 'ipfs://bafkreihynddvac67beq63ecj2roefutctrjsyiitjrzlczhyh2amahm4va',
 	catalogD1: {
 		apiUrl: 'https://catalog.example.com/catalog'
 	},
@@ -80,12 +80,19 @@ const SHOP_CATEGORIES = [
 		"label": "Flowers",
 		"helper": "Fresh stems and soft color",
 		"order": 3
+	},
+	{
+		"id": "tokens",
+		"label": "Tokens",
+		"helper": "Digital assets for the Core Ecosystem",
+		"order": 4
 	}
 ];
 
 const SHOP_PRODUCTS = [
 	{
 		"id": "red-tea",
+		"skuid": "WM-TEA-RED-001",
 		"name": "Red Tea",
 		"category": "tea",
 		"price": 12,
@@ -99,6 +106,7 @@ const SHOP_PRODUCTS = [
 	},
 	{
 		"id": "turkish-tea",
+		"skuid": "WM-TEA-TUR-002",
 		"name": "Turkish Tea",
 		"category": "tea",
 		"price": 14,
@@ -112,6 +120,7 @@ const SHOP_PRODUCTS = [
 	},
 	{
 		"id": "coffee",
+		"skuid": "WM-COF-BAL-003",
 		"name": "Coffee",
 		"category": "coffee",
 		"price": 18,
@@ -125,6 +134,7 @@ const SHOP_PRODUCTS = [
 	},
 	{
 		"id": "red-rose",
+		"skuid": "WM-FLW-ROS-004",
 		"name": "Red Rose",
 		"category": "flowers",
 		"price": 9,
@@ -138,6 +148,7 @@ const SHOP_PRODUCTS = [
 	},
 	{
 		"id": "tulip",
+		"skuid": "WM-FLW-TUL-005",
 		"name": "Tulip",
 		"category": "flowers",
 		"price": 7,
@@ -148,6 +159,20 @@ const SHOP_PRODUCTS = [
 		"badge": "Seasonal",
 		"packLabel": "Single stem",
 		"order": 5
+	},
+	{
+		"id": "ctn",
+		"skuid": "WM-TKN-CTN-006",
+		"name": "$CTN",
+		"category": "tokens",
+		"price": 10,
+		"icon": "🪙",
+		"cid": "bafybeicd3wmpbt7warnsopfwyo42o36gvcbg5g37kepkf7hy6suhilz5ce",
+		"description": "The single payment token for the Core Ecosystem.",
+		"vendor": "Wall Money Minters",
+		"badge": "Tokens",
+		"digital": true,
+		"order": 6
 	}
 ];
 
@@ -412,6 +437,7 @@ function normalizeCatalog(raw) {
 		.map((product) => objectValue(product))
 		.map((product) => ({
 			id: cleanString(product.id, ''),
+			skuid: cleanString(product.skuid, ''),
 			name: cleanString(product.name, ''),
 			category: cleanString(product.category, ''),
 			price: Number(product.price),
@@ -1840,6 +1866,7 @@ function renderPaymentFailed(state) {
 function stockItems(state) {
 	return cartItems(state).map((item) => ({
 		id: item.product.id,
+		skuid: item.product.skuid || '',
 		name: item.product.name,
 		quantity: item.quantity
 	}));
@@ -1923,6 +1950,7 @@ function escapeHtml(value) {
 function orderEmailItems(state) {
 	return cartItems(state).map((item) => ({
 		id: item.product.id,
+		skuid: item.product.skuid || '',
 		name: item.product.name,
 		quantity: item.quantity,
 		unitPrice: formatMoney(item.product.price, state.settings.currency),
@@ -1985,7 +2013,7 @@ function orderEmailText(state, result) {
 		`Total: ${formatMoney(cartTotal(state), state.settings.currency)}`,
 		'',
 		'Items:',
-		...items.map((item) => `- ${item.name} × ${item.quantity}: ${item.lineTotal} (${item.cid})`),
+		...items.map((item) => `- ${item.name} × ${item.quantity}: ${item.lineTotal}${item.skuid ? ` [${item.skuid}]` : ''} (${item.cid})`),
 		'',
 		'Delivery:',
 		`Name: ${delivery.name || 'n/a'}`,
@@ -2022,7 +2050,7 @@ function orderEmailHtml(state, result) {
 		'</ul>',
 		'<h2>Items</h2>',
 		'<ul>',
-		...items.map((item) => `<li><strong>${escapeHtml(item.name)}</strong> × ${escapeHtml(item.quantity)} — ${escapeHtml(item.lineTotal)}<br><small>${escapeHtml(item.cid)}</small></li>`),
+		...items.map((item) => `<li><strong>${escapeHtml(item.name)}</strong> × ${escapeHtml(item.quantity)} — ${escapeHtml(item.lineTotal)}${item.skuid ? ` <small>${escapeHtml(item.skuid)}</small>` : ''}<br><small>${escapeHtml(item.cid)}</small></li>`),
 		'</ul>',
 		'<h2>Delivery</h2>',
 		'<ul>',

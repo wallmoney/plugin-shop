@@ -6,7 +6,7 @@ const SHOP_CONFIG = {
 	tagline: 'Decentralized shopping listed as WM plugin.',
 	logoSrc: 'icon.svg',
 	defaultCatalogProvider: 'remote', // "local", "remote", or "d1"
-	defaultCatalogRef: 'ipfs://bafkreiaiwxorbucgdkdjfcpphzobys6ts5lr7v3qpic4icdbj6jlw53dc4',
+	defaultCatalogRef: 'ipfs://bafkreihynddvac67beq63ecj2roefutctrjsyiitjrzlczhyh2amahm4va',
 	catalogD1: {
 		apiUrl: 'https://catalog.example.com/catalog'
 	},
