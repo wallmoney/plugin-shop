@@ -37,7 +37,7 @@ app/routes/+page.svelte      SvelteKit shop preview UI
 migrations/catalog/*.sql    Cloudflare D1 catalog schema migrations
 migrations/orders/*.sql     Optional Cloudflare D1 order collection schema migrations
 seeds/catalog/products.sql  Optional demo D1 catalog rows
-scripts/build-catalog.mjs   Optionally regenerates src/inventory.js when data/catalog.json exists
+scripts/build-catalog.mjs   Optionally regenerates src/inventory.ts when data/catalog.json exists
 scripts/build-plugin.mjs    Compiles ordered plugin source into dist/plugin.js
 scripts/package-plugin.mjs  Copies non-ignored runtime plugin files into build/plugin-package/
 workers/catalog-d1.ts       Optional D1-backed catalog JSON Worker
@@ -47,18 +47,18 @@ workers/wrangler.catalog-d1.jsonc Example Cloudflare Worker D1 catalog config
 workers/wrangler.order-fulfillment.jsonc Example Cloudflare fulfillment Worker config
 workers/wrangler.order-fulfillment.d1.jsonc Example fulfillment Worker config with D1 order collection
 workers/wrangler.order-stock.jsonc Example Cloudflare Worker KV stock config
-src/config.js               Shop defaults
-src/inventory.js            Generated categories and products
-src/state.js        Local plugin state normalization and storage actions
-src/catalog.js      Category/product filtering and IPFS gateway URL helpers
-src/cart.js         Cart totals, quantity actions, order references
-src/ui/products.js  Shop-style category grid and product detail UI
-src/ui/cart.js      Shopping cart view
-src/ui/checkout.js  Delivery details and Wall Money payment action
-src/ui/orders.js    Local order result view
-src/email.js        Admin order fulfillment composition
-src/stock.js        Optional post-payment stock decrement webhook payload
-src/plugin.js       Portal runtime entrypoint
+src/config.ts               Shop defaults
+src/inventory.ts            Generated categories and products
+src/state.ts        Local plugin state normalization and storage actions
+src/catalog.ts      Category/product filtering and IPFS gateway URL helpers
+src/cart.ts         Cart totals, quantity actions, order references
+src/ui/products.ts  Shop-style category grid and product detail UI
+src/ui/cart.ts      Shopping cart view
+src/ui/checkout.ts  Delivery details and Wall Money payment action
+src/ui/orders.ts    Local order result view
+src/email.ts        Admin order fulfillment composition
+src/stock.ts        Optional post-payment stock decrement webhook payload
+src/plugin.ts       Portal runtime entrypoint
 dist/plugin.js      Generated marketplace bundle
 build/              Generated static SvelteKit preview
 ```
@@ -100,11 +100,11 @@ npm run build:web
 
 ## Configurable Catalog
 
-The active catalog is configured in `src/config.js`. This shop currently loads an immutable IPFS catalog:
+The active catalog is configured in `src/config.ts`. This shop currently loads an immutable IPFS catalog:
 
 ```js
 defaultCatalogProvider: 'remote',
-defaultCatalogRef: 'ipfs://bafkreiaiwxorbucgdkdjfcpphzobys6ts5lr7v3qpic4icdbj6jlw53dc4'
+defaultCatalogRef: 'ipfs://bafkreihynddvac67beq63ecj2roefutctrjsyiitjrzlczhyh2amahm4va'
 ```
 
 The catalog JSON uses this shape:
@@ -143,11 +143,11 @@ The plugin UI is rendered by the portal’s schema renderer. The shop uses riche
 
 ## Shop Settings
 
-Shop-level settings live in `src/config.js`. Currency and minimum checkout amount are configured per shop, not per item:
+Shop-level settings live in `src/config.ts`. Currency and minimum checkout amount are configured per shop, not per item:
 
 ```js
 defaultCatalogProvider: 'remote',
-defaultCatalogRef: 'ipfs://bafkreiaiwxorbucgdkdjfcpphzobys6ts5lr7v3qpic4icdbj6jlw53dc4',
+defaultCatalogRef: 'ipfs://bafkreihynddvac67beq63ecj2roefutctrjsyiitjrzlczhyh2amahm4va',
 catalogD1: {
   apiUrl: 'https://catalog.example.com/catalog'
 },
@@ -160,7 +160,7 @@ deliveryFee: 0
 
 | Value | Source | Related Config |
 | --- | --- | --- |
-| `local` | Bundled `src/inventory.js` fallback catalog | `defaultCatalogProvider: 'local'` |
+| `local` | Bundled `src/inventory.ts` fallback catalog | `defaultCatalogProvider: 'local'` |
 | `remote` | IPFS/IPNS/HTTPS JSON catalog through the portal `network.getJson` API | `defaultCatalogRef` and the built-in `https://ipf.sk` gateway |
 | `d1` | Cloudflare D1 catalog Worker returning the same JSON shape | `catalogD1.apiUrl` |
 
@@ -169,7 +169,7 @@ If `minimumCheckoutAmount` is missing, `0`, or not a valid positive number, chec
 
 ## Order Fulfillment Webhook
 
-The portal does not store shop email credentials, fulfillment webhook signing secrets, or stock API credentials. After a successful payment, the plugin posts the order payload to the plugin-owned fulfillment Worker configured in `src/config.js`. The Worker decides whether to send an admin email, send a signed webhook, or do both.
+The portal does not store shop email credentials, fulfillment webhook signing secrets, or stock API credentials. After a successful payment, the plugin posts the order payload to the plugin-owned fulfillment Worker configured in `src/config.ts`. The Worker decides whether to send an admin email, send a signed webhook, or do both.
 
 If no order collection route is configured, checkout is blocked with:
 
@@ -192,7 +192,7 @@ orderPayment: {
 }
 ```
 
-Development mode is disabled by default and should normally be omitted from `src/config.js`. For local testing only, it can be enabled with any of these values:
+Development mode is disabled by default and should normally be omitted from `src/config.ts`. For local testing only, it can be enabled with any of these values:
 
 ```js
 DEV_MODE: true
@@ -213,16 +213,16 @@ Plugin-side fulfillment config:
 
 | Name | Location | Required | Description |
 | --- | --- | --- | --- |
-| `DEV_MODE` | `src/config.js` | No | Omit for production. `true`, `1`, `'true'`, or `'1'` enables local development mode, blocks checkout completion, and allows non-HTTPS local Worker/API URLs. |
-| `orderEmail.provider` | `src/config.js` | Yes | Use `webhook` for the fulfillment Worker. `mailto` is only a local fallback. `none` disables order collection. |
-| `orderEmail.adminEmail` | `src/config.js` | Required for `email` and `both` modes | Admin recipient. This is not secret. |
-| `orderEmail.sendCustomerReceipt` | `src/config.js` | No | Whether the fulfillment Worker receives a customer receipt email payload when the customer email is available. |
-| `orderEmail.webhookUrl` | `src/config.js` | Required unless `orderFulfillment.webhookUrl` is set | Backward-compatible fulfillment Worker URL. |
-| `orderEmail.fromName` | `src/config.js` | No | Display name used by email templates. |
-| `orderEmail.subjectPrefix` | `src/config.js` | No | Prefix for admin email subjects. |
-| `orderFulfillment.mode` | `src/config.js` | Yes | `email`, `webhook`, `both`, `storage`, or `none`. Use `storage` when the fulfillment Worker only collects the order, for example in D1. |
-| `orderFulfillment.webhookUrl` | `src/config.js` | Required for `email`, `webhook`, `both`, and `storage` | Endpoint of the plugin-owned fulfillment Worker. This is not the downstream merchant webhook. |
-| `orderPayment.webhookUrl` | `src/config.js` | Recommended | Endpoint passed to Wall Money/coreapi as the transfer `wh` callback. When set, checkout prepares an order draft in the Worker before opening payment. |
+| `DEV_MODE` | `src/config.ts` | No | Omit for production. `true`, `1`, `'true'`, or `'1'` enables local development mode, blocks checkout completion, and allows non-HTTPS local Worker/API URLs. |
+| `orderEmail.provider` | `src/config.ts` | Yes | Use `webhook` for the fulfillment Worker. `mailto` is only a local fallback. `none` disables order collection. |
+| `orderEmail.adminEmail` | `src/config.ts` | Required for `email` and `both` modes | Admin recipient. This is not secret. |
+| `orderEmail.sendCustomerReceipt` | `src/config.ts` | No | Whether the fulfillment Worker receives a customer receipt email payload when the customer email is available. |
+| `orderEmail.webhookUrl` | `src/config.ts` | Required unless `orderFulfillment.webhookUrl` is set | Backward-compatible fulfillment Worker URL. |
+| `orderEmail.fromName` | `src/config.ts` | No | Display name used by email templates. |
+| `orderEmail.subjectPrefix` | `src/config.ts` | No | Prefix for admin email subjects. |
+| `orderFulfillment.mode` | `src/config.ts` | Yes | `email`, `webhook`, `both`, `storage`, or `none`. Use `storage` when the fulfillment Worker only collects the order, for example in D1. |
+| `orderFulfillment.webhookUrl` | `src/config.ts` | Required for `email`, `webhook`, `both`, and `storage` | Endpoint of the plugin-owned fulfillment Worker. This is not the downstream merchant webhook. |
+| `orderPayment.webhookUrl` | `src/config.ts` | Recommended | Endpoint passed to Wall Money/coreapi as the transfer `wh` callback. When set, checkout prepares an order draft in the Worker before opening payment. |
 
 Use `workers/order-fulfillment.ts` as an example standalone fulfillment Worker. Configure the email provider and optional outgoing fulfillment webhook in the Worker environment:
 
@@ -273,7 +273,7 @@ EMAIL_PROVIDER=http
 EMAIL_API_URL=https://your-email-provider.example.com/send
 ```
 
-Store provider credentials as Worker secrets, never in `src/config.js`:
+Store provider credentials as Worker secrets, never in `src/config.ts`:
 
 ```sh
 wrangler secret put EMAIL_API_TOKEN --config workers/wrangler.order-fulfillment.jsonc
@@ -379,7 +379,7 @@ Set `ORDER_STORAGE_PROVIDER=d1` in the Worker config to enable writes. Set `FULF
 
 Stock is optional and intentionally not displayed in the shop UI. If stock management is not configured, or if a purchased item ID is not present in KV, the plugin treats that item as unmanaged and continues normally. Managed stock is checked before opening payment and decremented only after a verified successful payment webhook when `orderPayment.webhookUrl` is configured.
 
-Enable the plugin-owned stock API in `src/config.js`:
+Enable the plugin-owned stock API in `src/config.ts`:
 
 ```js
 stockManagement: {
@@ -392,8 +392,8 @@ Plugin-side stock config:
 
 | Name | Location | Required | Description |
 | --- | --- | --- | --- |
-| `stockManagement.provider` | `src/config.js` | Yes | `api` to call the plugin-owned stock Worker, or `none` to disable stock checks. |
-| `stockManagement.apiUrl` | `src/config.js` | Required when provider is `api` | Public URL of the stock Worker. No secrets are stored here. |
+| `stockManagement.provider` | `src/config.ts` | Yes | `api` to call the plugin-owned stock Worker, or `none` to disable stock checks. |
+| `stockManagement.apiUrl` | `src/config.ts` | Required when provider is `api` | Public URL of the stock Worker. No secrets are stored here. |
 
 Use `workers/order-stock.ts` as the standalone stock Worker. The Worker supports three modes:
 
@@ -469,13 +469,13 @@ The plugin avoids an external database:
 - The plugin uses `https://ipf.sk` for IPFS/IPNS gateway resolution. That gateway Worker tries multiple public IPFS gateways and returns the first successful response.
 - Portal plugin storage is used only for local UX state: cart, draft checkout, saved delivery profile, and order status.
 
-This repo currently uses IPFS for the catalog and does not keep `data/catalog.json` in the tree. If you add that file temporarily, this command validates it and refreshes `src/inventory.js`:
+This repo currently uses IPFS for the catalog and does not keep `data/catalog.json` in the tree. If you add that file temporarily, this command validates it and refreshes `src/inventory.ts`:
 
 ```sh
 npm run build:catalog
 ```
 
-If `data/catalog.json` is missing, the command leaves the existing `src/inventory.js` bundled fallback unchanged.
+If `data/catalog.json` is missing, the command leaves the existing `src/inventory.ts` bundled fallback unchanged.
 
 Example catalog shape:
 
@@ -503,7 +503,7 @@ Example catalog shape:
 }
 ```
 
-To load the catalog remotely, set `SHOP_CONFIG.defaultCatalogRef` in `src/config.js` to any of:
+To load the catalog remotely, set `SHOP_CONFIG.defaultCatalogRef` in `src/config.ts` to any of:
 
 ```js
 defaultCatalogRef: 'ipfs://bafy...'
@@ -529,7 +529,7 @@ IPFS/IPNS gateways can be slow when content is newly published. The plugin waits
 
 If the merchant wants mutable categories and products without publishing a new IPFS/IPNS object, enable the D1 catalog source. The plugin still receives the same catalog JSON shape; D1 is hidden behind `workers/catalog-d1.ts`.
 
-Configure `src/config.js`:
+Configure `src/config.ts`:
 
 ```js
 defaultCatalogProvider: 'd1',

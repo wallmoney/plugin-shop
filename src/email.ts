@@ -1,3 +1,4 @@
+// @ts-nocheck
 function escapeHtml(value) {
 	return String(value ?? '')
 		.replace(/&/g, '&amp;')
@@ -10,6 +11,7 @@ function escapeHtml(value) {
 function orderEmailItems(state) {
 	return cartItems(state).map((item) => ({
 		id: item.product.id,
+		skuid: item.product.skuid || '',
 		name: item.product.name,
 		quantity: item.quantity,
 		unitPrice: formatMoney(item.product.price, state.settings.currency),
@@ -72,7 +74,7 @@ function orderEmailText(state, result) {
 		`Total: ${formatMoney(cartTotal(state), state.settings.currency)}`,
 		'',
 		'Items:',
-		...items.map((item) => `- ${item.name} × ${item.quantity}: ${item.lineTotal} (${item.cid})`),
+		...items.map((item) => `- ${item.name} × ${item.quantity}: ${item.lineTotal}${item.skuid ? ` [${item.skuid}]` : ''} (${item.cid})`),
 		'',
 		'Delivery:',
 		`Name: ${delivery.name || 'n/a'}`,
@@ -109,7 +111,7 @@ function orderEmailHtml(state, result) {
 		'</ul>',
 		'<h2>Items</h2>',
 		'<ul>',
-		...items.map((item) => `<li><strong>${escapeHtml(item.name)}</strong> × ${escapeHtml(item.quantity)} — ${escapeHtml(item.lineTotal)}<br><small>${escapeHtml(item.cid)}</small></li>`),
+		...items.map((item) => `<li><strong>${escapeHtml(item.name)}</strong> × ${escapeHtml(item.quantity)} — ${escapeHtml(item.lineTotal)}${item.skuid ? ` <small>${escapeHtml(item.skuid)}</small>` : ''}<br><small>${escapeHtml(item.cid)}</small></li>`),
 		'</ul>',
 		'<h2>Delivery</h2>',
 		'<ul>',

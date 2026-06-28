@@ -1,3 +1,4 @@
+// @ts-nocheck
 function renderOrders(state) {
 	const actions = {};
 	const order = state.lastOrder;

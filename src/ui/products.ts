@@ -1,3 +1,4 @@
+// @ts-nocheck
 function categoryTitle(state) {
 	if (state.category === 'all') return 'All';
 	const category = categoryById(state.category, state);
@@ -25,6 +26,21 @@ function renderProductImage(state, product) {
 	return image
 		? `<img src="${escapeHtml(image)}" alt="${escapeHtml(product.name)}" loading="lazy" />`
 		: `<div class="wm-empty-icon">${escapeHtml(product.icon || '•')}</div>`;
+}
+
+function productBadges(product) {
+	return [
+		product.badge ? `<span class="wm-badge">${escapeHtml(product.badge)}</span>` : '',
+		product.digital === true ? '<span class="wm-badge wm-badge-digital">Digital</span>' : ''
+	].filter(Boolean).join('');
+}
+
+function addToCartButton(actions, state, product, extraClass = 'wm-btn-primary') {
+	const isAdded = state.lastAddedProductId === product.id;
+	return `<button type="button" class="wm-btn ${extraClass} wm-product-add ${isAdded ? 'wm-is-added' : ''}" ${actionAttr(actions, stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`))}>
+		<span class="wm-add-default">Add to cart</span>
+		<span class="wm-add-added">Added</span>
+	</button>`;
 }
 
 function renderProducts(state) {
@@ -66,7 +82,7 @@ function renderProducts(state) {
 							${renderThemeSwitcher(actions, state)}
 							<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'contact' }))}>${icon('mail', 17)} <span>Contact</span></button>
 							<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'cart' }))}>${icon('cart', 17)} <span>Cart ${cartCount(state)}</span></button>
-							<button type="button" class="wm-icon-btn wm-user-btn" title="Back to bank" ${actionAttr(actions, { type: 'navigate', href: '/' })}>${coreIdenticon(state.coreId)}</button>
+							<button type="button" class="wm-icon-btn wm-user-btn" title="Back to bank" ${actionAttr(actions, bankNavigateAction())}>${coreIdenticon(state.coreId)}</button>
 						</div>
 					</div>
 					<div class="wm-grid">
@@ -75,16 +91,14 @@ function renderProducts(state) {
 								<button type="button" class="wm-product-card" ${actionAttr(actions, productOpenAction(state, product))}>
 									<div class="wm-product-media">
 										${renderProductImage(state, product)}
-										${product.badge ? `<span class="wm-badge">${escapeHtml(product.badge)}</span>` : ''}
+										${productBadges(product)}
 									</div>
 									<p class="wm-product-meta">${escapeHtml(product.vendor || SHOP_CONFIG.name)}</p>
 									<h2 class="wm-product-name">${escapeHtml(product.name)}</h2>
 									<p class="wm-product-pack">${escapeHtml(product.packLabel || 'Standard pack')}</p>
 									<p class="wm-product-price">${escapeHtml(productPrice(state, product))}</p>
 								</button>
-								<button type="button" class="wm-btn wm-btn-primary wm-product-add" ${actionAttr(actions, stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`))}>
-									Add to cart
-								</button>
+								${addToCartButton(actions, state, product)}
 							</article>
 						`).join('')}
 					</div>
@@ -115,7 +129,7 @@ function renderProductDetail(state) {
 				<section class="wm-detail-copy">
 					<p class="wm-product-meta">${escapeHtml(product.vendor || SHOP_CONFIG.name)}</p>
 					<h1 class="wm-title">${escapeHtml(product.name)}</h1>
-					${product.badge ? `<p><span class="wm-badge" style="position:static;display:inline-flex;margin-top:1rem">${escapeHtml(product.badge)}</span></p>` : ''}
+					<p class="wm-detail-badges">${productBadges(product)}</p>
 					<p class="wm-price">${escapeHtml(productPrice(state, product))}</p>
 					<p class="wm-product-meta">Pack</p>
 					<p><span class="wm-btn wm-btn-secondary">${escapeHtml(product.packLabel || 'Standard pack')}</span></p>
@@ -126,8 +140,9 @@ function renderProductDetail(state) {
 						<button type="button" ${actionAttr(actions, stateAction(incrementProductQuantity(state, product.id), {}))}>${icon('plus', 15)}</button>
 					</div>
 					<div class="wm-inline-actions">
-						<button type="button" class="wm-btn wm-btn-secondary wm-product-add" ${actionAttr(actions, stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`))}>
-							Add to cart
+						<button type="button" class="wm-btn wm-btn-secondary wm-product-add ${state.lastAddedProductId === product.id ? 'wm-is-added' : ''}" ${actionAttr(actions, stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`))}>
+							<span class="wm-add-default">Add to cart</span>
+							<span class="wm-add-added">Added</span>
 						</button>
 						${frameButton(actions, 'Buy now', stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), { view: 'cart' }))}
 					</div>

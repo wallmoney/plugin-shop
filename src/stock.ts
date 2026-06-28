@@ -1,6 +1,8 @@
+// @ts-nocheck
 function stockItems(state) {
 	return cartItems(state).map((item) => ({
 		id: item.product.id,
+		skuid: item.product.skuid || '',
 		name: item.product.name,
 		quantity: item.quantity
 	}));

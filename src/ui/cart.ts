@@ -1,3 +1,4 @@
+// @ts-nocheck
 function renderCart(state) {
 	const actions = {};
 	const items = cartItems(state);

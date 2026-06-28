@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Bundled fallback catalog. The active catalog is loaded from IPFS unless local mode is enabled.
 const SHOP_CATEGORIES = [
 	{
@@ -17,12 +18,19 @@ const SHOP_CATEGORIES = [
 		"label": "Flowers",
 		"helper": "Fresh stems and soft color",
 		"order": 3
+	},
+	{
+		"id": "tokens",
+		"label": "Tokens",
+		"helper": "Digital assets for the Core Ecosystem",
+		"order": 4
 	}
 ];
 
 const SHOP_PRODUCTS = [
 	{
 		"id": "red-tea",
+		"skuid": "WM-TEA-RED-001",
 		"name": "Red Tea",
 		"category": "tea",
 		"price": 12,
@@ -36,6 +44,7 @@ const SHOP_PRODUCTS = [
 	},
 	{
 		"id": "turkish-tea",
+		"skuid": "WM-TEA-TUR-002",
 		"name": "Turkish Tea",
 		"category": "tea",
 		"price": 14,
@@ -49,6 +58,7 @@ const SHOP_PRODUCTS = [
 	},
 	{
 		"id": "coffee",
+		"skuid": "WM-COF-BAL-003",
 		"name": "Coffee",
 		"category": "coffee",
 		"price": 18,
@@ -62,6 +72,7 @@ const SHOP_PRODUCTS = [
 	},
 	{
 		"id": "red-rose",
+		"skuid": "WM-FLW-ROS-004",
 		"name": "Red Rose",
 		"category": "flowers",
 		"price": 9,
@@ -75,6 +86,7 @@ const SHOP_PRODUCTS = [
 	},
 	{
 		"id": "tulip",
+		"skuid": "WM-FLW-TUL-005",
 		"name": "Tulip",
 		"category": "flowers",
 		"price": 7,
@@ -85,5 +97,19 @@ const SHOP_PRODUCTS = [
 		"badge": "Seasonal",
 		"packLabel": "Single stem",
 		"order": 5
+	},
+	{
+		"id": "ctn",
+		"skuid": "WM-TKN-CTN-006",
+		"name": "$CTN",
+		"category": "tokens",
+		"price": 10,
+		"icon": "🪙",
+		"cid": "bafybeicd3wmpbt7warnsopfwyo42o36gvcbg5g37kepkf7hy6suhilz5ce",
+		"description": "The single payment token for the Core Ecosystem.",
+		"vendor": "Wall Money Minters",
+		"badge": "Tokens",
+		"digital": true,
+		"order": 6
 	}
 ];

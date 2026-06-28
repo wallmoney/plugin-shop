@@ -1,3 +1,4 @@
+// @ts-nocheck
 function defaultState() {
 	return {
 		view: 'products',
@@ -86,7 +87,7 @@ function normalizeDelivery(raw) {
 
 function deliveryProfileKey(delivery) {
 	const value = normalizeDelivery(delivery);
-	return (value.address || value.email || '').trim().toLowerCase();
+	return value.address.trim().toLowerCase();
 }
 
 function deliveryProfileId(delivery) {
@@ -206,6 +207,7 @@ function normalizeCatalog(raw) {
 		.map((product) => objectValue(product))
 		.map((product) => ({
 			id: cleanString(product.id, ''),
+			skuid: cleanString(product.skuid, ''),
 			name: cleanString(product.name, ''),
 			category: cleanString(product.category, ''),
 			price: Number(product.price),

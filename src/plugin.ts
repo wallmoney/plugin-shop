@@ -1,3 +1,4 @@
+// @ts-nocheck
 module.exports = {
 	default: {
 		setup(hostApi) {
@@ -158,5 +159,5 @@ function readInitialPluginView() {
 	const view = context && typeof context.initialView === 'string'
 		? context.initialView.trim().toLowerCase()
 		: '';
-	return ['products', 'product', 'cart', 'checkout', 'orders', 'success'].includes(view) ? view : null;
+	return ['products', 'product', 'cart', 'checkout', 'orders', 'success', 'failed', 'contact'].includes(view) ? view : null;
 }

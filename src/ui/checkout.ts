@@ -1,3 +1,4 @@
+// @ts-nocheck
 function renderDeliveryForm(state) {
 	const initialDelivery = checkoutDelivery(state);
 	const hasPhysicalItems = cartItems(state).some((item) => item.product.digital !== true);
@@ -185,7 +186,7 @@ function isUnitedStates(value) {
 function minimumCheckoutMessage(state, total) {
 	const minimum = checkoutMinimumAmount();
 	if (!minimum || total >= minimum) return '';
-	return `Minimum checkout amount is ${formatMoney(minimum, state.settings.currency)}. Add ${formatMoney(minimum - total, state.settings.currency)} more to continue.`;
+	return `Minimum order amount is ${formatMoney(minimum, state.settings.currency)}.`;
 }
 
 function checkoutRequiredMessage(state, hasPhysicalItems) {
@@ -233,10 +234,10 @@ function renderCheckoutField(field, storageActionId) {
 	if (field.type === 'country') {
 		return `<label>
 			<span class="wm-field-label">${label}</span>
-			<input ${common} type="text" list="wm-country-options" value="${value}" placeholder="${escapeHtml(field.placeholder || field.label || '')}" autocomplete="country" />
-			<datalist id="wm-country-options">
-				${(field.options || []).map((option) => `<option value="${escapeHtml(option.code || '')}" label="${escapeHtml(option.name || option.code || '')}">${escapeHtml(option.name || option.code || '')}</option>`).join('')}
-			</datalist>
+			<select ${common} autocomplete="country">
+				<option value="">${escapeHtml(field.placeholder || field.label || '')}</option>
+				${(field.options || []).map((option) => `<option value="${escapeHtml(option.code || '')}" ${option.code === field.value ? 'selected' : ''}>${escapeHtml(option.name || option.code || '')}</option>`).join('')}
+			</select>
 		</label>`;
 	}
 	return `<label class="${field.name === 'delivery.notes' || field.name === 'delivery.address' || field.name === 'delivery.address2' ? 'wm-span-2' : ''}">
@@ -290,8 +291,17 @@ function renderCheckout(state) {
 	const storageActionId = addFrameAction(actions, deliveryForm.autoSaveAction || deliveryForm.action);
 	const profiles = savedDeliveryProfileOptions(checkoutState);
 	const savedAddressPanel = hasPhysicalItems && profiles.length ? `
+		<div class="wm-form-actions-top">
+			<label>
+				<span class="wm-field-label">Saved addresses</span>
+				<select class="wm-input wm-saved-select" name="selectedDeliveryProfileId" data-plugin-storage-action="${escapeHtml(storageActionId)}" data-plugin-field="selectedDeliveryProfileId">
+					<option value="">Select saved address</option>
+					${profiles.map((profile) => `<option value="${escapeHtml(profile.id)}" ${profile.selected ? 'selected' : ''}>${escapeHtml(profile.label)}</option>`).join('')}
+				</select>
+			</label>
+		</div>
 		<details class="wm-saved">
-			<summary>Saved addresses</summary>
+			<summary>Manage saved addresses</summary>
 			${profiles.map((profile) => `
 				<div class="wm-saved-row">
 					<button type="button" class="wm-btn wm-btn-ghost" ${actionAttr(actions, profile.selectAction)}>
@@ -316,10 +326,10 @@ function renderCheckout(state) {
 					<p class="wm-muted">${hasPhysicalItems ? 'These details are sent to the shop admin only after successful payment.' : 'Digital orders only need an email address and Core ID.'}</p>
 					${hasPhysicalItems ? `
 						<div class="wm-form-actions-top">
-							<div class="wm-switch" role="group" aria-label="Delivery saving">
-								<button type="button" class="${checkoutState.saveDelivery ? 'is-active' : ''}" ${actionAttr(actions, stateAction(checkoutState, { saveDelivery: true }))}>Saving</button>
-								<button type="button" class="${checkoutState.saveDelivery ? '' : 'is-active'}" ${actionAttr(actions, stateAction(checkoutState, { saveDelivery: false, selectedDeliveryProfileId: '' }))}>One time</button>
-							</div>
+							<button type="button" class="wm-checkbox" role="checkbox" aria-checked="${checkoutState.saveDelivery ? 'true' : 'false'}" ${actionAttr(actions, stateAction(checkoutState, { saveDelivery: !checkoutState.saveDelivery, selectedDeliveryProfileId: checkoutState.saveDelivery ? '' : checkoutState.selectedDeliveryProfileId }))}>
+								<input type="checkbox" tabindex="-1" ${checkoutState.saveDelivery ? 'checked' : ''} />
+								<span>Save address for next order</span>
+							</button>
 							${frameButton(actions, 'Clear form', stateAction(state, { delivery: { ...emptyDelivery(), email: state.userEmail || '' }, checkoutStatus: 'draft' }, 'Delivery form cleared'), 'link')}
 						</div>
 						${savedAddressPanel}
@@ -338,7 +348,7 @@ function renderCheckout(state) {
 					${hasPhysicalItems ? `<p class="wm-muted">Delivery: ${escapeHtml(deliverySummary(delivery))}</p>` : ''}
 					${blockedMessage ? `<p class="wm-warning">${escapeHtml(blockedMessage)}</p>` : ''}
 					<div class="wm-inline-actions">
-						${frameButton(actions, 'Back to cart', stateAction(state, { view: 'cart' }), 'secondary')}
+						${minimumMessage ? frameButton(actions, 'Shop more', stateAction(state, { view: 'products', category: 'all', page: 1 }), 'secondary') : frameButton(actions, 'Back to cart', stateAction(state, { view: 'cart' }), 'secondary')}
 						<button type="button" class="wm-btn wm-btn-primary wm-pay-btn" ${payAction ? actionAttr(actions, payAction) : 'disabled'}>Pay with Wall Money</button>
 					</div>
 				</aside>

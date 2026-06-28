@@ -1,3 +1,4 @@
+// @ts-nocheck
 function contactSettings(state) {
 	return state.settings && state.settings.contact ? state.settings.contact : SHOP_CONFIG.contact || {};
 }
@@ -14,6 +15,22 @@ function contactPhoneUrl(phone) {
 	return `tel:${String(phone || '').replace(/[^+0-9]/g, '')}`;
 }
 
+function formatContactPhone(phone) {
+	const raw = String(phone || '').trim();
+	const normalized = raw.replace(/[^+0-9]/g, '');
+	if (!normalized) return '';
+	const hasPlus = normalized.startsWith('+');
+	const digits = normalized.replace(/\D/g, '');
+	if (!digits) return raw;
+	if (hasPlus && digits.length > 9) {
+		const countryLength = digits.length > 11 ? digits.length - 9 : digits.length > 10 ? digits.length - 10 : 1;
+		const country = digits.slice(0, countryLength);
+		const national = digits.slice(countryLength);
+		return `+${country} ${national.replace(/(\d{3})(?=\d)/g, '$1 ').trim()}`;
+	}
+	return digits.replace(/(\d{3})(?=\d)/g, '$1 ').trim();
+}
+
 function renderCompanyDetail(label, value) {
 	return value ? `<div class="wm-summary-line"><span class="wm-muted">${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>` : '';
 }
@@ -23,6 +40,7 @@ function renderContactPage(state) {
 	const contact = contactSettings(state);
 	const email = contact.email || '';
 	const mobile = contact.mobile || '';
+	const formattedMobile = formatContactPhone(mobile);
 	const subjects = Array.isArray(contact.subjects) ? contact.subjects : [];
 	const company = contact.company || {};
 
@@ -66,7 +84,7 @@ function renderContactPage(state) {
 						</div>
 					` : ''}
 					${email ? `<div class="wm-summary-line"><span class="wm-muted">Email</span><strong>${escapeHtml(email)}</strong></div>` : ''}
-					${mobile ? `<div class="wm-summary-line"><span class="wm-muted">Mobile</span><strong>${escapeHtml(mobile)}</strong></div>` : ''}
+					${mobile ? `<div class="wm-summary-line"><span class="wm-muted">Mobile</span><strong>${escapeHtml(formattedMobile || mobile)}</strong></div>` : ''}
 				</aside>
 			</main>
 		</div>
