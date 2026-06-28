@@ -14,13 +14,20 @@ function renderCart(state) {
 					<strong>${escapeHtml(formatMoney(cartSubtotal(state), state.settings.currency))}</strong>
 				</div>
 				${items.length ? `
+					<div class="wm-cart-actions wm-cart-actions-top">
+						<div></div>
+						<div class="wm-cart-right">
+							${frameButton(actions, 'Shop more', stateAction(state, { view: 'products', category: 'all', page: 1 }), 'secondary')}
+							${frameButton(actions, 'Checkout', stateAction(checkoutReadyState(state), {}))}
+						</div>
+					</div>
 					${items.map((item) => `
 						<div class="wm-row">
 							<div class="wm-row-media">${renderProductImage(state, item.product)}</div>
 							<div>
 								<p class="wm-product-meta">${escapeHtml(item.product.vendor || SHOP_CONFIG.name)}</p>
 								<h2 class="wm-product-name">${escapeHtml(item.product.name)}</h2>
-								<p class="wm-product-pack">${escapeHtml(item.product.packLabel || 'Standard pack')}</p>
+								${item.product.packLabel ? `<p class="wm-product-pack">${escapeHtml(item.product.packLabel)}</p>` : ''}
 								<div class="wm-qty" style="margin-top:.8rem">
 									<button type="button" title="Remove item" ${actionAttr(actions, stateAction(removeProductFromCart(state, item.product.id), {}))}>${icon('x', 14)}</button>
 									<button type="button" title="Decrease" ${actionAttr(actions, stateAction(removeOneFromCart(state, item.product.id), {}))}>${icon('minus', 14)}</button>
@@ -35,8 +42,8 @@ function renderCart(state) {
 					<div class="wm-cart-actions">
 						${frameButton(actions, 'Clear cart', stateAction(state, { cart: {}, checkoutStatus: 'draft' }, 'Cart cleared'), 'link')}
 						<div class="wm-cart-right">
-							${frameButton(actions, 'Continue shopping', stateAction(state, { view: 'products', category: 'all', page: 1 }), 'secondary')}
-							${frameButton(actions, 'Continue to checkout', stateAction(checkoutReadyState(state), {}))}
+							${frameButton(actions, 'Shop more', stateAction(state, { view: 'products', category: 'all', page: 1 }), 'secondary')}
+							${frameButton(actions, 'Checkout', stateAction(checkoutReadyState(state), {}))}
 						</div>
 					</div>
 				` : `

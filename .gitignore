@@ -34,3 +34,4 @@ bun.lock
 bun.lockb
 
 .svelte-kit/
+build/plugin-tailwind.css
