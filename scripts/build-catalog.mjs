@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 const root = new URL('..', import.meta.url).pathname;
 const catalogFile = join(root, 'data', 'catalog.json');
-const outputFile = join(root, 'src', 'inventory.js');
+const outputFile = join(root, 'src', 'inventory.ts');
 
 function sortByOrderThenLabel(items) {
 	return [...items].sort((first, second) => {
@@ -29,7 +29,7 @@ try {
 	catalogText = await readFile(catalogFile, 'utf8');
 } catch (error) {
 	if (error && error.code === 'ENOENT') {
-		console.log('No data/catalog.json found; keeping existing src/inventory.js bundled fallback.');
+		console.log('No data/catalog.json found; keeping existing src/inventory.ts bundled fallback.');
 		process.exit(0);
 	}
 	throw error;
@@ -55,6 +55,6 @@ for (const product of products) {
 	}
 }
 
-const source = `// Generated from data/catalog.json. Run npm run build:catalog after edits.\nconst SHOP_CATEGORIES = ${JSON.stringify(categories, null, '\t')};\n\nconst SHOP_PRODUCTS = ${JSON.stringify(products, null, '\t')};\n`;
+const source = `// @ts-nocheck\n// Generated from data/catalog.json. Run npm run build:catalog after edits.\nconst SHOP_CATEGORIES = ${JSON.stringify(categories, null, '\t')};\n\nconst SHOP_PRODUCTS = ${JSON.stringify(products, null, '\t')};\n`;
 
 await writeFile(outputFile, source);

@@ -1,3 +1,4 @@
+// @ts-nocheck
 const COUNTRY_OPTIONS = [
 	{ code: 'US', name: 'United States' },
 	{ code: 'CA', name: 'Canada' },

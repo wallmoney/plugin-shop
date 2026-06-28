@@ -1,3 +1,4 @@
+// @ts-nocheck
 function catalogProducts(state) {
 	return state && state.catalog && Array.isArray(state.catalog.products) && state.catalog.products.length
 		? state.catalog.products

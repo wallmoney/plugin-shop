@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Bundled fallback catalog. The active catalog is loaded from IPFS unless local mode is enabled.
 const SHOP_CATEGORIES = [
 	{

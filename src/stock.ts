@@ -1,3 +1,4 @@
+// @ts-nocheck
 function stockItems(state) {
 	return cartItems(state).map((item) => ({
 		id: item.product.id,

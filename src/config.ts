@@ -1,3 +1,4 @@
+// @ts-nocheck
 const STATE_KEY = 'shop-state';
 
 const SHOP_CONFIG = {
