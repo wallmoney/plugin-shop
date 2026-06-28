@@ -56,6 +56,7 @@ function setProductQuantity(state, productId, quantity) {
 	if (!product) return state;
 	return normalizeState({
 		...state,
+		lastAddedProductId: '',
 		productQuantities: {
 			...state.productQuantities,
 			[productId]: wholeQuantity(quantity)
@@ -92,13 +93,13 @@ function removeOneFromCart(state, productId) {
 	} else {
 		cart[productId] = current - 1;
 	}
-	return normalizeState({ ...state, cart, checkoutStatus: 'draft' });
+	return normalizeState({ ...state, cart, checkoutStatus: 'draft', lastAddedProductId: '' });
 }
 
 function removeProductFromCart(state, productId) {
 	const cart = { ...state.cart };
 	delete cart[productId];
-	return normalizeState({ ...state, cart, checkoutStatus: 'draft' });
+	return normalizeState({ ...state, cart, checkoutStatus: 'draft', lastAddedProductId: '' });
 }
 
 function orderReference(state) {
