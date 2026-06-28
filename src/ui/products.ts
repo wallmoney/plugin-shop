@@ -57,7 +57,7 @@ function productDetailBadges(product) {
 }
 
 function addButtonClass(isAdded, extraClass = '') {
-	return buttonClass('primary', `relative w-full overflow-hidden ${isAdded ? 'bg-emerald-600 text-white' : ''} ${extraClass}`);
+	return buttonClass('primary', `relative w-full overflow-hidden ${isAdded ? '!bg-emerald-600 !text-white' : ''} ${extraClass}`);
 }
 
 function addToCartButton(actions, state, product, extraClass = '') {
@@ -170,7 +170,7 @@ function renderProductDetail(state) {
 						</div>
 					</div>
 					<div class="${inlineActionsClass()}">
-						<button type="button" class="${buttonClass('secondary', `relative overflow-hidden ${state.lastAddedProductId === product.id ? 'border-emerald-600 bg-emerald-600 text-white' : ''}`)}" ${actionAttr(actions, stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`))}>
+						<button type="button" class="${buttonClass('secondary', `relative min-w-[7rem] overflow-hidden ${state.lastAddedProductId === product.id ? '!border-emerald-600 !bg-emerald-600 !text-white' : ''}`)}" ${actionAttr(actions, stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`))}>
 							<span>${state.lastAddedProductId === product.id ? 'Added' : 'Add to cart'}</span>
 						</button>
 						${frameButton(actions, 'Buy now', stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), { view: 'cart' }))}

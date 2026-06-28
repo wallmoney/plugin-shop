@@ -220,8 +220,8 @@ function renderCheckoutField(state, field, storageActionId) {
 	const label = `${escapeHtml(field.label || field.name)}${field.required ? ' <span class="text-red-500">*</span>' : ''}`;
 	const common = `class="${inputClass(state)}" name="${escapeHtml(field.name)}" data-plugin-storage-action="${escapeHtml(storageActionId)}" data-plugin-field="${escapeHtml(field.name)}" ${required}`;
 	const htmlValidation = {
-		'delivery.email': 'inputmode="email" autocomplete="email" maxlength="254" title="Enter a valid email address."',
-		'delivery.phone': 'inputmode="tel" autocomplete="tel" pattern="\\+?[0-9 ()-]{7,20}" minlength="7" maxlength="20" title="Enter a valid phone number. Use digits, spaces, brackets, hyphens, and an optional leading +."'
+		'delivery.email': 'inputmode="email" autocomplete="email" pattern="[^\\s@]+@[^\\s@]+\\.[^\\s@]+" maxlength="254" title="Enter a valid email address."',
+		'delivery.phone': 'inputmode="tel" autocomplete="tel" pattern="\\+?[0-9][0-9\\s().-]{5,24}" minlength="7" maxlength="25" title="Enter a valid phone number. Use digits, spaces, brackets, hyphens, and an optional leading +."'
 	}[field.name] || '';
 	if (field.type === 'select') {
 		return `<label>

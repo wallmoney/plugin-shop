@@ -97,7 +97,7 @@ function kickerClass(state) {
 }
 
 function inputClass(state, extra = '') {
-	return `w-full rounded-2xl border px-4 py-3 font-normal ${themeClasses(state, 'border-stone-300 bg-stone-50 text-stone-950 placeholder:text-stone-400', 'border-slate-700 bg-slate-950 text-white placeholder:text-slate-500')} ${extra}`;
+	return `w-full rounded-2xl border px-4 py-3 font-normal not-placeholder-shown:invalid:border-red-500 not-placeholder-shown:invalid:ring-1 not-placeholder-shown:invalid:ring-red-500/60 not-placeholder-shown:valid:border-emerald-500 not-placeholder-shown:valid:ring-1 not-placeholder-shown:valid:ring-emerald-500/50 user-invalid:border-red-500 user-invalid:ring-1 user-invalid:ring-red-500/60 user-valid:border-emerald-500 user-valid:ring-1 user-valid:ring-emerald-500/50 ${themeClasses(state, 'border-stone-300 bg-stone-50 text-stone-950 placeholder:text-stone-400', 'border-slate-700 bg-slate-950 text-white placeholder:text-slate-500')} ${extra}`;
 }
 
 function fieldLabelClass(state) {
@@ -191,6 +191,7 @@ function icon(name, size = 18) {
 		building: '<rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/>',
 		check: '<path d="M20 6 9 17l-5-5"/>',
 		externalLink: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+		contextMenu: '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 8h8"/><path d="M8 12h8"/><path d="M8 16h5"/>',
 		mail: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
 		messageCircleQuestionMark: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4"/><path d="M12 17h.01"/>',
 		monitor: '<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>',
@@ -253,7 +254,7 @@ function renderThemeSwitcher(actions, state) {
 		{ id: 'dark', label: 'Dark', icon: 'moon' }
 	];
 	return `<div class="inline-flex items-center gap-0.5 rounded-full border border-slate-500/40 bg-slate-500/10 p-1" role="group" aria-label="Theme">
-		${options.map((option) => `<button type="button" class="inline-flex h-8 w-8 items-center justify-center rounded-full border-0 bg-transparent text-inherit opacity-65 ${state.theme === option.id ? 'bg-white/15 opacity-100' : ''}" title="${escapeHtml(option.label)}" ${actionAttr(actions, stateAction(state, { theme: option.id }))}>${icon(option.icon, 16)}</button>`).join('')}
+		${options.map((option) => `<button type="button" class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent text-inherit opacity-65 ${state.theme === option.id ? 'bg-white/15 opacity-100' : ''}" title="${escapeHtml(option.label)}" ${actionAttr(actions, stateAction(state, { theme: option.id }))}>${icon(option.icon, 16)}</button>`).join('')}
 	</div>`;
 }
 
@@ -261,7 +262,7 @@ function renderShopHeader(actions, state, options = {}) {
 	const title = escapeHtml(SHOP_CONFIG.name);
 	const backAction = options.backAction || shopNavigateAction();
 	return `<header class="${shellClass()} flex items-center justify-between gap-4 px-6 py-5">
-		<button type="button" class="inline-flex items-center gap-3 border-0 bg-transparent text-2xl font-semibold tracking-normal text-inherit" ${actionAttr(actions, shopNavigateAction())}>
+		<button type="button" class="inline-flex cursor-pointer items-center gap-3 border-0 bg-transparent text-2xl font-semibold tracking-normal text-inherit" ${actionAttr(actions, shopNavigateAction())}>
 			${shopLogoMarkup()}
 			<span>${title}</span>
 		</button>

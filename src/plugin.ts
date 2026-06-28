@@ -138,7 +138,6 @@ module.exports = {
 function scheduleLastAddedReset(api, state) {
 	if (!state.lastAddedProductId) return;
 	if (typeof setTimeout !== 'function') return;
-	if (lastAddedResetTimer && lastAddedResetProductId === state.lastAddedProductId) return;
 	if (lastAddedResetTimer) clearTimeout(lastAddedResetTimer);
 	lastAddedResetProductId = state.lastAddedProductId;
 	lastAddedResetTimer = setTimeout(() => {
