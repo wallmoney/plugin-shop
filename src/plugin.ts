@@ -1,7 +1,4 @@
 // @ts-nocheck
-let lastAddedResetTimer = null;
-let lastAddedResetProductId = '';
-
 module.exports = {
 	default: {
 		setup(hostApi) {
@@ -113,7 +110,6 @@ module.exports = {
 		render() {
 			const api = this.hostApi || hostApi;
 			const state = getState(api);
-			scheduleLastAddedReset(api, state);
 			maybeLoadCatalog(api, state);
 			maybeRequestCheckoutEmail(api, state);
 			return {
@@ -126,32 +122,9 @@ module.exports = {
 
 		dispose() {
 			if (typeof this.unsubscribe === 'function') this.unsubscribe();
-			if (lastAddedResetTimer) {
-				clearTimeout(lastAddedResetTimer);
-				lastAddedResetTimer = null;
-				lastAddedResetProductId = '';
-			}
 		}
 	}
 };
-
-function scheduleLastAddedReset(api, state) {
-	if (!state.lastAddedProductId) return;
-	if (typeof setTimeout !== 'function') return;
-	if (lastAddedResetTimer && lastAddedResetProductId === state.lastAddedProductId) return;
-	if (lastAddedResetTimer) clearTimeout(lastAddedResetTimer);
-	lastAddedResetProductId = state.lastAddedProductId;
-	lastAddedResetTimer = setTimeout(() => {
-		const nextState = getState(api);
-		lastAddedResetTimer = null;
-		lastAddedResetProductId = '';
-		if (!nextState.lastAddedProductId) return;
-		saveState(api, {
-			...nextState,
-			lastAddedProductId: ''
-		});
-	}, 1200);
-}
 
 function maybeRequestCheckoutEmail(api, state) {
 	if (state.view !== 'checkout') return;

@@ -53,17 +53,11 @@
 			"description": "Browse shop products and checkout with Wall Money.",
 			"primary": {
 				"label": "Open shop",
-				"action": {
-					"type": "navigate",
-					"href": "/marketplace/wallmoney/plugin-shop"
-				}
+				"href": "/marketplace/wallmoney/plugin-shop"
 			},
 			"secondary": {
 				"label": "Go to cart",
-				"action": {
-					"type": "navigate",
-					"href": "/marketplace/wallmoney/plugin-shop?view=cart"
-				}
+				"href": "/marketplace/wallmoney/plugin-shop?view=cart"
 			}
 		}
 	},

@@ -59,7 +59,7 @@ function renderCart(state) {
 					</div>
 				` : `
 					<div class="p-8 text-center">
-						<p class="font-semibold">Your cart is empty.</p>
+						<p class="mb-4 font-semibold">Your cart is empty.</p>
 						${frameButton(actions, 'Browse products', stateAction(state, { view: 'products', category: 'all', page: 1 }))}
 					</div>
 				`}
