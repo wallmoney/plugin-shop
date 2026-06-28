@@ -17,6 +17,13 @@ try {
 	}
 }
 
+function escapeTemplateLiteralContent(value) {
+	return value
+		.replace(/\\/g, '\\\\')
+		.replace(/`/g, '\\`')
+		.replace(/\$\{/g, '\\${');
+}
+
 if (!sourceFiles.length) {
 	throw new Error('package.json pluginSrc must list plugin source files in execution order.');
 }
@@ -25,7 +32,7 @@ const chunks = await Promise.all(
 	sourceFiles.map(async (file) => {
 		let source = await readFile(join(root, file), 'utf8');
 		if (source.includes(tailwindMarker)) {
-			source = source.replace(tailwindMarker, tailwindCss);
+			source = source.replace(tailwindMarker, escapeTemplateLiteralContent(tailwindCss));
 		}
 		return `// ${file}\n${source.trim()}\n`;
 	})
