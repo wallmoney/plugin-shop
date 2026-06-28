@@ -3,14 +3,12 @@ module.exports = {
 	default: {
 		setup(hostApi) {
 			this.hostApi = hostApi;
-			const initialView = readInitialPluginView();
-			if (initialView) {
+			const initialRoute = readInitialPluginRoute();
+			if (initialRoute) {
 				const state = getState(hostApi);
-				const initialProductId = readInitialProductId(state);
 				saveState(hostApi, {
 					...state,
-					view: initialView,
-					selectedProductId: initialProductId || state.selectedProductId,
+					...resolveInitialPluginRoute(initialRoute, state),
 					lastAddedProductId: ''
 				});
 			}
@@ -166,10 +164,60 @@ function readInitialPluginView() {
 	return ['products', 'product', 'cart', 'checkout', 'orders', 'success', 'failed', 'contact'].includes(view) ? view : null;
 }
 
-function readInitialProductId(state) {
+function readInitialPluginPath() {
 	const context = typeof pluginContext === 'object' && pluginContext ? pluginContext : null;
-	const productId = context && typeof context.initialProductId === 'string'
-		? context.initialProductId.trim()
+	const path = context && typeof context.initialPath === 'string'
+		? context.initialPath.trim()
 		: '';
-	return catalogProducts(state).some((product) => product.id === productId) ? productId : '';
+	return path.replace(/^\/+|\/+$/g, '').split('/').filter(Boolean).map((part) => {
+		try {
+			return decodeURIComponent(part);
+		} catch {
+			return part;
+		}
+	});
+}
+
+function readInitialPluginRoute() {
+	const pathParts = readInitialPluginPath();
+	if (pathParts.length) return { type: 'path', value: pathParts };
+	const view = readInitialPluginView();
+	return view ? { type: 'view', value: view } : { type: 'default' };
+}
+
+function productByPathPart(pathPart, state) {
+	const slug = kebabizePathSegment(pathPart);
+	return catalogProducts(state).find((product) => {
+		return kebabizePathSegment(product.id) === slug;
+	}) || null;
+}
+
+function resolveInitialPluginRoute(route, state) {
+	if (route.type === 'default') {
+		return { view: 'products', category: 'all', page: 1 };
+	}
+	if (route.type === 'view') {
+		return { view: route.value };
+	}
+
+	const pathPart = route.value[0] || '';
+	const product = productByPathPart(pathPart, state);
+	if (product) {
+		return {
+			view: 'product',
+			category: product.category,
+			selectedProductId: product.id,
+			page: 1
+		};
+	}
+
+	const routeSlug = kebabizePathSegment(pathPart);
+	if (['cart', 'checkout', 'orders', 'success', 'failed', 'contact'].includes(routeSlug)) {
+		return { view: routeSlug };
+	}
+	if (routeSlug === 'products' || routeSlug === 'shop') {
+		return { view: 'products', category: 'all', page: 1 };
+	}
+
+	return { view: 'products', category: 'all', page: 1 };
 }

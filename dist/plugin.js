@@ -1165,7 +1165,7 @@ function shopLogoUrl() {
 
 function shopLogoMarkup() {
 	const logo = shopLogoUrl();
-	return logo ? `<img class="wm-logo" src="${escapeHtml(logo)}" alt="" />` : '';
+	return logo ? `<img class="h-8 w-8 rounded-xl object-cover" src="${escapeHtml(logo)}" alt="" />` : '';
 }
 
 function escapeHtml(value) {
@@ -1191,8 +1191,154 @@ function bankNavigateAction() {
 	return { type: 'navigate', href: '/', target: '_self', sameWindow: true };
 }
 
+function kebabizePathSegment(value) {
+	return String(value || '')
+		.trim()
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/^-+|-+$/g, '');
+}
+
+function shopUrl(path = '') {
+	const cleanPath = kebabizePathSegment(path);
+	return `/marketplace/wallmoney/plugin-shop${cleanPath ? `/${encodeURIComponent(cleanPath)}` : ''}`;
+}
+
+function shopNavigateAction(path = '') {
+	return { type: 'navigate', href: shopUrl(path) };
+}
+
 function frameButton(actions, label, action, variant = 'primary', extraClass = '') {
-	return `<button type="button" class="wm-btn wm-btn-${variant} ${extraClass}" ${actionAttr(actions, action)}>${escapeHtml(label)}</button>`;
+	return `<button type="button" class="${buttonClass(variant, extraClass)}" ${actionAttr(actions, action)}>${escapeHtml(label)}</button>`;
+}
+
+function prefixClasses(prefix, classes) {
+	return String(classes || '')
+		.split(/\s+/)
+		.filter(Boolean)
+		.map((item) => `${prefix}:${item}`)
+		.join(' ');
+}
+
+function themeClasses(state, lightClasses, darkClasses) {
+	if (state && state.theme === 'light') return lightClasses;
+	if (state && state.theme === 'dark') return darkClasses;
+	return `${lightClasses} ${prefixClasses('dark', darkClasses)}`;
+}
+
+function shellClass() {
+	return 'mx-auto max-w-[1680px]';
+}
+
+function pageClass(state) {
+	return `block min-h-[max(100vh,100dvh,100svh,820px)] p-5 ${themeClasses(state, 'bg-stone-100 text-stone-950', 'bg-slate-950 text-slate-50')}`;
+}
+
+function shopClass(state) {
+	return `min-h-[max(100vh,100dvh,100svh,820px)] ${themeClasses(state, 'bg-stone-100 text-stone-950', 'bg-slate-950 text-slate-50')}`;
+}
+
+function cardClass(state, extra = '') {
+	return `${themeClasses(state, 'border-stone-200 bg-white text-stone-950 shadow-[0_18px_50px_rgba(28,25,23,.08)]', 'border-slate-700 bg-slate-900 text-slate-50 shadow-none')} rounded-[2rem] border p-5 ${extra}`;
+}
+
+function mutedClass(state, extra = '') {
+	return `${themeClasses(state, 'text-stone-500', 'text-slate-300')} ${extra}`;
+}
+
+function titleClass(extra = '') {
+	return `m-0 text-[clamp(2rem,4vw,3.5rem)] font-bold leading-none tracking-normal ${extra}`;
+}
+
+function kickerClass(state) {
+	return `m-0 text-sm font-medium ${mutedClass(state)}`;
+}
+
+function inputClass(state, extra = '') {
+	return `w-full rounded-2xl border px-4 py-3 font-normal ${themeClasses(state, 'border-stone-300 bg-stone-50 text-stone-950 placeholder:text-stone-400', 'border-slate-700 bg-slate-950 text-white placeholder:text-slate-500')} ${extra}`;
+}
+
+function fieldLabelClass(state) {
+	return `mb-1.5 flex items-center gap-1 text-sm font-semibold ${themeClasses(state, 'text-stone-500', 'text-slate-400')}`;
+}
+
+function warningClass(state) {
+	return `mt-4 rounded-2xl border p-3 font-semibold ${themeClasses(state, 'border-amber-300/70 bg-amber-100 text-amber-950', 'border-amber-500/40 bg-amber-500/15 text-amber-200')}`;
+}
+
+function buttonClass(variant = 'primary', extraClass = '') {
+	const base = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold tracking-normal transition hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-55';
+	const variants = {
+		primary: 'border-0 bg-violet-700 text-white',
+		secondary: 'border border-slate-500/40 bg-transparent text-inherit',
+		ghost: 'border-0 bg-transparent text-inherit',
+		link: 'min-h-0 rounded-md border-0 bg-transparent px-1.5 py-1 text-sm text-slate-400 hover:text-slate-200'
+	};
+	return `${base} ${variants[variant] || variants.primary} ${extraClass}`.trim();
+}
+
+function iconButtonClass(state, extra = '') {
+	return `inline-flex h-11 w-11 items-center justify-center rounded-full border p-0 ${themeClasses(state, 'border-stone-300 bg-white text-stone-800 shadow-[0_10px_30px_rgba(28,25,23,.08)]', 'border-slate-700 bg-slate-900 text-slate-50 shadow-none')} ${extra}`;
+}
+
+function chipClass(state, extra = '') {
+	return `inline-flex min-h-11 items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold ${themeClasses(state, 'border-stone-300 bg-white text-stone-800 shadow-[0_10px_30px_rgba(28,25,23,.08)]', 'border-slate-700 bg-slate-900 text-slate-50 shadow-none')} ${extra}`;
+}
+
+function summaryLineClass() {
+	return 'mt-3 flex justify-between gap-4';
+}
+
+function inlineActionsClass(extra = '') {
+	return `mt-4 flex flex-wrap gap-3 ${extra}`;
+}
+
+function quantityClass(state, extra = '') {
+	return `inline-flex items-center overflow-hidden rounded-full border ${themeClasses(state, 'border-stone-300 bg-stone-100 text-stone-950', 'border-slate-700 bg-slate-800/70 text-slate-50')} ${extra}`;
+}
+
+function quantityButtonClass() {
+	return 'inline-flex items-center justify-center px-3 py-2 text-inherit hover:bg-violet-600/20';
+}
+
+function productMetaClass(state, extra = '') {
+	return `mt-3 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium ${mutedClass(state)} ${extra}`;
+}
+
+function productNameClass(extra = '') {
+	return `mt-1 min-h-10 text-base font-semibold leading-tight ${extra}`;
+}
+
+function productPackClass(state) {
+	return `mt-2 text-sm font-medium ${mutedClass(state)}`;
+}
+
+function productPriceClass(extra = '') {
+	return `mt-2 font-semibold ${extra}`;
+}
+
+function mediaBoxClass(state, extra = '') {
+	return `relative aspect-square overflow-hidden border ${themeClasses(state, 'border-stone-300/70 bg-white shadow-[0_8px_30px_rgba(28,25,23,.08)]', 'border-slate-700 bg-slate-800 shadow-none')} ${extra}`;
+}
+
+function imageClass() {
+	return 'block h-full w-full object-cover';
+}
+
+function emptyIconClass() {
+	return 'flex h-full w-full items-center justify-center text-5xl';
+}
+
+function badgeClass(extra = '') {
+	return `inline-flex rounded-full px-3 py-1 text-xs font-normal backdrop-blur ${extra}`;
+}
+
+function productBadgeClass(index = 0) {
+	return badgeClass(`absolute left-3 ${index ? 'top-12 bg-green-200/50 text-green-950' : 'top-3 bg-white/50 text-stone-950'}`);
+}
+
+function detailBadgeClass(digital = false) {
+	return badgeClass(digital ? 'bg-green-200/50 text-green-950' : 'bg-white/50 text-stone-950');
 }
 
 function icon(name, size = 18) {
@@ -1215,7 +1361,7 @@ function icon(name, size = 18) {
 		trash: '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>',
 		x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'
 	};
-	return `<svg class="wm-svg" ${attrs}>${paths[name] || paths.cart}</svg>`;
+	return `<svg class="inline-block shrink-0" ${attrs}>${paths[name] || paths.cart}</svg>`;
 }
 
 function compactCoreId(value) {
@@ -1252,7 +1398,7 @@ function coreIdenticon(coreId) {
 		if (!fill) continue;
 		cells.push([column, row, fill], [7 - column, row, fill]);
 	}
-	return `<svg class="wm-identicon" viewBox="0 0 64 64" role="img" aria-label="Core ID identicon">
+	return `<svg class="h-full w-full rounded-full" viewBox="0 0 64 64" role="img" aria-label="Core ID identicon">
 		<rect width="64" height="64" rx="16" fill="${background}" />
 		${cells.map(([x, y, fill]) => `<rect x="${x * 8}" y="${y * 8}" width="8" height="8" fill="${fill === 1 ? primary : accent}" />`).join('')}
 	</svg>`;
@@ -1264,25 +1410,25 @@ function renderThemeSwitcher(actions, state) {
 		{ id: 'light', label: 'Light', icon: 'sun' },
 		{ id: 'dark', label: 'Dark', icon: 'moon' }
 	];
-	return `<div class="wm-theme-switch" role="group" aria-label="Theme">
-		${options.map((option) => `<button type="button" class="${state.theme === option.id ? 'is-active' : ''}" title="${escapeHtml(option.label)}" ${actionAttr(actions, stateAction(state, { theme: option.id }))}>${icon(option.icon, 16)}</button>`).join('')}
+	return `<div class="inline-flex items-center gap-0.5 rounded-full border border-slate-500/40 bg-slate-500/10 p-1" role="group" aria-label="Theme">
+		${options.map((option) => `<button type="button" class="inline-flex h-8 w-8 items-center justify-center rounded-full border-0 bg-transparent text-inherit opacity-65 ${state.theme === option.id ? 'bg-white/15 opacity-100' : ''}" title="${escapeHtml(option.label)}" ${actionAttr(actions, stateAction(state, { theme: option.id }))}>${icon(option.icon, 16)}</button>`).join('')}
 	</div>`;
 }
 
 function renderShopHeader(actions, state, options = {}) {
 	const title = escapeHtml(SHOP_CONFIG.name);
-	const backAction = options.backAction || stateAction(state, { view: 'products', category: 'all', page: 1 });
-	return `<header class="wm-header wm-shell">
-		<button type="button" class="wm-brand" ${actionAttr(actions, stateAction(state, { view: 'products', category: 'all', page: 1 }))}>
+	const backAction = options.backAction || shopNavigateAction();
+	return `<header class="${shellClass()} flex items-center justify-between gap-4 px-6 py-5">
+		<button type="button" class="inline-flex items-center gap-3 border-0 bg-transparent text-2xl font-semibold tracking-normal text-inherit" ${actionAttr(actions, shopNavigateAction())}>
 			${shopLogoMarkup()}
 			<span>${title}</span>
 		</button>
-		<div class="wm-actions">
+		<div class="flex items-center gap-3">
 			${renderThemeSwitcher(actions, state)}
-			<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'contact' }))}>${icon('mail', 17)} <span>Contact</span></button>
-			<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'cart' }))}>${icon('cart', 17)} <span>Cart ${cartCount(state)}</span></button>
-			<button type="button" class="wm-icon-btn wm-user-btn" title="Back to bank" ${actionAttr(actions, bankNavigateAction())}>${coreIdenticon(state.coreId)}</button>
-			${options.showBack ? `<button type="button" class="wm-icon-btn" title="Back" ${actionAttr(actions, backAction)}>${icon('arrowLeft', 18)}</button>` : ''}
+			<button type="button" class="${chipClass(state)}" ${actionAttr(actions, shopNavigateAction('contact'))}>${icon('mail', 17)} <span>Contact</span></button>
+			<button type="button" class="${chipClass(state)}" ${actionAttr(actions, shopNavigateAction('cart'))}>${icon('cart', 17)} <span>Cart ${cartCount(state)}</span></button>
+			<button type="button" class="${iconButtonClass(state, 'overflow-hidden')}" title="Back to bank" ${actionAttr(actions, bankNavigateAction())}>${coreIdenticon(state.coreId)}</button>
+			${options.showBack ? `<button type="button" class="${iconButtonClass(state)}" title="Back" ${actionAttr(actions, backAction)}>${icon('arrowLeft', 18)}</button>` : ''}
 		</div>
 	</header>`;
 }
@@ -1296,17 +1442,7 @@ function pluginFrame(title, body, actions, options = {}) {
 		actions,
 		html: `<style>
 			/*! tailwindcss v4.3.1 | MIT License | https://tailwindcss.com */
-@layer properties{@supports (((-webkit-hyphens:none)) and (not (margin-trim:inline))) or ((-moz-orient:inline) and (not (color:rgb(from red r g b)))){*,:before,:after,::backdrop{--tw-border-style:solid;--tw-shadow:0 0 #0000;--tw-shadow-color:initial;--tw-shadow-alpha:100%;--tw-inset-shadow:0 0 #0000;--tw-inset-shadow-color:initial;--tw-inset-shadow-alpha:100%;--tw-ring-color:initial;--tw-ring-shadow:0 0 #0000;--tw-inset-ring-color:initial;--tw-inset-ring-shadow:0 0 #0000;--tw-ring-inset:initial;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-offset-shadow:0 0 #0000;--tw-blur:initial;--tw-brightness:initial;--tw-contrast:initial;--tw-grayscale:initial;--tw-hue-rotate:initial;--tw-invert:initial;--tw-opacity:initial;--tw-saturate:initial;--tw-sepia:initial;--tw-drop-shadow:initial;--tw-drop-shadow-color:initial;--tw-drop-shadow-alpha:100%;--tw-drop-shadow-size:initial}}}.absolute{position:absolute}.relative{position:relative}.static{position:static}.mx-auto{margin-inline:auto}.contents{display:contents}.flex{display:flex}.grid{display:grid}.hidden{display:none}.inline-flex{display:inline-flex}.aspect-square{aspect-ratio:1}.h-full{height:100%}.min-h-screen{min-height:100vh}.w-full{width:100%}.flex-1{flex:1}.shrink-0{flex-shrink:0}.grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.flex-col{flex-direction:column}.place-items-center{place-items:center}.items-center{align-items:center}.items-end{align-items:flex-end}.justify-between{justify-content:space-between}.truncate{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.overflow-hidden{overflow:hidden}.overflow-x-auto{overflow-x:auto}.rounded-\[1\.75rem\]{border-radius:1.75rem}.rounded-\[2rem\]{border-radius:2rem}.rounded-full{border-radius:3.40282e38px}.border{border-style:var(--tw-border-style);border-width:1px}.border-4{border-style:var(--tw-border-style);border-width:4px}.border-t{border-top-style:var(--tw-border-style);border-top-width:1px}.border-b{border-bottom-style:var(--tw-border-style);border-bottom-width:1px}.object-cover{object-fit:cover}.text-center{text-align:center}.text-left{text-align:left}.opacity-0{opacity:0}.opacity-100{opacity:1}.ring-1{--tw-ring-shadow:var(--tw-ring-inset,) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color,currentcolor);box-shadow:var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)}.filter{filter:var(--tw-blur,) var(--tw-brightness,) var(--tw-contrast,) var(--tw-grayscale,) var(--tw-hue-rotate,) var(--tw-invert,) var(--tw-saturate,) var(--tw-sepia,) var(--tw-drop-shadow,)}.transition-opacity{transition-property:opacity;transition-timing-function:var(--tw-ease,ease);transition-duration:var(--tw-duration,0s)}.disabled\:cursor-not-allowed:disabled{cursor:not-allowed}.disabled\:opacity-50:disabled{opacity:.5}@property --tw-border-style{syntax:"*";inherits:false;initial-value:solid}@property --tw-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-shadow-color{syntax:"*";inherits:false}@property --tw-shadow-alpha{syntax:"<percentage>";inherits:false;initial-value:100%}@property --tw-inset-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-inset-shadow-color{syntax:"*";inherits:false}@property --tw-inset-shadow-alpha{syntax:"<percentage>";inherits:false;initial-value:100%}@property --tw-ring-color{syntax:"*";inherits:false}@property --tw-ring-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-inset-ring-color{syntax:"*";inherits:false}@property --tw-inset-ring-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-ring-inset{syntax:"*";inherits:false}@property --tw-ring-offset-width{syntax:"<length>";inherits:false;initial-value:0}@property --tw-ring-offset-color{syntax:"*";inherits:false;initial-value:#fff}@property --tw-ring-offset-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-blur{syntax:"*";inherits:false}@property --tw-brightness{syntax:"*";inherits:false}@property --tw-contrast{syntax:"*";inherits:false}@property --tw-grayscale{syntax:"*";inherits:false}@property --tw-hue-rotate{syntax:"*";inherits:false}@property --tw-invert{syntax:"*";inherits:false}@property --tw-opacity{syntax:"*";inherits:false}@property --tw-saturate{syntax:"*";inherits:false}@property --tw-sepia{syntax:"*";inherits:false}@property --tw-drop-shadow{syntax:"*";inherits:false}@property --tw-drop-shadow-color{syntax:"*";inherits:false}@property --tw-drop-shadow-alpha{syntax:"<percentage>";inherits:false;initial-value:100%}@property --tw-drop-shadow-size{syntax:"*";inherits:false}
-			:root{color-scheme:dark light;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-			:host{display:block;min-height:max(100svh,${minHeight}px);background:#020617}
-			*{box-sizing:border-box}html,body{margin:0;width:100%;min-width:100%;min-height:100%;background:#f6f4ee;color:#0c0a09}html{height:100%}body{overflow-x:hidden;min-height:100vh;min-height:100dvh}button,input,select{font:inherit}button,a[href],select{cursor:pointer}button:disabled{cursor:not-allowed}
-			.wm-shop{min-height:max(100svh,${minHeight}px);background:#f6f4ee;color:#0c0a09}.wm-shell{max-width:1680px;margin:0 auto}.wm-header{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1.25rem 1.5rem}.wm-brand{display:inline-flex;align-items:center;gap:.65rem;border:0;background:transparent;color:inherit;font-size:1.5rem;font-weight:900;letter-spacing:-.03em;cursor:pointer}.wm-logo{width:2rem;height:2rem;border-radius:.75rem;object-fit:cover}.wm-actions{display:flex;align-items:center;gap:.75rem}.wm-icon-btn,.wm-chip{border:1px solid rgba(120,113,108,.25);background:#fff;color:#292524;border-radius:999px;box-shadow:0 10px 30px rgba(28,25,23,.08);font-weight:800}.wm-chip{padding:.6rem 1rem}.wm-layout{display:flex;min-height:max(100svh,${minHeight}px)}.wm-sidebar{width:15rem;flex:0 0 15rem;border-right:1px solid #e7e5e4;background:rgba(251,250,247,.96);padding:1.25rem}.wm-subtitle{margin:.5rem 0 0;color:#57534e;font-size:.9rem;font-weight:650;line-height:1.55}.wm-nav{display:flex;flex-direction:column;gap:.5rem;margin-top:1.5rem}.wm-nav button{border:0;border-radius:1rem;background:transparent;color:#57534e;text-align:left;padding:.85rem 1rem;font-weight:900;cursor:pointer}.wm-nav button.is-active{background:#fff;color:#0c0a09;box-shadow:0 18px 40px rgba(28,25,23,.12)}.wm-main{min-width:0;flex:1;padding:1.5rem 2.5rem}.wm-main-head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;border-bottom:1px solid #e7e5e4;padding-bottom:1.5rem}.wm-kicker{margin:0;color:#78716c;font-size:.9rem;font-weight:750}.wm-title{margin:.25rem 0 0;font-size:clamp(2rem,4vw,3.5rem);line-height:.95;font-weight:950;letter-spacing:-.045em}.wm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2rem 1rem;margin-top:2rem}.wm-product{text-align:left}.wm-product-media{position:relative;aspect-ratio:1;overflow:hidden;border-radius:1.75rem;background:#fff;box-shadow:0 8px 30px rgba(28,25,23,.08);border:1px solid rgba(214,211,209,.7)}.wm-product-media img{width:100%;height:100%;object-fit:cover;display:block}.wm-empty-icon{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:3rem}.wm-badge{position:absolute;left:.75rem;top:.75rem;border-radius:999px;background:rgba(255,255,255,.82);color:#1c1917;padding:.3rem .75rem;font-size:.75rem;font-weight:400;backdrop-filter:blur(8px)}.wm-badge-digital{top:2.75rem;background:rgba(187,247,208,.82);color:#14532d}.wm-product button.wm-product-open{display:block;width:100%;border:0;background:transparent;text-align:left;color:inherit;cursor:pointer}.wm-product-meta{margin:.75rem 0 0;color:#78716c;font-size:.85rem;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wm-product-name{margin:.25rem 0 0;min-height:2.5rem;font-size:1rem;line-height:1.25;font-weight:950}.wm-product-pack,.wm-product-price{margin:.3rem 0 0}.wm-product-pack{color:#78716c;font-size:.85rem;font-weight:750}.wm-product-price{font-weight:950}.wm-btn{min-height:2.65rem;border-radius:999px;padding:.65rem 1rem;border:0;font-size:.9rem;font-weight:950;cursor:pointer;transition:transform .15s ease,background .15s ease}.wm-btn:hover{transform:translateY(-1px)}.wm-btn-primary{background:#6d28d9;color:#fff}.wm-btn-secondary{background:#fff;color:#292524;border:1px solid #d6d3d1}.wm-btn-ghost{background:transparent;color:#57534e}.wm-product>.wm-btn{width:100%;margin-top:.75rem}.wm-page{min-height:max(100svh,${minHeight}px);background:#f6f4ee;padding:1.25rem}.wm-card{background:#fff;border:1px solid #e7e5e4;border-radius:2rem;box-shadow:0 18px 50px rgba(28,25,23,.08);padding:1.25rem}.wm-cart{max-width:48rem;margin:2.5rem auto 0}.wm-row{display:grid;grid-template-columns:7rem minmax(0,1fr) auto;gap:1rem;margin-top:1.25rem}.wm-row-media{aspect-ratio:1;overflow:hidden;border-radius:1.5rem;background:#f5f5f4}.wm-row-media img{width:100%;height:100%;object-fit:cover}.wm-muted{color:#78716c}.wm-total{display:flex;justify-content:space-between;gap:1rem;border-top:1px solid #e7e5e4;margin-top:2rem;padding-top:1.25rem;font-size:1.1rem;font-weight:950}.wm-inline-actions{display:flex;flex-wrap:wrap;gap:.65rem;margin-top:1rem}.wm-qty{display:inline-flex;align-items:center;border:1px solid #d6d3d1;border-radius:999px;background:#fff}.wm-qty button{border:0;background:transparent;padding:.45rem .75rem;font-weight:950;cursor:pointer}.wm-qty span{min-width:2rem;text-align:center;font-weight:900}.wm-detail{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(24rem,.95fr);gap:2rem;max-width:80rem;margin:0 auto;padding:1.5rem}.wm-detail-media{overflow:hidden;border-radius:2.25rem;background:#fff;box-shadow:0 8px 30px rgba(28,25,23,.08);border:1px solid #e7e5e4}.wm-detail-media img{width:100%;aspect-ratio:1;object-fit:cover;display:block}.wm-detail-copy{padding-top:3rem}.wm-price{font-size:2rem;font-weight:950}.wm-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin-top:1.5rem}.wm-input{width:100%;border:1px solid #d6d3d1;background:#fafaf9;border-radius:1rem;padding:.85rem 1rem;font-weight:400;color:#0c0a09}.wm-span-2{grid-column:span 2}.wm-checkout{display:grid;grid-template-columns:minmax(0,1fr) 24rem;gap:1.5rem;max-width:72rem;margin:2.5rem auto 0}.wm-summary-line{display:flex;justify-content:space-between;gap:1rem;margin-top:.75rem}.wm-warning{border:1px solid rgba(245,158,11,.35);background:#fef3c7;color:#78350f;border-radius:1rem;padding:.75rem;margin-top:1rem;font-weight:850}.wm-success{text-align:center;max-width:48rem;margin:4rem auto 0}.wm-success-mark{display:flex;align-items:center;justify-content:center;width:3.5rem;height:3.5rem;margin:0 auto;border-radius:999px;background:#dcfce7;color:#166534;font-size:2rem;font-weight:950}
-			@media (min-width:640px){.wm-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media (min-width:1280px){.wm-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}@media (min-width:1536px){.wm-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
-			@media (prefers-color-scheme:dark){html,body,.wm-shop,.wm-page{background:#020617;color:#f8fafc}.wm-sidebar{background:rgba(15,23,42,.96);border-right-color:#1e293b}.wm-subtitle,.wm-kicker,.wm-product-meta,.wm-product-pack,.wm-muted{color:#cbd5e1}.wm-main-head,.wm-total{border-color:#1e293b}.wm-nav button{color:#cbd5e1}.wm-nav button.is-active{background:#f8fafc;color:#020617}.wm-card,.wm-chip,.wm-icon-btn,.wm-btn-secondary,.wm-qty{background:#0f172a;color:#f8fafc;border-color:#334155;box-shadow:none}.wm-product-media,.wm-detail-media,.wm-row-media{background:#1e293b;border-color:#334155}.wm-input{background:#0f172a;border-color:#334155;color:#fff}.wm-warning{background:rgba(245,158,11,.14);color:#fde68a}}
-			@media (max-width:900px){.wm-layout{display:block}.wm-sidebar{width:auto;border-right:0;border-bottom:1px solid #e7e5e4}.wm-nav{flex-direction:row;overflow-x:auto}.wm-main{padding:1.25rem}.wm-main-head{align-items:flex-start;flex-direction:column}.wm-detail,.wm-checkout{display:block;padding:1.25rem}.wm-detail-copy,.wm-checkout aside{margin-top:1.5rem;padding-top:0}.wm-row{grid-template-columns:5.5rem minmax(0,1fr)}.wm-row>strong{grid-column:2}.wm-form-grid{grid-template-columns:1fr}.wm-span-2{grid-column:auto}}
-			html:has(.wm-theme-light),body:has(.wm-theme-light){background:#f6f4ee;color:#0c0a09}html:has(.wm-theme-dark),body:has(.wm-theme-dark){background:#020617;color:#f8fafc}
-			.wm-theme-light{background:#f6f4ee!important;color:#0c0a09!important}.wm-theme-dark{background:#020617!important;color:#f8fafc!important}.wm-theme-light .wm-sidebar{background:rgba(251,250,247,.96)!important;border-color:#e7e5e4!important}.wm-theme-light .wm-card,.wm-theme-light .wm-chip,.wm-theme-light .wm-icon-btn,.wm-theme-light .wm-btn-secondary,.wm-theme-light .wm-qty{background:#fff!important;color:#292524!important;border-color:#d6d3d1!important}.wm-theme-light .wm-product-media,.wm-theme-light .wm-detail-media,.wm-theme-light .wm-row-media,.wm-theme-light .wm-input{background:#fafaf9!important;color:#0c0a09!important;border-color:#d6d3d1!important}.wm-theme-light .wm-muted,.wm-theme-light .wm-subtitle,.wm-theme-light .wm-kicker,.wm-theme-light .wm-product-meta,.wm-theme-light .wm-product-pack{color:#6b7280!important}.wm-theme-dark .wm-sidebar{background:rgba(15,23,42,.96)!important;border-color:#1e293b!important}.wm-theme-dark .wm-card,.wm-theme-dark .wm-chip,.wm-theme-dark .wm-icon-btn,.wm-theme-dark .wm-btn-secondary,.wm-theme-dark .wm-qty{background:#0f172a!important;color:#f8fafc!important;border-color:#334155!important}.wm-theme-dark .wm-product-media,.wm-theme-dark .wm-detail-media,.wm-theme-dark .wm-row-media,.wm-theme-dark .wm-input{background:#1e293b!important;color:#fff!important;border-color:#334155!important}.wm-theme-dark .wm-muted,.wm-theme-dark .wm-subtitle,.wm-theme-dark .wm-kicker,.wm-theme-dark .wm-product-meta,.wm-theme-dark .wm-product-pack{color:#cbd5e1!important}.wm-svg{display:inline-block;flex:0 0 auto}.wm-identicon{width:100%;height:100%;border-radius:999px}.wm-user-btn{overflow:hidden;border-radius:999px}.wm-brand,.wm-title,.wm-product-name,.wm-btn,.wm-chip,.wm-icon-btn,.wm-nav button,.wm-product-price,.wm-price,.wm-total,.wm-qty span{font-weight:650;letter-spacing:0}.wm-title{font-weight:750}.wm-product-meta,.wm-product-pack,.wm-muted,.wm-subtitle,.wm-kicker{font-weight:500}.wm-product-card{display:block;width:100%;padding:0;border:0;background:transparent;color:inherit;text-align:left;transition:transform .16s ease}.wm-product-card:hover{transform:translateY(-3px)}.wm-product-card:hover .wm-product-media{border-color:#7c3aed!important;box-shadow:0 18px 44px rgba(15,23,42,.2)}.wm-product-media,.wm-detail-media{cursor:pointer}.wm-product-media{transition:border-color .16s ease,box-shadow .16s ease}.wm-theme-switch{display:inline-flex;align-items:center;gap:.15rem;border:1px solid rgba(148,163,184,.35);background:rgba(148,163,184,.12);border-radius:999px;padding:.2rem}.wm-theme-switch button{display:inline-flex;align-items:center;justify-content:center;width:2rem;height:2rem;border:0;border-radius:999px;background:transparent;color:inherit;opacity:.65;cursor:pointer}.wm-theme-switch button.is-active{background:rgba(255,255,255,.14);opacity:1}.wm-icon-btn{display:inline-flex;align-items:center;justify-content:center;width:2.7rem;height:2.7rem;padding:0}.wm-chip{display:inline-flex;align-items:center;gap:.45rem;cursor:pointer}.wm-qty{background:rgba(148,163,184,.11)}.wm-qty button{display:inline-flex;align-items:center;justify-content:center;color:inherit;cursor:pointer}.wm-qty button:hover{background:rgba(124,58,237,.16)}.wm-btn-link{min-height:auto;padding:.2rem .35rem;border-radius:.45rem;background:transparent!important;color:#94a3b8!important;font-size:.85rem}.wm-btn-success{background:#059669!important;color:#fff!important}.wm-product-add{display:flex;align-items:center;justify-content:center;position:relative;text-align:center}.wm-add-added{display:none}.wm-is-added{animation:wm-added-bg 1.6s ease both}.wm-is-added .wm-add-default{animation:wm-added-default-text 1.6s ease both}.wm-is-added .wm-add-added{display:inline;position:absolute;inset:auto;animation:wm-added-text 1.6s ease both}@keyframes wm-added-bg{0%,72%{background:#059669;color:#fff}}@keyframes wm-added-text{0%,72%{opacity:1}100%{opacity:0}}@keyframes wm-added-default-text{0%,72%{opacity:0}100%{opacity:1}}.wm-detail-badges{display:flex;flex-wrap:wrap;gap:.5rem;margin:1rem 0 0}.wm-detail-badges .wm-badge{position:static;display:inline-flex}.wm-detail-badges .wm-badge-digital{top:auto}.wm-cart-actions{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-top:1rem}.wm-cart-right{display:flex;flex-wrap:wrap;gap:.65rem;justify-content:flex-end}.wm-pay-btn[disabled]{opacity:.55;transform:none!important}.wm-field-label{display:flex;align-items:center;gap:.25rem;margin-bottom:.4rem;color:#94a3b8;font-size:.85rem;font-weight:600}.wm-required{color:#ef4444}.wm-required-note{margin:1rem 0 0;color:#94a3b8;font-size:.82rem}.wm-coreid{overflow-wrap:anywhere;word-break:break-word;letter-spacing:.03em}.wm-checkbox{display:inline-flex;align-items:center;gap:.5rem;color:inherit;font-weight:500}.wm-checkbox input{width:1rem;height:1rem;accent-color:#7c3aed}.wm-form-actions-top{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem;margin-top:1rem}.wm-saved-select{min-width:min(100%,18rem)}.wm-saved{margin-top:1rem;border:1px solid rgba(148,163,184,.35);border-radius:1rem;background:rgba(148,163,184,.1);overflow:hidden}.wm-saved summary{padding:.85rem 1rem;cursor:pointer;font-weight:650}.wm-saved-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem;align-items:center;border-top:1px solid rgba(148,163,184,.25);padding:.65rem}.wm-saved-title{font-weight:650}.wm-saved-sub{display:block;margin:.15rem 0 0;color:#94a3b8;font-size:.8rem}.wm-summary-core{max-width:100%;overflow-wrap:anywhere}.wm-fail-mark{background:#fee2e2;color:#991b1b}.wm-form-grid label[hidden]{display:none}
-			.wm-qty{overflow:hidden}.wm-qty button:first-child{border-radius:999px 0 0 999px}.wm-qty button:last-child{border-radius:0 999px 999px 0}.wm-badge{background:rgba(255,255,255,.5)!important}.wm-badge-digital{background:rgba(187,247,208,.5)!important}.wm-add-added{display:inline;position:absolute;opacity:0}.wm-is-added{animation:wm-added-bg 1.6s ease}.wm-is-added .wm-add-default{animation:wm-added-default-text 1.6s ease}.wm-is-added .wm-add-added{display:inline;position:absolute;opacity:0;animation:wm-added-text 1.6s ease}.wm-checkbox{border:0!important;background:transparent!important;box-shadow:none!important;padding:.2rem 0;color:inherit}.wm-checkbox input{background:transparent}.wm-contact-topic{display:block;max-width:28rem;margin-top:1.5rem}.wm-contact-compose{display:inline-flex;align-items:center;justify-content:center;gap:.65rem;width:100%;max-width:18rem;margin-top:1rem}.wm-contact-value{display:inline-flex;align-items:center;justify-content:flex-end;gap:.55rem;border:0;background:transparent;color:inherit;text-align:right;font:inherit;font-weight:500;cursor:pointer}.wm-contact-text{font-weight:600}.wm-contact-value:hover{text-decoration:underline}.wm-contact-layout .wm-summary-line{align-items:center}.wm-link-text{display:inline-flex;border:0;background:transparent;color:inherit;padding:0;cursor:pointer}.wm-link-text:hover{text-decoration:underline}.wm-sku-small{margin:.45rem 0 0;color:#94a3b8;font-size:.78rem;font-weight:400;letter-spacing:.02em}.wm-product-tools{display:flex;flex-wrap:wrap;align-items:center;gap:.55rem;margin:0 0 1rem}.wm-product-tools .wm-sku-small{margin:0}.wm-sku-copy{border:0;background:transparent;color:#94a3b8;padding:0;font-size:.78rem;font-weight:400;cursor:pointer}.wm-sku-copy:hover{text-decoration:underline}.wm-tool-link{display:inline-flex;align-items:center;gap:.35rem;color:#94a3b8!important}.wm-detail-copy .wm-price{margin:1.75rem 0 2rem}.wm-detail-field{margin:0 0 1rem}.wm-detail-field-label{margin:0 0 .55rem;color:#94a3b8;font-size:.85rem;font-weight:650}.wm-detail-field-value{margin:0;color:inherit;font-size:.95rem;font-weight:500}.wm-detail-actions{margin-top:1rem}.wm-cart-actions-top{justify-content:flex-end;margin:.9rem 0 0}@media (max-width:900px){.wm-contact-compose{max-width:none}.wm-contact-value{max-width:100%;flex-wrap:wrap}.wm-product-tools{align-items:flex-start;flex-direction:column}.wm-cart-actions-top{justify-content:stretch}.wm-cart-actions-top .wm-cart-right{width:100%;justify-content:stretch}.wm-cart-actions-top .wm-btn{flex:1}}
+@layer properties{@supports (((-webkit-hyphens:none)) and (not (margin-trim:inline))) or ((-moz-orient:inline) and (not (color:rgb(from red r g b)))){*,:before,:after,::backdrop{--tw-space-y-reverse:0;--tw-border-style:solid;--tw-leading:initial;--tw-font-weight:initial;--tw-tracking:initial;--tw-shadow:0 0 #0000;--tw-shadow-color:initial;--tw-shadow-alpha:100%;--tw-inset-shadow:0 0 #0000;--tw-inset-shadow-color:initial;--tw-inset-shadow-alpha:100%;--tw-ring-color:initial;--tw-ring-shadow:0 0 #0000;--tw-inset-ring-color:initial;--tw-inset-ring-shadow:0 0 #0000;--tw-ring-inset:initial;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-offset-shadow:0 0 #0000;--tw-blur:initial;--tw-brightness:initial;--tw-contrast:initial;--tw-grayscale:initial;--tw-hue-rotate:initial;--tw-invert:initial;--tw-opacity:initial;--tw-saturate:initial;--tw-sepia:initial;--tw-drop-shadow:initial;--tw-drop-shadow-color:initial;--tw-drop-shadow-alpha:100%;--tw-drop-shadow-size:initial;--tw-backdrop-blur:initial;--tw-backdrop-brightness:initial;--tw-backdrop-contrast:initial;--tw-backdrop-grayscale:initial;--tw-backdrop-hue-rotate:initial;--tw-backdrop-invert:initial;--tw-backdrop-opacity:initial;--tw-backdrop-saturate:initial;--tw-backdrop-sepia:initial;--tw-translate-x:0;--tw-translate-y:0;--tw-translate-z:0}}}@layer theme{:root,:host{--font-sans:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";--font-mono:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;--color-red-100:oklch(93.6% .032 17.717);--color-red-500:oklch(63.7% .237 25.331);--color-red-800:oklch(44.4% .177 26.899);--color-amber-100:oklch(96.2% .059 95.617);--color-amber-200:oklch(92.4% .12 95.746);--color-amber-300:oklch(87.9% .169 91.605);--color-amber-400:oklch(82.8% .189 84.429);--color-amber-500:oklch(76.9% .188 70.08);--color-amber-900:oklch(41.4% .112 45.904);--color-amber-950:oklch(27.9% .077 45.635);--color-green-100:oklch(96.2% .044 156.743);--color-green-200:oklch(92.5% .084 155.995);--color-green-800:oklch(44.8% .119 151.328);--color-green-950:oklch(26.6% .065 152.934);--color-emerald-100:oklch(95% .052 163.051);--color-emerald-600:oklch(59.6% .145 163.225);--color-emerald-800:oklch(43.2% .095 166.913);--color-violet-400:oklch(70.2% .183 293.541);--color-violet-600:oklch(54.1% .281 293.009);--color-violet-700:oklch(49.1% .27 292.581);--color-slate-50:oklch(98.4% .003 247.858);--color-slate-100:oklch(96.8% .007 247.896);--color-slate-200:oklch(92.9% .013 255.508);--color-slate-300:oklch(86.9% .022 252.894);--color-slate-400:oklch(70.4% .04 256.788);--color-slate-500:oklch(55.4% .046 257.417);--color-slate-600:oklch(44.6% .043 257.281);--color-slate-700:oklch(37.2% .044 257.287);--color-slate-800:oklch(27.9% .041 260.031);--color-slate-900:oklch(20.8% .042 265.755);--color-slate-950:oklch(12.9% .042 264.695);--color-stone-50:oklch(98.5% .001 106.423);--color-stone-100:oklch(97% .001 106.424);--color-stone-200:oklch(92.3% .003 48.717);--color-stone-300:oklch(86.9% .005 56.366);--color-stone-400:oklch(70.9% .01 56.259);--color-stone-500:oklch(55.3% .013 58.071);--color-stone-700:oklch(37.4% .01 67.558);--color-stone-800:oklch(26.8% .007 34.298);--color-stone-900:oklch(21.6% .006 56.043);--color-stone-950:oklch(14.7% .004 49.25);--color-white:#fff;--spacing:.25rem;--container-sm:24rem;--container-md:28rem;--container-3xl:48rem;--container-5xl:64rem;--container-6xl:72rem;--container-7xl:80rem;--text-xs:.75rem;--text-xs--line-height:calc(1 / .75);--text-sm:.875rem;--text-sm--line-height:calc(1.25 / .875);--text-base:1rem;--text-base--line-height:calc(1.5 / 1);--text-lg:1.125rem;--text-lg--line-height:calc(1.75 / 1.125);--text-xl:1.25rem;--text-xl--line-height:calc(1.75 / 1.25);--text-2xl:1.5rem;--text-2xl--line-height:calc(2 / 1.5);--text-3xl:1.875rem;--text-3xl--line-height:calc(2.25 / 1.875);--text-4xl:2.25rem;--text-4xl--line-height:calc(2.5 / 2.25);--text-5xl:3rem;--text-5xl--line-height:1;--font-weight-normal:400;--font-weight-medium:500;--font-weight-semibold:600;--font-weight-bold:700;--font-weight-black:900;--tracking-tight:-.025em;--tracking-normal:0em;--tracking-wide:.025em;--leading-tight:1.25;--radius-md:.375rem;--radius-xl:.75rem;--radius-2xl:1rem;--radius-3xl:1.5rem;--animate-spin:spin 1s linear infinite;--animate-ping:ping 1s cubic-bezier(0, 0, .2, 1) infinite;--default-transition-duration:.15s;--default-transition-timing-function:cubic-bezier(.4, 0, .2, 1);--default-font-family:var(--font-sans);--default-mono-font-family:var(--font-mono)}}@layer base{*,:after,:before,::backdrop{box-sizing:border-box;border:0 solid;margin:0;padding:0}::file-selector-button{box-sizing:border-box;border:0 solid;margin:0;padding:0}html,:host{-webkit-text-size-adjust:100%;tab-size:4;line-height:1.5;font-family:var(--default-font-family,ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji");font-feature-settings:var(--default-font-feature-settings,normal);font-variation-settings:var(--default-font-variation-settings,normal);-webkit-tap-highlight-color:transparent}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;-webkit-text-decoration:inherit;-webkit-text-decoration:inherit;-webkit-text-decoration:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,samp,pre{font-family:var(--default-mono-font-family,ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);font-feature-settings:var(--default-mono-font-feature-settings,normal);font-variation-settings:var(--default-mono-font-variation-settings,normal);font-size:1em}small{font-size:80%}sub,sup{vertical-align:baseline;font-size:75%;line-height:0;position:relative}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}:-moz-focusring{outline:auto}progress{vertical-align:baseline}summary{display:list-item}ol,ul,menu{list-style:none}img,svg,video,canvas,audio,iframe,embed,object{vertical-align:middle;display:block}img,video{max-width:100%;height:auto}button,input,select,optgroup,textarea{font:inherit;font-feature-settings:inherit;font-variation-settings:inherit;letter-spacing:inherit;color:inherit;opacity:1;background-color:#0000;border-radius:0}::file-selector-button{font:inherit;font-feature-settings:inherit;font-variation-settings:inherit;letter-spacing:inherit;color:inherit;opacity:1;background-color:#0000;border-radius:0}:where(select:is([multiple],[size])) optgroup{font-weight:bolder}:where(select:is([multiple],[size])) optgroup option{padding-inline-start:20px}::file-selector-button{margin-inline-end:4px}::placeholder{opacity:1}@supports (not ((-webkit-appearance:-apple-pay-button))) or (contain-intrinsic-size:1px){::placeholder{color:currentColor}@supports (color:color-mix(in lab, red, red)){::placeholder{color:color-mix(in oklab, currentcolor 50%, transparent)}}}textarea{resize:vertical}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-date-and-time-value{min-height:1lh;text-align:inherit}::-webkit-datetime-edit{display:inline-flex}::-webkit-datetime-edit-fields-wrapper{padding:0}::-webkit-datetime-edit{padding-block:0}::-webkit-datetime-edit-year-field{padding-block:0}::-webkit-datetime-edit-month-field{padding-block:0}::-webkit-datetime-edit-day-field{padding-block:0}::-webkit-datetime-edit-hour-field{padding-block:0}::-webkit-datetime-edit-minute-field{padding-block:0}::-webkit-datetime-edit-second-field{padding-block:0}::-webkit-datetime-edit-millisecond-field{padding-block:0}::-webkit-datetime-edit-meridiem-field{padding-block:0}::-webkit-calendar-picker-indicator{line-height:1}:-moz-ui-invalid{box-shadow:none}button,input:where([type=button],[type=reset],[type=submit]){appearance:button}::file-selector-button{appearance:button}::-webkit-inner-spin-button{height:auto}::-webkit-outer-spin-button{height:auto}[hidden]:where(:not([hidden=until-found])){display:none!important}}@layer components;@layer utilities{.absolute{position:absolute}.relative{position:relative}.static{position:static}.inset-0{inset:0}.top-3{top:calc(var(--spacing) * 3)}.top-12{top:calc(var(--spacing) * 12)}.left-3{left:calc(var(--spacing) * 3)}.col-span-2{grid-column:span 2/span 2}.m-0{margin:0}.mx-auto{margin-inline:auto}.my-8{margin-block:calc(var(--spacing) * 8)}.ms-2{margin-inline-start:calc(var(--spacing) * 2)}.mt-0{margin-top:0}.mt-1{margin-top:var(--spacing)}.mt-2{margin-top:calc(var(--spacing) * 2)}.mt-3{margin-top:calc(var(--spacing) * 3)}.mt-4{margin-top:calc(var(--spacing) * 4)}.mt-5{margin-top:calc(var(--spacing) * 5)}.mt-6{margin-top:calc(var(--spacing) * 6)}.mt-8{margin-top:calc(var(--spacing) * 8)}.mt-10{margin-top:calc(var(--spacing) * 10)}.mt-16{margin-top:calc(var(--spacing) * 16)}.mb-1{margin-bottom:var(--spacing)}.mb-1\.5{margin-bottom:calc(var(--spacing) * 1.5)}.mb-2{margin-bottom:calc(var(--spacing) * 2)}.mb-4{margin-bottom:calc(var(--spacing) * 4)}.mb-5{margin-bottom:calc(var(--spacing) * 5)}.block{display:block}.contents{display:contents}.flex{display:flex}.grid{display:grid}.hidden{display:none}.inline-block{display:inline-block}.inline-flex{display:inline-flex}.table{display:table}.aspect-square{aspect-ratio:1}.h-4{height:calc(var(--spacing) * 4)}.h-8{height:calc(var(--spacing) * 8)}.h-11{height:calc(var(--spacing) * 11)}.h-14{height:calc(var(--spacing) * 14)}.h-\[max\(100vh\,100dvh\,100svh\,820px\)\]{height:max(100vh,100dvh,100svh,820px)}.h-full{height:100%}.min-h-0{min-height:0}.min-h-10{min-height:calc(var(--spacing) * 10)}.min-h-11{min-height:calc(var(--spacing) * 11)}.min-h-12{min-height:calc(var(--spacing) * 12)}.min-h-\[max\(100vh\,100dvh\,100svh\,820px\)\]{min-height:max(100vh,100dvh,100svh,820px)}.min-h-screen{min-height:100vh}.w-4{width:calc(var(--spacing) * 4)}.w-8{width:calc(var(--spacing) * 8)}.w-11{width:calc(var(--spacing) * 11)}.w-14{width:calc(var(--spacing) * 14)}.w-60{width:calc(var(--spacing) * 60)}.w-full{width:100%}.max-w-3xl{max-width:var(--container-3xl)}.max-w-5xl{max-width:var(--container-5xl)}.max-w-6xl{max-width:var(--container-6xl)}.max-w-7xl{max-width:var(--container-7xl)}.max-w-72{max-width:calc(var(--spacing) * 72)}.max-w-\[1680px\]{max-width:1680px}.max-w-md{max-width:var(--container-md)}.max-w-sm{max-width:var(--container-sm)}.min-w-0{min-width:0}.min-w-8{min-width:calc(var(--spacing) * 8)}.min-w-10{min-width:calc(var(--spacing) * 10)}.min-w-\[min\(100\%\,18rem\)\]{min-width:min(100%,18rem)}.flex-1{flex:1}.shrink-0{flex-shrink:0}.animate-ping{animation:var(--animate-ping)}.animate-spin{animation:var(--animate-spin)}.cursor-pointer{cursor:pointer}.grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-cols-\[7rem_minmax\(0\,1fr\)_auto\]{grid-template-columns:7rem minmax(0,1fr) auto}.grid-cols-\[minmax\(0\,1\.05fr\)_minmax\(24rem\,\.95fr\)\]{grid-template-columns:minmax(0,1.05fr) minmax(24rem,.95fr)}.grid-cols-\[minmax\(0\,1fr\)_24rem\]{grid-template-columns:minmax(0,1fr) 24rem}.grid-cols-\[minmax\(0\,1fr\)_auto\]{grid-template-columns:minmax(0,1fr) auto}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.place-items-center{place-items:center}.items-center{align-items:center}.items-end{align-items:flex-end}.justify-between{justify-content:space-between}.justify-center{justify-content:center}.justify-end{justify-content:flex-end}.justify-start{justify-content:flex-start}.gap-0{gap:0}.gap-0\.5{gap:calc(var(--spacing) * .5)}.gap-1{gap:var(--spacing)}.gap-2{gap:calc(var(--spacing) * 2)}.gap-3{gap:calc(var(--spacing) * 3)}.gap-4{gap:calc(var(--spacing) * 4)}.gap-6{gap:calc(var(--spacing) * 6)}.gap-8{gap:calc(var(--spacing) * 8)}:where(.space-y-5>:not(:last-child)){--tw-space-y-reverse:0;margin-block-start:calc(calc(var(--spacing) * 5) * var(--tw-space-y-reverse));margin-block-end:calc(calc(var(--spacing) * 5) * calc(1 - var(--tw-space-y-reverse)))}.gap-x-4{column-gap:calc(var(--spacing) * 4)}.gap-y-8{row-gap:calc(var(--spacing) * 8)}.truncate{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.overflow-hidden{overflow:hidden}.overflow-x-auto{overflow-x:auto}.overflow-y-auto{overflow-y:auto}.overscroll-contain{overscroll-behavior:contain}.rounded-2xl{border-radius:var(--radius-2xl)}.rounded-3xl{border-radius:var(--radius-3xl)}.rounded-\[1\.75rem\]{border-radius:1.75rem}.rounded-\[2\.25rem\]{border-radius:2.25rem}.rounded-\[2rem\]{border-radius:2rem}.rounded-full{border-radius:3.40282e38px}.rounded-md{border-radius:var(--radius-md)}.rounded-xl{border-radius:var(--radius-xl)}.border{border-style:var(--tw-border-style);border-width:1px}.border-0{border-style:var(--tw-border-style);border-width:0}.border-4{border-style:var(--tw-border-style);border-width:4px}.border-t{border-top-style:var(--tw-border-style);border-top-width:1px}.border-r{border-right-style:var(--tw-border-style);border-right-width:1px}.border-b{border-bottom-style:var(--tw-border-style);border-bottom-width:1px}.border-amber-300{border-color:var(--color-amber-300)}.border-amber-300\/70{border-color:#ffd236b3}@supports (color:color-mix(in lab, red, red)){.border-amber-300\/70{border-color:color-mix(in oklab, var(--color-amber-300) 70%, transparent)}}.border-amber-500{border-color:var(--color-amber-500)}.border-amber-500\/40{border-color:#f99c0066}@supports (color:color-mix(in lab, red, red)){.border-amber-500\/40{border-color:color-mix(in oklab, var(--color-amber-500) 40%, transparent)}}.border-emerald-600{border-color:var(--color-emerald-600)}.border-slate-500{border-color:var(--color-slate-500)}.border-slate-500\/25{border-color:#62748e40}@supports (color:color-mix(in lab, red, red)){.border-slate-500\/25{border-color:color-mix(in oklab, var(--color-slate-500) 25%, transparent)}}.border-slate-500\/40{border-color:#62748e66}@supports (color:color-mix(in lab, red, red)){.border-slate-500\/40{border-color:color-mix(in oklab, var(--color-slate-500) 40%, transparent)}}.border-slate-700{border-color:var(--color-slate-700)}.border-slate-800{border-color:var(--color-slate-800)}.border-stone-200{border-color:var(--color-stone-200)}.border-stone-300{border-color:var(--color-stone-300)}.border-stone-300\/70{border-color:#d6d3d1b3}@supports (color:color-mix(in lab, red, red)){.border-stone-300\/70{border-color:color-mix(in oklab, var(--color-stone-300) 70%, transparent)}}.border-stone-950{border-color:var(--color-stone-950)}.border-t-violet-600{border-top-color:var(--color-violet-600)}.bg-amber-100{background-color:var(--color-amber-100)}.bg-amber-500{background-color:var(--color-amber-500)}.bg-amber-500\/15{background-color:#f99c0026}@supports (color:color-mix(in lab, red, red)){.bg-amber-500\/15{background-color:color-mix(in oklab, var(--color-amber-500) 15%, transparent)}}.bg-emerald-100{background-color:var(--color-emerald-100)}.bg-emerald-600{background-color:var(--color-emerald-600)}.bg-green-100{background-color:var(--color-green-100)}.bg-green-200{background-color:var(--color-green-200)}.bg-green-200\/50{background-color:#b9f8cf80}@supports (color:color-mix(in lab, red, red)){.bg-green-200\/50{background-color:color-mix(in oklab, var(--color-green-200) 50%, transparent)}}.bg-red-100{background-color:var(--color-red-100)}.bg-slate-50{background-color:var(--color-slate-50)}.bg-slate-500{background-color:var(--color-slate-500)}.bg-slate-500\/10{background-color:#62748e1a}@supports (color:color-mix(in lab, red, red)){.bg-slate-500\/10{background-color:color-mix(in oklab, var(--color-slate-500) 10%, transparent)}}.bg-slate-800{background-color:var(--color-slate-800)}.bg-slate-800\/70{background-color:#1d293db3}@supports (color:color-mix(in lab, red, red)){.bg-slate-800\/70{background-color:color-mix(in oklab, var(--color-slate-800) 70%, transparent)}}.bg-slate-900{background-color:var(--color-slate-900)}.bg-slate-900\/95{background-color:#0f172bf2}@supports (color:color-mix(in lab, red, red)){.bg-slate-900\/95{background-color:color-mix(in oklab, var(--color-slate-900) 95%, transparent)}}.bg-slate-950{background-color:var(--color-slate-950)}.bg-stone-50{background-color:var(--color-stone-50)}.bg-stone-50\/95{background-color:#fafaf9f2}@supports (color:color-mix(in lab, red, red)){.bg-stone-50\/95{background-color:color-mix(in oklab, var(--color-stone-50) 95%, transparent)}}.bg-stone-100{background-color:var(--color-stone-100)}.bg-stone-950{background-color:var(--color-stone-950)}.bg-transparent{background-color:#0000}.bg-violet-600{background-color:var(--color-violet-600)}.bg-violet-700{background-color:var(--color-violet-700)}.bg-white{background-color:var(--color-white)}.bg-white\/15{background-color:#ffffff26}@supports (color:color-mix(in lab, red, red)){.bg-white\/15{background-color:color-mix(in oklab, var(--color-white) 15%, transparent)}}.bg-white\/50{background-color:#ffffff80}@supports (color:color-mix(in lab, red, red)){.bg-white\/50{background-color:color-mix(in oklab, var(--color-white) 50%, transparent)}}.object-cover{object-fit:cover}.p-0{padding:0}.p-1{padding:var(--spacing)}.p-3{padding:calc(var(--spacing) * 3)}.p-4{padding:calc(var(--spacing) * 4)}.p-5{padding:calc(var(--spacing) * 5)}.p-6{padding:calc(var(--spacing) * 6)}.p-8{padding:calc(var(--spacing) * 8)}.px-1{padding-inline:var(--spacing)}.px-1\.5{padding-inline:calc(var(--spacing) * 1.5)}.px-2{padding-inline:calc(var(--spacing) * 2)}.px-3{padding-inline:calc(var(--spacing) * 3)}.px-4{padding-inline:calc(var(--spacing) * 4)}.px-5{padding-inline:calc(var(--spacing) * 5)}.px-6{padding-inline:calc(var(--spacing) * 6)}.px-10{padding-inline:calc(var(--spacing) * 10)}.py-0{padding-block:0}.py-0\.5{padding-block:calc(var(--spacing) * .5)}.py-1{padding-block:var(--spacing)}.py-1\.5{padding-block:calc(var(--spacing) * 1.5)}.py-2{padding-block:calc(var(--spacing) * 2)}.py-2\.5{padding-block:calc(var(--spacing) * 2.5)}.py-3{padding-block:calc(var(--spacing) * 3)}.py-5{padding-block:calc(var(--spacing) * 5)}.py-6{padding-block:calc(var(--spacing) * 6)}.pt-5{padding-top:calc(var(--spacing) * 5)}.pt-6{padding-top:calc(var(--spacing) * 6)}.pt-12{padding-top:calc(var(--spacing) * 12)}.pb-6{padding-bottom:calc(var(--spacing) * 6)}.text-center{text-align:center}.text-left{text-align:left}.text-right{text-align:right}.text-2xl{font-size:var(--text-2xl);line-height:var(--tw-leading,var(--text-2xl--line-height))}.text-3xl{font-size:var(--text-3xl);line-height:var(--tw-leading,var(--text-3xl--line-height))}.text-4xl{font-size:var(--text-4xl);line-height:var(--tw-leading,var(--text-4xl--line-height))}.text-5xl{font-size:var(--text-5xl);line-height:var(--tw-leading,var(--text-5xl--line-height))}.text-base{font-size:var(--text-base);line-height:var(--tw-leading,var(--text-base--line-height))}.text-lg{font-size:var(--text-lg);line-height:var(--tw-leading,var(--text-lg--line-height))}.text-sm{font-size:var(--text-sm);line-height:var(--tw-leading,var(--text-sm--line-height))}.text-xl{font-size:var(--text-xl);line-height:var(--tw-leading,var(--text-xl--line-height))}.text-xs{font-size:var(--text-xs);line-height:var(--tw-leading,var(--text-xs--line-height))}.text-\[clamp\(2rem\,4vw\,3\.5rem\)\]{font-size:clamp(2rem,4vw,3.5rem)}.leading-5{--tw-leading:calc(var(--spacing) * 5);line-height:calc(var(--spacing) * 5)}.leading-6{--tw-leading:calc(var(--spacing) * 6);line-height:calc(var(--spacing) * 6)}.leading-8{--tw-leading:calc(var(--spacing) * 8);line-height:calc(var(--spacing) * 8)}.leading-none{--tw-leading:1;line-height:1}.leading-tight{--tw-leading:var(--leading-tight);line-height:var(--leading-tight)}.font-black{--tw-font-weight:var(--font-weight-black);font-weight:var(--font-weight-black)}.font-bold{--tw-font-weight:var(--font-weight-bold);font-weight:var(--font-weight-bold)}.font-medium{--tw-font-weight:var(--font-weight-medium);font-weight:var(--font-weight-medium)}.font-normal{--tw-font-weight:var(--font-weight-normal);font-weight:var(--font-weight-normal)}.font-semibold{--tw-font-weight:var(--font-weight-semibold);font-weight:var(--font-weight-semibold)}.tracking-normal{--tw-tracking:var(--tracking-normal);letter-spacing:var(--tracking-normal)}.tracking-tight{--tw-tracking:var(--tracking-tight);letter-spacing:var(--tracking-tight)}.tracking-wide{--tw-tracking:var(--tracking-wide);letter-spacing:var(--tracking-wide)}.break-words{overflow-wrap:break-word}.text-ellipsis{text-overflow:ellipsis}.whitespace-nowrap{white-space:nowrap}.text-amber-200{color:var(--color-amber-200)}.text-amber-900{color:var(--color-amber-900)}.text-amber-950{color:var(--color-amber-950)}.text-emerald-800{color:var(--color-emerald-800)}.text-green-800{color:var(--color-green-800)}.text-green-950{color:var(--color-green-950)}.text-inherit{color:inherit}.text-red-500{color:var(--color-red-500)}.text-red-800{color:var(--color-red-800)}.text-slate-50{color:var(--color-slate-50)}.text-slate-300{color:var(--color-slate-300)}.text-slate-400{color:var(--color-slate-400)}.text-slate-950{color:var(--color-slate-950)}.text-stone-500{color:var(--color-stone-500)}.text-stone-700{color:var(--color-stone-700)}.text-stone-800{color:var(--color-stone-800)}.text-stone-900{color:var(--color-stone-900)}.text-stone-950{color:var(--color-stone-950)}.text-white{color:var(--color-white)}.accent-violet-600{accent-color:var(--color-violet-600)}.opacity-0{opacity:0}.opacity-65{opacity:.65}.opacity-100{opacity:1}.shadow{--tw-shadow:0 1px 3px 0 var(--tw-shadow-color,#0000001a), 0 1px 2px -1px var(--tw-shadow-color,#0000001a);box-shadow:var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)}.shadow-\[0_8px_30px_rgba\(28\,25\,23\,\.08\)\]{--tw-shadow:0 8px 30px var(--tw-shadow-color,#1c191714);box-shadow:var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)}.shadow-\[0_10px_30px_rgba\(28\,25\,23\,\.08\)\]{--tw-shadow:0 10px 30px var(--tw-shadow-color,#1c191714);box-shadow:var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)}.shadow-\[0_18px_40px_rgba\(28\,25\,23\,\.12\)\]{--tw-shadow:0 18px 40px var(--tw-shadow-color,#1c19171f);box-shadow:var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)}.shadow-\[0_18px_50px_rgba\(28\,25\,23\,\.08\)\]{--tw-shadow:0 18px 50px var(--tw-shadow-color,#1c191714);box-shadow:var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)}.shadow-none{--tw-shadow:0 0 #0000;box-shadow:var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)}.ring-1{--tw-ring-shadow:var(--tw-ring-inset,) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color,currentcolor);box-shadow:var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)}.ring-stone-200{--tw-ring-color:var(--color-stone-200)}.filter{filter:var(--tw-blur,) var(--tw-brightness,) var(--tw-contrast,) var(--tw-grayscale,) var(--tw-hue-rotate,) var(--tw-invert,) var(--tw-saturate,) var(--tw-sepia,) var(--tw-drop-shadow,)}.backdrop-blur{--tw-backdrop-blur:blur(8px);-webkit-backdrop-filter:var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,);backdrop-filter:var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,)}.transition{transition-property:color,background-color,border-color,outline-color,text-decoration-color,fill,stroke,--tw-gradient-from,--tw-gradient-via,--tw-gradient-to,opacity,box-shadow,transform,translate,scale,rotate,filter,-webkit-backdrop-filter,backdrop-filter,display,content-visibility,overlay,pointer-events;transition-timing-function:var(--tw-ease,var(--default-transition-timing-function));transition-duration:var(--tw-duration,var(--default-transition-duration))}.transition-opacity{transition-property:opacity;transition-timing-function:var(--tw-ease,var(--default-transition-timing-function));transition-duration:var(--tw-duration,var(--default-transition-duration))}.placeholder\:text-slate-500::placeholder{color:var(--color-slate-500)}.placeholder\:text-stone-400::placeholder{color:var(--color-stone-400)}@media (hover:hover){.hover\:-translate-y-0\.5:hover{--tw-translate-y:calc(var(--spacing) * -.5);translate:var(--tw-translate-x) var(--tw-translate-y)}.hover\:-translate-y-1:hover{--tw-translate-y:calc(var(--spacing) * -1);translate:var(--tw-translate-x) var(--tw-translate-y)}.hover\:border-violet-600:hover{border-color:var(--color-violet-600)}.hover\:bg-violet-600\/20:hover{background-color:#7f22fe33}@supports (color:color-mix(in lab, red, red)){.hover\:bg-violet-600\/20:hover{background-color:color-mix(in oklab, var(--color-violet-600) 20%, transparent)}}.hover\:bg-white\/70:hover{background-color:#ffffffb3}@supports (color:color-mix(in lab, red, red)){.hover\:bg-white\/70:hover{background-color:color-mix(in oklab, var(--color-white) 70%, transparent)}}.hover\:text-slate-200:hover{color:var(--color-slate-200)}.hover\:underline:hover{text-decoration-line:underline}.hover\:shadow-\[0_18px_44px_rgba\(15\,23\,42\,\.2\)\]:hover{--tw-shadow:0 18px 44px var(--tw-shadow-color,#0f172a33);box-shadow:var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)}}.disabled\:pointer-events-none:disabled{pointer-events:none}.disabled\:cursor-not-allowed:disabled{cursor:not-allowed}.disabled\:opacity-50:disabled{opacity:.5}.disabled\:opacity-55:disabled{opacity:.55}@media not all and (min-width:900px){.max-\[900px\]\:col-span-1{grid-column:span 1/span 1}.max-\[900px\]\:col-start-2{grid-column-start:2}.max-\[900px\]\:mt-6{margin-top:calc(var(--spacing) * 6)}.max-\[900px\]\:block{display:block}.max-\[900px\]\:h-auto{height:auto}.max-\[900px\]\:w-auto{width:auto}.max-\[900px\]\:w-full{width:100%}.max-\[900px\]\:max-w-none{max-width:none}.max-\[900px\]\:grid-cols-1{grid-template-columns:repeat(1,minmax(0,1fr))}.max-\[900px\]\:grid-cols-\[5\.5rem_minmax\(0\,1fr\)\]{grid-template-columns:5.5rem minmax(0,1fr)}.max-\[900px\]\:flex-col{flex-direction:column}.max-\[900px\]\:flex-row{flex-direction:row}.max-\[900px\]\:items-start{align-items:flex-start}.max-\[900px\]\:justify-stretch{justify-content:stretch}.max-\[900px\]\:overflow-visible{overflow:visible}.max-\[900px\]\:overflow-x-auto{overflow-x:auto}.max-\[900px\]\:border-r-0{border-right-style:var(--tw-border-style);border-right-width:0}.max-\[900px\]\:border-b{border-bottom-style:var(--tw-border-style);border-bottom-width:1px}.max-\[900px\]\:p-5{padding:calc(var(--spacing) * 5)}.max-\[900px\]\:pt-0{padding-top:0}}@media (min-width:40rem){.sm\:col-span-2{grid-column:span 2/span 2}.sm\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.sm\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.sm\:grid-cols-\[7rem_1fr_auto\]{grid-template-columns:7rem 1fr auto}.sm\:px-8{padding-inline:calc(var(--spacing) * 8)}}@media (min-width:64rem){.lg\:sticky{position:sticky}.lg\:top-0{top:0}.lg\:flex{display:flex}.lg\:h-screen{height:100vh}.lg\:w-60{width:calc(var(--spacing) * 60)}.lg\:flex-1{flex:1}.lg\:grid-cols-\[1fr_0\.9fr\]{grid-template-columns:1fr .9fr}.lg\:grid-cols-\[1fr_24rem\]{grid-template-columns:1fr 24rem}.lg\:flex-col{flex-direction:column}.lg\:flex-row{flex-direction:row}.lg\:overflow-x-hidden{overflow-x:hidden}.lg\:overflow-y-auto{overflow-y:auto}.lg\:border-r{border-right-style:var(--tw-border-style);border-right-width:1px}.lg\:border-b-0{border-bottom-style:var(--tw-border-style);border-bottom-width:0}.lg\:px-10{padding-inline:calc(var(--spacing) * 10)}.lg\:pt-14{padding-top:calc(var(--spacing) * 14)}}@media (min-width:80rem){.xl\:grid-cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}}@media (min-width:96rem){.\32 xl\:grid-cols-5{grid-template-columns:repeat(5,minmax(0,1fr))}}@media (prefers-color-scheme:dark){.dark\:border-slate-600{border-color:var(--color-slate-600)}.dark\:border-slate-700{border-color:var(--color-slate-700)}.dark\:border-slate-800{border-color:var(--color-slate-800)}.dark\:border-t-violet-400{border-top-color:var(--color-violet-400)}.dark\:bg-amber-400\/10{background-color:#fcbb001a}@supports (color:color-mix(in lab, red, red)){.dark\:bg-amber-400\/10{background-color:color-mix(in oklab, var(--color-amber-400) 10%, transparent)}}.dark\:bg-slate-50{background-color:var(--color-slate-50)}.dark\:bg-slate-800{background-color:var(--color-slate-800)}.dark\:bg-slate-900{background-color:var(--color-slate-900)}.dark\:bg-slate-900\/95{background-color:#0f172bf2}@supports (color:color-mix(in lab, red, red)){.dark\:bg-slate-900\/95{background-color:color-mix(in oklab, var(--color-slate-900) 95%, transparent)}}.dark\:bg-slate-950{background-color:var(--color-slate-950)}.dark\:bg-violet-600{background-color:var(--color-violet-600)}.dark\:text-amber-100{color:var(--color-amber-100)}.dark\:text-slate-100{color:var(--color-slate-100)}.dark\:text-slate-300{color:var(--color-slate-300)}.dark\:text-slate-400{color:var(--color-slate-400)}.dark\:text-slate-950{color:var(--color-slate-950)}.dark\:text-white{color:var(--color-white)}.dark\:ring-slate-700{--tw-ring-color:var(--color-slate-700)}@media (hover:hover){.dark\:hover\:bg-white\/10:hover{background-color:#ffffff1a}@supports (color:color-mix(in lab, red, red)){.dark\:hover\:bg-white\/10:hover{background-color:color-mix(in oklab, var(--color-white) 10%, transparent)}}}}@media not all and (min-width:900px){.\[\&\>button\]\:max-\[900px\]\:flex-1>button{flex:1}}}@property --tw-space-y-reverse{syntax:"*";inherits:false;initial-value:0}@property --tw-border-style{syntax:"*";inherits:false;initial-value:solid}@property --tw-leading{syntax:"*";inherits:false}@property --tw-font-weight{syntax:"*";inherits:false}@property --tw-tracking{syntax:"*";inherits:false}@property --tw-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-shadow-color{syntax:"*";inherits:false}@property --tw-shadow-alpha{syntax:"<percentage>";inherits:false;initial-value:100%}@property --tw-inset-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-inset-shadow-color{syntax:"*";inherits:false}@property --tw-inset-shadow-alpha{syntax:"<percentage>";inherits:false;initial-value:100%}@property --tw-ring-color{syntax:"*";inherits:false}@property --tw-ring-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-inset-ring-color{syntax:"*";inherits:false}@property --tw-inset-ring-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-ring-inset{syntax:"*";inherits:false}@property --tw-ring-offset-width{syntax:"<length>";inherits:false;initial-value:0}@property --tw-ring-offset-color{syntax:"*";inherits:false;initial-value:#fff}@property --tw-ring-offset-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-blur{syntax:"*";inherits:false}@property --tw-brightness{syntax:"*";inherits:false}@property --tw-contrast{syntax:"*";inherits:false}@property --tw-grayscale{syntax:"*";inherits:false}@property --tw-hue-rotate{syntax:"*";inherits:false}@property --tw-invert{syntax:"*";inherits:false}@property --tw-opacity{syntax:"*";inherits:false}@property --tw-saturate{syntax:"*";inherits:false}@property --tw-sepia{syntax:"*";inherits:false}@property --tw-drop-shadow{syntax:"*";inherits:false}@property --tw-drop-shadow-color{syntax:"*";inherits:false}@property --tw-drop-shadow-alpha{syntax:"<percentage>";inherits:false;initial-value:100%}@property --tw-drop-shadow-size{syntax:"*";inherits:false}@property --tw-backdrop-blur{syntax:"*";inherits:false}@property --tw-backdrop-brightness{syntax:"*";inherits:false}@property --tw-backdrop-contrast{syntax:"*";inherits:false}@property --tw-backdrop-grayscale{syntax:"*";inherits:false}@property --tw-backdrop-hue-rotate{syntax:"*";inherits:false}@property --tw-backdrop-invert{syntax:"*";inherits:false}@property --tw-backdrop-opacity{syntax:"*";inherits:false}@property --tw-backdrop-saturate{syntax:"*";inherits:false}@property --tw-backdrop-sepia{syntax:"*";inherits:false}@property --tw-translate-x{syntax:"*";inherits:false;initial-value:0}@property --tw-translate-y{syntax:"*";inherits:false;initial-value:0}@property --tw-translate-z{syntax:"*";inherits:false;initial-value:0}@keyframes spin{to{transform:rotate(360deg)}}@keyframes ping{75%,to{opacity:0;transform:scale(2)}}
 		</style>${body}`
 	};
 }
@@ -1395,7 +1531,7 @@ function formatContactPhone(phone) {
 }
 
 function renderCompanyDetail(label, value) {
-	return value ? `<div class="wm-summary-line"><span class="wm-muted">${escapeHtml(label)}</span><span class="wm-contact-text">${escapeHtml(value)}</span></div>` : '';
+	return value ? `<div class="${summaryLineClass()}"><span class="font-semibold">${escapeHtml(label)}</span><span class="font-normal">${escapeHtml(value)}</span></div>` : '';
 }
 
 function contactSubjectIndex(state, subjects) {
@@ -1423,40 +1559,40 @@ function renderContactPage(state) {
 	const company = contact.company || {};
 
 	return pluginFrame('Contact', `
-		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
+		<div class="${pageClass(state)}">
 			${renderShopHeader(actions, state)}
-			<main class="wm-checkout wm-contact-layout">
-				<section class="wm-card">
-					<p class="wm-kicker">Shop support</p>
-					<h1 class="wm-title" style="font-size:2.25rem">Contact</h1>
-					<p class="wm-muted">Choose a topic to open your mail client with a prepared subject.</p>
-					<label class="wm-contact-topic">
-						<span class="wm-field-label">Topic</span>
-						<select class="wm-input" name="contactSubjectIndex" data-plugin-storage-action="${escapeHtml(contactSelectActionId)}" data-plugin-field="contactSubjectIndex">
+			<main class="mx-auto mt-10 grid max-w-6xl grid-cols-[minmax(0,1fr)_24rem] gap-6 max-[900px]:block max-[900px]:p-5">
+				<section class="${cardClass(state)}">
+					<p class="${kickerClass(state)}">Shop support</p>
+					<h1 class="${titleClass('text-4xl')}">Contact</h1>
+					<p class="${mutedClass(state)}">Choose a topic to open your mail client with a prepared subject.</p>
+					<label class="mt-6 block max-w-md">
+						<span class="${fieldLabelClass(state)}">Topic</span>
+						<select class="${inputClass(state)}" name="contactSubjectIndex" data-plugin-storage-action="${escapeHtml(contactSelectActionId)}" data-plugin-field="contactSubjectIndex">
 							${subjects.length ? subjects.map((item, index) => `<option value="${escapeHtml(String(index))}" ${index === selectedSubjectIndex ? 'selected' : ''}>${escapeHtml(item.label)}</option>`).join('') : '<option value="0">Shop contact</option>'}
 						</select>
 					</label>
 					${email ? `
-						<button type="button" class="wm-btn wm-btn-primary wm-contact-compose" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, selectedSubject.subject, body) })}>
+						<button type="button" class="${buttonClass('primary', 'mt-4 w-full max-w-72 gap-3 max-[900px]:max-w-none')}" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, selectedSubject.subject, body) })}>
 							${icon('mail', 17)} Compose via Email
 						</button>
 					` : ''}
-					${!email && !mobile ? `<p class="wm-warning">No shop contact is configured.</p>` : ''}
+					${!email && !mobile ? `<p class="${warningClass(state)}">No shop contact is configured.</p>` : ''}
 				</section>
-				<aside class="wm-card">
-					<h2 style="display:flex;align-items:center;gap:.5rem;margin:0;font-size:1.25rem;font-weight:700">${icon('building', 18)} Company details</h2>
+				<aside class="${cardClass(state, 'max-[900px]:mt-6')}">
+					<h2 class="m-0 flex items-center gap-2 text-xl font-semibold">${icon('building', 18)} Company details</h2>
 					${renderCompanyDetail('Company', company.name)}
 					${renderCompanyDetail('Registration number', company.registrationNumber)}
 					${renderCompanyDetail('VAT ID', company.vatId)}
 					${renderCompanyDetail('Address', company.address)}
 					${company.website ? `
-						<div class="wm-summary-line">
-							<span class="wm-muted">Website</span>
-							<button type="button" class="wm-btn wm-btn-link" ${actionAttr(actions, { type: 'navigate', href: company.website })}>${icon('externalLink', 15)} Open</button>
+						<div class="${summaryLineClass()}">
+							<span class="font-semibold">Website</span>
+							<button type="button" class="${buttonClass('link', 'gap-1')}" ${actionAttr(actions, { type: 'navigate', href: company.website })}>${icon('externalLink', 15)} Open</button>
 						</div>
 					` : ''}
-					${email ? `<div class="wm-summary-line"><span class="wm-muted">Email</span><button type="button" class="wm-contact-value" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, 'Shop contact', 'Hello, I would like to contact your shop.') })}><span class="wm-contact-text">${escapeHtml(email)}</span>${icon('mail', 15)}</button></div>` : ''}
-					${mobile ? `<div class="wm-summary-line"><span class="wm-muted">Phone</span><button type="button" class="wm-contact-value" ${actionAttr(actions, { type: 'navigate', href: contactPhoneUrl(mobile) })}><span class="wm-contact-text">${escapeHtml(formattedMobile || mobile)}</span>${icon('phone', 15)}</button></div>` : ''}
+					${email ? `<div class="${summaryLineClass()} items-center"><span class="font-semibold">Email</span><button type="button" class="inline-flex items-center justify-end gap-2 border-0 bg-transparent p-0 text-right font-normal text-inherit hover:underline" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, 'Shop contact', 'Hello, I would like to contact your shop.') })}><span>${escapeHtml(email)}</span>${icon('mail', 15)}</button></div>` : ''}
+					${mobile ? `<div class="${summaryLineClass()} items-center"><span class="font-semibold">Phone</span><button type="button" class="inline-flex items-center justify-end gap-2 border-0 bg-transparent p-0 text-right font-normal text-inherit hover:underline" ${actionAttr(actions, { type: 'navigate', href: contactPhoneUrl(mobile) })}><span>${escapeHtml(formattedMobile || mobile)}</span>${icon('phone', 15)}</button></div>` : ''}
 				</aside>
 			</main>
 		</div>
@@ -1498,28 +1634,40 @@ function productQuestionSubjectIndex(state) {
 }
 
 function productShareUrl(product) {
-	return `/marketplace/wallmoney/plugin-shop?view=product&product=${encodeURIComponent(product.id)}`;
+	return shopUrl(product.id);
 }
 
 function renderProductImage(state, product) {
 	const image = productImageUrl(state, product);
 	return image
-		? `<img src="${escapeHtml(image)}" alt="${escapeHtml(product.name)}" loading="lazy" />`
-		: `<div class="wm-empty-icon">${escapeHtml(product.icon || '•')}</div>`;
+		? `<img class="${imageClass()}" src="${escapeHtml(image)}" alt="${escapeHtml(product.name)}" loading="lazy" />`
+		: `<div class="${emptyIconClass()}">${escapeHtml(product.icon || '•')}</div>`;
 }
 
 function productBadges(product) {
+	const badges = [
+		product.badge ? `<span class="${productBadgeClass(0)}">${escapeHtml(product.badge)}</span>` : '',
+		product.digital === true ? `<span class="${productBadgeClass(1)}">Digital</span>` : ''
+	].filter(Boolean).join('');
+	return badges;
+}
+
+function productDetailBadges(product) {
 	return [
-		product.badge ? `<span class="wm-badge">${escapeHtml(product.badge)}</span>` : '',
-		product.digital === true ? '<span class="wm-badge wm-badge-digital">Digital</span>' : ''
+		product.badge ? `<span class="${detailBadgeClass(false)}">${escapeHtml(product.badge)}</span>` : '',
+		product.digital === true ? `<span class="${detailBadgeClass(true)}">Digital</span>` : ''
 	].filter(Boolean).join('');
 }
 
-function addToCartButton(actions, state, product, extraClass = 'wm-btn-primary') {
+function addButtonClass(isAdded, extraClass = '') {
+	return buttonClass('primary', `relative w-full overflow-hidden ${extraClass}`);
+}
+
+function addToCartButton(actions, state, product, extraClass = '') {
 	const isAdded = state.lastAddedProductId === product.id;
-	return `<button type="button" class="wm-btn ${extraClass} wm-product-add ${isAdded ? 'wm-is-added' : ''}" ${actionAttr(actions, stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`))}>
-		<span class="wm-add-default">Add to cart</span>
-		<span class="wm-add-added">Added</span>
+	return `<button type="button" class="${addButtonClass(isAdded, extraClass)}" ${actionAttr(actions, stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`))}>
+		<span>Add to cart</span>
+		${isAdded ? '<span class="absolute inset-0 flex items-center justify-center rounded-full bg-emerald-600 text-white animate-ping">Added</span>' : ''}
 	</button>`;
 }
 
@@ -1532,17 +1680,17 @@ function renderProducts(state) {
 	const visibleProducts = products.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
 	return pluginFrame(SHOP_CONFIG.name, `
-		<div class="wm-shop wm-theme-${escapeHtml(state.theme)}">
-			<div class="wm-shell wm-layout">
-				<aside class="wm-sidebar">
-					<button type="button" class="wm-brand" ${actionAttr(actions, stateAction(state, { view: 'products', category: 'all', page: 1 }))}>
+		<div class="${shopClass(state)}">
+			<div class="${shellClass()} flex h-[max(100vh,100dvh,100svh,820px)] min-h-[max(100vh,100dvh,100svh,820px)] overflow-hidden max-[900px]:block max-[900px]:h-auto max-[900px]:overflow-visible">
+				<aside class="h-full w-60 shrink-0 overflow-y-auto overscroll-contain border-r p-5 max-[900px]:h-auto max-[900px]:w-auto max-[900px]:border-b max-[900px]:border-r-0 ${themeClasses(state, 'border-stone-200 bg-stone-50/95', 'border-slate-800 bg-slate-900/95')}">
+					<button type="button" class="inline-flex items-center gap-3 border-0 bg-transparent text-2xl font-semibold tracking-normal text-inherit" ${actionAttr(actions, shopNavigateAction())}>
 						${shopLogoMarkup()}
 						<span>${escapeHtml(SHOP_CONFIG.name)}</span>
 					</button>
-					<p class="wm-subtitle">${escapeHtml(SHOP_CONFIG.tagline || '')}</p>
-					<nav class="wm-nav" aria-label="Shop categories">
+					<p class="mt-2 text-sm font-medium leading-6 ${mutedClass(state)}">${escapeHtml(SHOP_CONFIG.tagline || '')}</p>
+					<nav class="mt-6 flex flex-col gap-2 max-[900px]:flex-row max-[900px]:overflow-x-auto" aria-label="Shop categories">
 						${allCategories(state).map((category) => `
-							<button type="button" class="${state.category === category.id ? 'is-active' : ''}" ${actionAttr(actions, stateAction(state, {
+							<button type="button" class="rounded-2xl px-4 py-3 text-left font-semibold ${state.category === category.id ? themeClasses(state, 'bg-white text-stone-950 shadow-[0_18px_40px_rgba(28,25,23,.12)]', 'bg-slate-50 text-slate-950') : mutedClass(state)}" ${actionAttr(actions, stateAction(state, {
 								category: category.id,
 								view: 'products',
 								page: 1,
@@ -1551,38 +1699,38 @@ function renderProducts(state) {
 						`).join('')}
 					</nav>
 				</aside>
-				<main class="wm-main">
-					<div class="wm-main-head">
+				<main class="h-full min-w-0 flex-1 overflow-y-auto overscroll-contain px-10 py-6 max-[900px]:h-auto max-[900px]:overflow-visible max-[900px]:p-5">
+					<div class="flex items-end justify-between gap-4 border-b pb-6 max-[900px]:flex-col max-[900px]:items-start ${themeClasses(state, 'border-stone-200', 'border-slate-800')}">
 						<div>
-							<p class="wm-kicker">Browse category</p>
-							<h1 class="wm-title">${escapeHtml(categoryTitle(state))}</h1>
+							<p class="${kickerClass(state)}">Browse category</p>
+							<h1 class="${titleClass()}">${escapeHtml(categoryTitle(state))}</h1>
 						</div>
-						<div class="wm-actions">
+						<div class="flex items-center gap-3">
 							${renderThemeSwitcher(actions, state)}
-							<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'contact' }))}>${icon('mail', 17)} <span>Contact</span></button>
-							<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'cart' }))}>${icon('cart', 17)} <span>Cart ${cartCount(state)}</span></button>
-							<button type="button" class="wm-icon-btn wm-user-btn" title="Back to bank" ${actionAttr(actions, bankNavigateAction())}>${coreIdenticon(state.coreId)}</button>
+							<button type="button" class="${chipClass(state)}" ${actionAttr(actions, shopNavigateAction('contact'))}>${icon('mail', 17)} <span>Contact</span></button>
+							<button type="button" class="${chipClass(state)}" ${actionAttr(actions, shopNavigateAction('cart'))}>${icon('cart', 17)} <span>Cart ${cartCount(state)}</span></button>
+							<button type="button" class="${iconButtonClass(state, 'overflow-hidden')}" title="Back to bank" ${actionAttr(actions, bankNavigateAction())}>${coreIdenticon(state.coreId)}</button>
 						</div>
 					</div>
-					<div class="wm-grid">
+					<div class="mt-8 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
 						${visibleProducts.map((product) => `
-							<article class="wm-product">
-								<button type="button" class="wm-product-card" ${actionAttr(actions, productOpenAction(state, product))}>
-									<div class="wm-product-media">
+							<article class="text-left">
+								<button type="button" class="block w-full border-0 bg-transparent p-0 text-left text-inherit transition hover:-translate-y-1" ${actionAttr(actions, shopNavigateAction(product.id))}>
+									<div class="${mediaBoxClass(state, 'rounded-[1.75rem] transition hover:border-violet-600 hover:shadow-[0_18px_44px_rgba(15,23,42,.2)]')}">
 										${renderProductImage(state, product)}
 										${productBadges(product)}
 									</div>
-									<p class="wm-product-meta">${escapeHtml(product.vendor || SHOP_CONFIG.name)}</p>
-									<h2 class="wm-product-name">${escapeHtml(product.name)}</h2>
-									${product.packLabel ? `<p class="wm-product-pack">${escapeHtml(product.packLabel)}</p>` : ''}
-									<p class="wm-product-price">${escapeHtml(productPrice(state, product))}</p>
+									<p class="${productMetaClass(state)}">${escapeHtml(product.vendor || SHOP_CONFIG.name)}</p>
+									<h2 class="${productNameClass()}">${escapeHtml(product.name)}</h2>
+									${product.packLabel ? `<p class="${productPackClass(state)}">${escapeHtml(product.packLabel)}</p>` : ''}
+									<p class="${productPriceClass()}">${escapeHtml(productPrice(state, product))}</p>
 								</button>
-								${addToCartButton(actions, state, product)}
+								${addToCartButton(actions, state, product, 'mt-3')}
 							</article>
 						`).join('')}
 					</div>
 					${totalPages > 1 ? `
-						<div class="wm-inline-actions">
+						<div class="${inlineActionsClass()}">
 							${currentPage > 1 ? frameButton(actions, 'Previous', stateAction(state, { page: currentPage - 1 }), 'secondary') : ''}
 							${currentPage < totalPages ? frameButton(actions, 'Next', stateAction(state, { page: currentPage + 1 }), 'secondary') : ''}
 						</div>
@@ -1599,60 +1747,60 @@ function renderProductDetail(state) {
 	const actions = {};
 	const packLabel = String(product.packLabel || '').trim();
 	return pluginFrame(product.name, `
-		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
+		<div class="${pageClass(state)}">
 			${renderShopHeader(actions, state)}
-			<main class="wm-detail">
+			<main class="mx-auto grid max-w-7xl grid-cols-[minmax(0,1.05fr)_minmax(24rem,.95fr)] gap-8 p-6 max-[900px]:block max-[900px]:p-5">
 				<section>
-					${frameButton(actions, 'Back to products', stateAction(state, { view: 'products', category: 'all', page: 1, lastAddedProductId: '' }), 'secondary')}
-					<div class="wm-detail-media" style="margin-top:1rem">${renderProductImage(state, product)}</div>
+					${frameButton(actions, 'Back to products', shopNavigateAction(), 'secondary')}
+					<div class="${mediaBoxClass(state, 'mt-4 rounded-[2.25rem]')}">${renderProductImage(state, product)}</div>
 				</section>
-				<section class="wm-detail-copy">
-					<button type="button" class="wm-product-meta wm-link-text" ${actionAttr(actions, stateAction(state, { view: 'products', category: product.category, page: 1, lastAddedProductId: '' }))}>${escapeHtml(product.vendor || SHOP_CONFIG.name)}</button>
-					<h1 class="wm-title">${escapeHtml(product.name)}</h1>
-					<p class="wm-detail-badges">${productBadges(product)}</p>
-					<p class="wm-price">${escapeHtml(productPrice(state, product))}</p>
+				<section class="pt-12 max-[900px]:mt-6 max-[900px]:pt-0">
+					<button type="button" class="inline-flex border-0 bg-transparent p-0 text-sm font-medium text-inherit hover:underline" ${actionAttr(actions, stateAction(state, { view: 'products', category: product.category, page: 1, lastAddedProductId: '' }))}>${escapeHtml(product.vendor || SHOP_CONFIG.name)}</button>
+					<h1 class="${titleClass()}">${escapeHtml(product.name)}</h1>
+					<p class="mt-4 flex flex-wrap gap-2">${productDetailBadges(product)}</p>
+					<p class="my-8 text-3xl font-semibold">${escapeHtml(productPrice(state, product))}</p>
 					${packLabel ? `
-						<div class="wm-detail-field">
-							<p class="wm-detail-field-label">Pack</p>
-							<p class="wm-detail-field-value">${escapeHtml(packLabel)}</p>
+						<div class="mb-4">
+							<p class="mb-2 text-sm font-semibold ${mutedClass(state)}">Pack</p>
+							<p class="m-0 text-base font-medium">${escapeHtml(packLabel)}</p>
 						</div>
 					` : ''}
-					<div class="wm-detail-field">
-						<p class="wm-detail-field-label">Quantity</p>
-						<div class="wm-qty">
-							<button type="button" ${actionAttr(actions, stateAction(decrementProductQuantity(state, product.id), {}))}>${icon('minus', 15)}</button>
-							<span>${productQuantity(state, product.id)}</span>
-							<button type="button" ${actionAttr(actions, stateAction(incrementProductQuantity(state, product.id), {}))}>${icon('plus', 15)}</button>
+					<div class="mb-4">
+						<p class="mb-2 text-sm font-semibold ${mutedClass(state)}">Quantity</p>
+						<div class="${quantityClass(state)}">
+							<button type="button" class="${quantityButtonClass()}" ${actionAttr(actions, stateAction(decrementProductQuantity(state, product.id), {}))}>${icon('minus', 15)}</button>
+							<span class="min-w-8 text-center font-semibold">${productQuantity(state, product.id)}</span>
+							<button type="button" class="${quantityButtonClass()}" ${actionAttr(actions, stateAction(incrementProductQuantity(state, product.id), {}))}>${icon('plus', 15)}</button>
 						</div>
 					</div>
-					<div class="wm-inline-actions wm-detail-actions">
-						<button type="button" class="wm-btn wm-btn-secondary wm-product-add ${state.lastAddedProductId === product.id ? 'wm-is-added' : ''}" ${actionAttr(actions, stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`))}>
-							<span class="wm-add-default">Add to cart</span>
-							<span class="wm-add-added">Added</span>
+					<div class="${inlineActionsClass()}">
+						<button type="button" class="${buttonClass('secondary', 'relative overflow-hidden')}" ${actionAttr(actions, stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`))}>
+							<span>Add to cart</span>
+							${state.lastAddedProductId === product.id ? '<span class="absolute inset-0 flex items-center justify-center rounded-full bg-emerald-600 text-white animate-ping">Added</span>' : ''}
 						</button>
 						${frameButton(actions, 'Buy now', stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), { view: 'cart' }))}
 					</div>
-					<div style="margin-top:2rem;border-top:1px solid rgba(148,163,184,.25);padding-top:1.5rem">
+					<div class="mt-8 border-t border-slate-500/25 pt-6">
 						${product.skuid ? `
-							<div class="wm-product-tools">
-								<span class="wm-sku-small">SKU:</span>
-								<button type="button" class="wm-sku-copy" title="Copy SKU" ${actionAttr(actions, { type: 'copy', text: product.skuid, message: 'SKU copied.' })}>${escapeHtml(product.skuid)}</button>
-								<button type="button" class="wm-btn wm-btn-link wm-tool-link" ${actionAttr(actions, stateAction(state, {
+							<div class="mb-4 flex flex-wrap items-center gap-3 max-[900px]:flex-col max-[900px]:items-start">
+								<span class="text-xs font-normal tracking-normal ${mutedClass(state)}">SKU:</span>
+								<button type="button" class="border-0 bg-transparent p-0 text-xs font-normal tracking-normal ${mutedClass(state)} hover:underline" title="Copy SKU" ${actionAttr(actions, { type: 'copy', text: product.skuid, message: 'SKU copied.' })}>${escapeHtml(product.skuid)}</button>
+								<button type="button" class="${buttonClass('link', 'gap-1')}" ${actionAttr(actions, stateAction(state, {
 									view: 'contact',
 									contactSku: product.skuid,
 									contactSubjectIndex: productQuestionSubjectIndex(state),
 									lastAddedProductId: ''
 								}))}>${icon('messageCircleQuestionMark', 15)} Ask about this product</button>
-								<button type="button" class="wm-btn wm-btn-link wm-tool-link" ${actionAttr(actions, {
+								<button type="button" class="${buttonClass('link', 'gap-1')}" ${actionAttr(actions, {
 									type: 'share',
 									title: product.name,
-									text: `${product.name}${product.skuid ? ` SKU: ${product.skuid}` : ''}`,
+									text: product.name,
 									url: productShareUrl(product)
 								})}>${icon('share2', 15)} Share this product</button>
 							</div>
 						` : `
-							<div class="wm-product-tools">
-								<button type="button" class="wm-btn wm-btn-link wm-tool-link" ${actionAttr(actions, {
+							<div class="mb-4 flex flex-wrap items-center gap-3 max-[900px]:flex-col max-[900px]:items-start">
+								<button type="button" class="${buttonClass('link', 'gap-1')}" ${actionAttr(actions, {
 									type: 'share',
 									title: product.name,
 									text: product.name,
@@ -1660,8 +1808,8 @@ function renderProductDetail(state) {
 								})}>${icon('share2', 15)} Share this product</button>
 							</div>
 						`}
-						<p class="wm-product-meta">Product description</p>
-						<p style="line-height:1.8">${escapeHtml(product.description || '')}</p>
+						<p class="${productMetaClass(state)}">Product description</p>
+						<p class="leading-8">${escapeHtml(product.description || '')}</p>
 					</div>
 				</section>
 			</main>
@@ -1676,52 +1824,52 @@ function renderCart(state) {
 	const actions = {};
 	const items = cartItems(state);
 	return pluginFrame('Cart', `
-		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
+		<div class="${pageClass(state)}">
 			${renderShopHeader(actions, state)}
-			<section class="wm-card wm-cart">
-				<div class="wm-main-head">
+			<section class="${cardClass(state, 'mx-auto mt-10 max-w-3xl')}">
+				<div class="flex items-end justify-between gap-4 border-b border-slate-500/25 pb-6">
 					<div>
-						<h1 class="wm-title" style="font-size:2rem">Cart</h1>
-						<p class="wm-kicker">${cartCount(state)} item${cartCount(state) === 1 ? '' : 's'}</p>
+						<h1 class="${titleClass('text-3xl')}">Cart</h1>
+						<p class="${kickerClass(state)}">${cartCount(state)} item${cartCount(state) === 1 ? '' : 's'}</p>
 					</div>
 					<strong>${escapeHtml(formatMoney(cartSubtotal(state), state.settings.currency))}</strong>
 				</div>
 				${items.length ? `
-					<div class="wm-cart-actions wm-cart-actions-top">
+					<div class="mt-4 flex items-center justify-between gap-4 max-[900px]:justify-stretch">
 						<div></div>
-						<div class="wm-cart-right">
+						<div class="flex flex-wrap justify-end gap-3 max-[900px]:w-full max-[900px]:justify-stretch [&>button]:max-[900px]:flex-1">
 							${frameButton(actions, 'Shop more', stateAction(state, { view: 'products', category: 'all', page: 1 }), 'secondary')}
 							${frameButton(actions, 'Checkout', stateAction(checkoutReadyState(state), {}))}
 						</div>
 					</div>
 					${items.map((item) => `
-						<div class="wm-row">
-							<div class="wm-row-media">${renderProductImage(state, item.product)}</div>
+						<div class="mt-5 grid grid-cols-[7rem_minmax(0,1fr)_auto] gap-4 max-[900px]:grid-cols-[5.5rem_minmax(0,1fr)]">
+							<div class="${mediaBoxClass(state, 'rounded-3xl')}">${renderProductImage(state, item.product)}</div>
 							<div>
-								<p class="wm-product-meta">${escapeHtml(item.product.vendor || SHOP_CONFIG.name)}</p>
-								<h2 class="wm-product-name">${escapeHtml(item.product.name)}</h2>
-								${item.product.packLabel ? `<p class="wm-product-pack">${escapeHtml(item.product.packLabel)}</p>` : ''}
-								<div class="wm-qty" style="margin-top:.8rem">
-									<button type="button" title="Remove item" ${actionAttr(actions, stateAction(removeProductFromCart(state, item.product.id), {}))}>${icon('x', 14)}</button>
-									<button type="button" title="Decrease" ${actionAttr(actions, stateAction(removeOneFromCart(state, item.product.id), {}))}>${icon('minus', 14)}</button>
-									<span>${item.quantity}</span>
-									<button type="button" title="Increase" ${actionAttr(actions, stateAction(addToCart(state, item.product.id), {}))}>${icon('plus', 14)}</button>
+								<p class="${productMetaClass(state, 'mt-0')}">${escapeHtml(item.product.vendor || SHOP_CONFIG.name)}</p>
+								<h2 class="${productNameClass()}">${escapeHtml(item.product.name)}</h2>
+								${item.product.packLabel ? `<p class="${productPackClass(state)}">${escapeHtml(item.product.packLabel)}</p>` : ''}
+								<div class="${quantityClass(state, 'mt-3')}">
+									<button type="button" class="${quantityButtonClass()}" title="Remove item" ${actionAttr(actions, stateAction(removeProductFromCart(state, item.product.id), {}))}>${icon('x', 14)}</button>
+									<button type="button" class="${quantityButtonClass()}" title="Decrease" ${actionAttr(actions, stateAction(removeOneFromCart(state, item.product.id), {}))}>${icon('minus', 14)}</button>
+									<span class="min-w-8 text-center font-semibold">${item.quantity}</span>
+									<button type="button" class="${quantityButtonClass()}" title="Increase" ${actionAttr(actions, stateAction(addToCart(state, item.product.id), {}))}>${icon('plus', 14)}</button>
 								</div>
 							</div>
-							<strong>${escapeHtml(formatMoney(item.product.price * item.quantity, state.settings.currency))}</strong>
+							<strong class="max-[900px]:col-start-2">${escapeHtml(formatMoney(item.product.price * item.quantity, state.settings.currency))}</strong>
 						</div>
 					`).join('')}
-					<div class="wm-total"><span>Subtotal</span><span>${escapeHtml(formatMoney(cartSubtotal(state), state.settings.currency))}</span></div>
-					<div class="wm-cart-actions">
+					<div class="mt-8 flex justify-between gap-4 border-t border-slate-500/25 pt-5 text-lg font-semibold"><span>Subtotal</span><span>${escapeHtml(formatMoney(cartSubtotal(state), state.settings.currency))}</span></div>
+					<div class="mt-4 flex items-center justify-between gap-4">
 						${frameButton(actions, 'Clear cart', stateAction(state, { cart: {}, checkoutStatus: 'draft' }, 'Cart cleared'), 'link')}
-						<div class="wm-cart-right">
+						<div class="flex flex-wrap justify-end gap-3">
 							${frameButton(actions, 'Shop more', stateAction(state, { view: 'products', category: 'all', page: 1 }), 'secondary')}
 							${frameButton(actions, 'Checkout', stateAction(checkoutReadyState(state), {}))}
 						</div>
 					</div>
 				` : `
-					<div style="padding:2rem;text-align:center">
-						<p style="font-weight:950">Your cart is empty.</p>
+					<div class="p-8 text-center">
+						<p class="font-semibold">Your cart is empty.</p>
 						${frameButton(actions, 'Browse products', stateAction(state, { view: 'products', category: 'all', page: 1 }))}
 					</div>
 				`}
@@ -1948,14 +2096,18 @@ function checkoutRequiredMessage(state, hasPhysicalItems) {
 	return missing.length ? `Add ${missing.join(', ')} before checkout.` : '';
 }
 
-function renderCheckoutField(field, storageActionId) {
+function renderCheckoutField(state, field, storageActionId) {
 	const value = escapeHtml(field.value || '');
 	const required = field.required ? 'required' : '';
-	const label = `${escapeHtml(field.label || field.name)}${field.required ? ' <span class="wm-required">*</span>' : ''}`;
-	const common = `class="wm-input" name="${escapeHtml(field.name)}" data-plugin-storage-action="${escapeHtml(storageActionId)}" data-plugin-field="${escapeHtml(field.name)}" ${required}`;
+	const label = `${escapeHtml(field.label || field.name)}${field.required ? ' <span class="text-red-500">*</span>' : ''}`;
+	const common = `class="${inputClass(state)}" name="${escapeHtml(field.name)}" data-plugin-storage-action="${escapeHtml(storageActionId)}" data-plugin-field="${escapeHtml(field.name)}" ${required}`;
+	const htmlValidation = {
+		'delivery.email': 'inputmode="email" autocomplete="email" maxlength="254" title="Enter a valid email address."',
+		'delivery.phone': 'inputmode="tel" autocomplete="tel" pattern="\\+?[0-9 ()-]{7,20}" minlength="7" maxlength="20" title="Enter a valid phone number. Use digits, spaces, brackets, hyphens, and an optional leading +."'
+	}[field.name] || '';
 	if (field.type === 'select') {
 		return `<label>
-			<span class="wm-field-label">${label}</span>
+			<span class="${fieldLabelClass(state)}">${label}</span>
 			<select ${common}>
 				<option value="">${escapeHtml(field.placeholder || field.label || '')}</option>
 				${(field.options || []).map((option) => {
@@ -1969,16 +2121,16 @@ function renderCheckoutField(field, storageActionId) {
 		const countryCode = countryCodeFromValue(field.value);
 		const displayValue = countryCode ? countryDisplayValue(countryCode) : '';
 		return `<label>
-			<span class="wm-field-label">${label}</span>
-			<input ${common} type="text" list="wm-country-options" value="${escapeHtml(displayValue)}" placeholder="${escapeHtml(field.placeholder || field.label || '')}" autocomplete="country-name" />
-			<datalist id="wm-country-options">
+			<span class="${fieldLabelClass(state)}">${label}</span>
+			<input ${common} type="text" list="country-options" value="${escapeHtml(displayValue)}" placeholder="${escapeHtml(field.placeholder || field.label || '')}" autocomplete="country-name" />
+			<datalist id="country-options">
 				${(field.options || []).map((option) => `<option value="${escapeHtml(countryDisplayValue(option.code))}"></option>`).join('')}
 			</datalist>
 		</label>`;
 	}
-	return `<label class="${field.name === 'delivery.notes' || field.name === 'delivery.address' || field.name === 'delivery.address2' ? 'wm-span-2' : ''}">
-		<span class="wm-field-label">${label}</span>
-		<input ${common} type="${escapeHtml(field.type || 'text')}" value="${value}" placeholder="${escapeHtml(field.placeholder || field.label || '')}" />
+	return `<label class="${field.name === 'delivery.notes' || field.name === 'delivery.address' || field.name === 'delivery.address2' ? 'col-span-2 max-[900px]:col-span-1' : ''}">
+		<span class="${fieldLabelClass(state)}">${label}</span>
+		<input ${common} ${htmlValidation} type="${escapeHtml(field.type || 'text')}" value="${value}" placeholder="${escapeHtml(field.placeholder || field.label || '')}" />
 	</label>`;
 }
 
@@ -2027,26 +2179,26 @@ function renderCheckout(state) {
 	const storageActionId = addFrameAction(actions, deliveryForm.autoSaveAction || deliveryForm.action);
 	const profiles = savedDeliveryProfileOptions(checkoutState);
 	const savedAddressPanel = hasPhysicalItems && profiles.length ? `
-		<div class="wm-form-actions-top">
+		<div class="mt-4 flex flex-wrap items-center gap-3">
 			<label>
-				<span class="wm-field-label">Saved addresses</span>
-				<select class="wm-input wm-saved-select" name="selectedDeliveryProfileId" data-plugin-storage-action="${escapeHtml(storageActionId)}" data-plugin-field="selectedDeliveryProfileId">
+				<span class="${fieldLabelClass(checkoutState)}">Saved addresses</span>
+				<select class="${inputClass(checkoutState, 'min-w-[min(100%,18rem)]')}" name="selectedDeliveryProfileId" data-plugin-storage-action="${escapeHtml(storageActionId)}" data-plugin-field="selectedDeliveryProfileId">
 					<option value="">Select saved address</option>
 					${profiles.map((profile) => `<option value="${escapeHtml(profile.id)}" ${profile.selected ? 'selected' : ''}>${escapeHtml(profile.label)}</option>`).join('')}
 				</select>
 			</label>
 		</div>
-		<details class="wm-saved">
-			<summary>Manage saved addresses</summary>
+		<details class="mt-4 overflow-hidden rounded-2xl border border-slate-500/40 bg-slate-500/10">
+			<summary class="cursor-pointer px-4 py-3 font-semibold">Manage saved addresses</summary>
 			${profiles.map((profile) => `
-				<div class="wm-saved-row">
-					<button type="button" class="wm-btn wm-btn-ghost" ${actionAttr(actions, profile.selectAction)}>
+				<div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-t border-slate-500/25 p-3">
+					<button type="button" class="${buttonClass('ghost', 'justify-start text-left')}" ${actionAttr(actions, profile.selectAction)}>
 						<span>
-							<span class="wm-saved-title">${escapeHtml(profile.label)}</span>
-							${profile.description ? `<span class="wm-saved-sub">${escapeHtml(profile.description)}</span>` : ''}
+							<span class="font-semibold">${escapeHtml(profile.label)}</span>
+							${profile.description ? `<span class="mt-1 block text-xs ${mutedClass(checkoutState)}">${escapeHtml(profile.description)}</span>` : ''}
 						</span>
 					</button>
-					<button type="button" class="wm-icon-btn" title="Delete saved address" ${actionAttr(actions, profile.removeAction)}>${icon('trash', 15)}</button>
+					<button type="button" class="${iconButtonClass(checkoutState)}" title="Delete saved address" ${actionAttr(actions, profile.removeAction)}>${icon('trash', 15)}</button>
 				</div>
 			`).join('')}
 		</details>
@@ -2054,38 +2206,38 @@ function renderCheckout(state) {
 	const payAction = blockedMessage ? null : stockManagedPaymentAction(finalCheckoutState, paymentRequest);
 
 	return pluginFrame('Checkout', `
-		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
+		<div class="${pageClass(state)}">
 			${renderShopHeader(actions, state)}
-			<main class="wm-checkout">
-				<section class="wm-card">
-					<h1 style="margin:0;font-size:1.5rem;font-weight:950">${hasPhysicalItems ? 'Delivery details' : 'Contact details'}</h1>
-					<p class="wm-muted">${hasPhysicalItems ? 'These details are sent to the shop admin only after successful payment.' : 'Digital orders only need an email address and Core ID.'}</p>
+			<main class="mx-auto mt-10 grid max-w-6xl grid-cols-[minmax(0,1fr)_24rem] gap-6 max-[900px]:block max-[900px]:p-5">
+				<section class="${cardClass(state)}">
+					<h1 class="m-0 text-2xl font-semibold">${hasPhysicalItems ? 'Delivery details' : 'Contact details'}</h1>
+					<p class="${mutedClass(state)}">${hasPhysicalItems ? 'These details are sent to the shop admin only after successful payment.' : 'Digital orders only need an email address and Core ID.'}</p>
 					${hasPhysicalItems ? `
-						<div class="wm-form-actions-top">
-							<button type="button" class="wm-checkbox" role="checkbox" aria-checked="${checkoutState.saveDelivery ? 'true' : 'false'}" ${actionAttr(actions, stateAction(checkoutState, { saveDelivery: !checkoutState.saveDelivery, selectedDeliveryProfileId: checkoutState.saveDelivery ? '' : checkoutState.selectedDeliveryProfileId }))}>
-								<input type="checkbox" tabindex="-1" ${checkoutState.saveDelivery ? 'checked' : ''} />
+						<div class="mt-4 flex flex-wrap items-center gap-3">
+							<button type="button" class="inline-flex items-center gap-2 border-0 bg-transparent p-0 font-medium text-inherit" role="checkbox" aria-checked="${checkoutState.saveDelivery ? 'true' : 'false'}" ${actionAttr(actions, stateAction(checkoutState, { saveDelivery: !checkoutState.saveDelivery, selectedDeliveryProfileId: checkoutState.saveDelivery ? '' : checkoutState.selectedDeliveryProfileId }))}>
+								<input class="h-4 w-4 accent-violet-600" type="checkbox" tabindex="-1" ${checkoutState.saveDelivery ? 'checked' : ''} />
 								<span>Save address for next order</span>
 							</button>
 							${frameButton(actions, 'Clear form', stateAction(state, { delivery: { ...emptyDelivery(), email: state.userEmail || '' }, checkoutStatus: 'draft' }, 'Delivery form cleared'), 'link')}
 						</div>
 						${savedAddressPanel}
 					` : ''}
-					<form class="wm-form-grid">
-						${deliveryForm.fields.map((field) => renderCheckoutField(field, storageActionId)).join('')}
+					<form class="mt-6 grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
+						${deliveryForm.fields.map((field) => renderCheckoutField(checkoutState, field, storageActionId)).join('')}
 					</form>
-					<p class="wm-required-note"><span class="wm-required">*</span> Required fields</p>
+					<p class="mt-4 text-xs ${mutedClass(state)}"><span class="text-red-500">*</span> Required fields</p>
 				</section>
-				<aside class="wm-card">
-					<h2 style="margin:0;font-size:1.25rem;font-weight:950">Order summary</h2>
-					${items.map((item) => `<div class="wm-summary-line"><span>${escapeHtml(item.product.name)} × ${item.quantity}</span><strong>${escapeHtml(formatMoney(item.product.price * item.quantity, state.settings.currency))}</strong></div>`).join('')}
-					<div class="wm-total"><span>Total</span><span>${escapeHtml(formatMoney(total, state.settings.currency))}</span></div>
-					<p class="wm-muted wm-summary-core">Core ID:<br><span class="wm-coreid">${escapeHtml(state.coreId ? compactCoreId(state.coreId) : 'Not provided')}</span></p>
-					<p class="wm-muted">Collector: ${escapeHtml(collectorAccount())}</p>
-					${hasPhysicalItems ? `<p class="wm-muted">Delivery: ${escapeHtml(deliverySummary(delivery))}</p>` : ''}
-					${blockedMessage ? `<p class="wm-warning">${escapeHtml(blockedMessage)}</p>` : ''}
-					<div class="wm-inline-actions">
+				<aside class="${cardClass(state, 'max-[900px]:mt-6')}">
+					<h2 class="m-0 text-xl font-semibold">Order summary</h2>
+					${items.map((item) => `<div class="${summaryLineClass()}"><span class="font-semibold">${escapeHtml(item.product.name)} × ${item.quantity}</span><span class="font-normal">${escapeHtml(formatMoney(item.product.price * item.quantity, state.settings.currency))}</span></div>`).join('')}
+					<div class="mt-8 flex justify-between gap-4 border-t border-slate-500/25 pt-5 text-lg"><span class="font-semibold">Total</span><span class="font-normal">${escapeHtml(formatMoney(total, state.settings.currency))}</span></div>
+					<p class="mt-4 text-sm leading-6 ${mutedClass(state)}"><span class="font-semibold">Core ID:</span><br><span class="block break-words font-normal tracking-wide">${escapeHtml(state.coreId ? compactCoreId(state.coreId) : 'Not provided')}</span></p>
+					<p class="mt-4 text-sm leading-6 ${mutedClass(state)}"><span class="font-semibold">Collector:</span> <span class="font-normal">${escapeHtml(collectorAccount())}</span></p>
+					${hasPhysicalItems ? `<p class="mt-4 text-sm leading-6 ${mutedClass(state)}"><span class="font-semibold">Delivery:</span> <span class="font-normal">${escapeHtml(deliverySummary(delivery))}</span></p>` : ''}
+					${blockedMessage ? `<p class="${warningClass(state)}">${escapeHtml(blockedMessage)}</p>` : ''}
+					<div class="${inlineActionsClass()}">
 						${minimumMessage ? frameButton(actions, 'Shop more', stateAction(state, { view: 'products', category: 'all', page: 1 }), 'secondary') : frameButton(actions, 'Back to cart', stateAction(state, { view: 'cart' }), 'secondary')}
-						<button type="button" class="wm-btn wm-btn-primary wm-pay-btn" ${payAction ? actionAttr(actions, payAction) : 'disabled'}>Pay with Wall Money</button>
+						<button type="button" class="${buttonClass('primary')}" ${payAction ? actionAttr(actions, payAction) : 'disabled'}>Pay with Wall Money</button>
 					</div>
 				</aside>
 			</main>
@@ -2100,28 +2252,28 @@ function renderOrders(state) {
 	const actions = {};
 	const order = state.lastOrder;
 	return pluginFrame('Orders', `
-		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
+		<div class="${pageClass(state)}">
 			${renderShopHeader(actions, state)}
-			<section class="wm-card wm-cart">
-				<div class="wm-main-head">
+			<section class="${cardClass(state, 'mx-auto mt-10 max-w-3xl')}">
+				<div class="flex items-end justify-between gap-4 border-b border-slate-500/25 pb-6">
 					<div>
-						<p class="wm-kicker">Local order history</p>
-						<h1 class="wm-title" style="font-size:2rem">Orders</h1>
+						<p class="${kickerClass(state)}">Local order history</p>
+						<h1 class="${titleClass('text-3xl')}">Orders</h1>
 					</div>
 				</div>
 				${order ? `
-					<div class="wm-summary-line"><span class="wm-muted">Status</span><strong>${escapeHtml(order.status || 'unknown')}</strong></div>
-					<div class="wm-summary-line"><span class="wm-muted">Total</span><strong>${escapeHtml(formatMoney(order.total, order.currency))}</strong></div>
-					${order.deliveryFee ? `<div class="wm-summary-line"><span class="wm-muted">Delivery</span><strong>${escapeHtml(formatMoney(order.deliveryFee, order.currency))}</strong></div>` : ''}
-					${order.reference ? `<div class="wm-summary-line"><span class="wm-muted">Reference</span><strong class="wm-coreid">${escapeHtml(order.reference)}</strong></div>` : ''}
-					${order.paidAt ? `<div class="wm-summary-line"><span class="wm-muted">Paid at</span><strong>${escapeHtml(order.paidAt)}</strong></div>` : ''}
-					${order.delivery ? `<div class="wm-summary-line"><span class="wm-muted">Delivery</span><strong>${escapeHtml(order.delivery)}</strong></div>` : ''}
-					<div class="wm-inline-actions">
+					<div class="${summaryLineClass()}"><span class="${mutedClass(state)}">Status</span><strong>${escapeHtml(order.status || 'unknown')}</strong></div>
+					<div class="${summaryLineClass()}"><span class="${mutedClass(state)}">Total</span><strong>${escapeHtml(formatMoney(order.total, order.currency))}</strong></div>
+					${order.deliveryFee ? `<div class="${summaryLineClass()}"><span class="${mutedClass(state)}">Delivery</span><strong>${escapeHtml(formatMoney(order.deliveryFee, order.currency))}</strong></div>` : ''}
+					${order.reference ? `<div class="${summaryLineClass()}"><span class="${mutedClass(state)}">Reference</span><strong class="break-words tracking-wide">${escapeHtml(order.reference)}</strong></div>` : ''}
+					${order.paidAt ? `<div class="${summaryLineClass()}"><span class="${mutedClass(state)}">Paid at</span><strong>${escapeHtml(order.paidAt)}</strong></div>` : ''}
+					${order.delivery ? `<div class="${summaryLineClass()}"><span class="${mutedClass(state)}">Delivery</span><strong>${escapeHtml(order.delivery)}</strong></div>` : ''}
+					<div class="${inlineActionsClass()}">
 						${frameButton(actions, 'New order', stateAction(state, { view: 'products', cart: {}, checkoutStatus: 'draft' }, 'Ready for a new order'))}
 					</div>
 				` : `
-					<div style="padding:2rem;text-align:center">
-						<p class="wm-muted">No paid order recorded yet on this device.</p>
+					<div class="p-8 text-center">
+						<p class="${mutedClass(state)}">No paid order recorded yet on this device.</p>
 						${frameButton(actions, 'Browse products', stateAction(state, { view: 'products' }))}
 					</div>
 				`}
@@ -2137,20 +2289,20 @@ function renderSuccess(state) {
 	const actions = {};
 	const order = state.lastOrder;
 	return pluginFrame('Payment successful', `
-		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
+		<div class="${pageClass(state)}">
 			${renderShopHeader(actions, state)}
-			<section class="wm-card wm-success">
-				<div class="wm-success-mark">${icon('check', 28)}</div>
-				<h1 class="wm-title" style="font-size:2.25rem;margin-top:1.25rem">Congratulations</h1>
-				<p class="wm-muted">Your products have been paid. You will receive an email with order details and next steps.</p>
+			<section class="${cardClass(state, 'mx-auto mt-16 max-w-3xl text-center')}">
+				<div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-green-800">${icon('check', 28)}</div>
+				<h1 class="${titleClass('mt-5 text-4xl')}">Congratulations</h1>
+				<p class="${mutedClass(state)}">Your products have been paid. You will receive an email with order details and next steps.</p>
 				${order ? `
-					<div class="wm-card" style="max-width:24rem;margin:1.5rem auto 0;text-align:left">
-						<div class="wm-summary-line"><span class="wm-muted">Total</span><strong>${escapeHtml(formatMoney(order.total, order.currency))}</strong></div>
-						${order.paidAt ? `<div class="wm-summary-line"><span class="wm-muted">Paid</span><strong>${escapeHtml(order.paidAt)}</strong></div>` : ''}
-						${order.reference ? `<div class="wm-summary-line"><span class="wm-muted">Reference</span><strong>${escapeHtml(order.reference)}</strong></div>` : ''}
+					<div class="${cardClass(state, 'mx-auto mt-6 max-w-sm text-left')}">
+						<div class="${summaryLineClass()}"><span class="${mutedClass(state)}">Total</span><strong>${escapeHtml(formatMoney(order.total, order.currency))}</strong></div>
+						${order.paidAt ? `<div class="${summaryLineClass()}"><span class="${mutedClass(state)}">Paid</span><strong>${escapeHtml(order.paidAt)}</strong></div>` : ''}
+						${order.reference ? `<div class="${summaryLineClass()}"><span class="${mutedClass(state)}">Reference</span><strong>${escapeHtml(order.reference)}</strong></div>` : ''}
 					</div>
 				` : ''}
-				<div class="wm-inline-actions" style="justify-content:center">
+				<div class="${inlineActionsClass('justify-center')}">
 					${frameButton(actions, 'Continue shopping', stateAction(state, { view: 'products', category: 'all', page: 1 }))}
 				</div>
 			</section>
@@ -2161,14 +2313,14 @@ function renderSuccess(state) {
 function renderPaymentFailed(state) {
 	const actions = {};
 	return pluginFrame('Payment could not be processed', `
-		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
+		<div class="${pageClass(state)}">
 			${renderShopHeader(actions, state)}
-			<section class="wm-card wm-success">
-				<div class="wm-success-mark wm-fail-mark">${icon('x', 28)}</div>
-				<h1 class="wm-title" style="font-size:2.25rem;margin-top:1.25rem">Payment cannot be processed</h1>
-				<p class="wm-muted">The payment was not completed. Your cart is still available, so you can review it and retry checkout.</p>
-				${state.checkoutStatus ? `<p class="wm-warning">Status: ${escapeHtml(state.checkoutStatus)}</p>` : ''}
-				<div class="wm-inline-actions" style="justify-content:center">
+			<section class="${cardClass(state, 'mx-auto mt-16 max-w-3xl text-center')}">
+				<div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-red-800">${icon('x', 28)}</div>
+				<h1 class="${titleClass('mt-5 text-4xl')}">Payment cannot be processed</h1>
+				<p class="${mutedClass(state)}">The payment was not completed. Your cart is still available, so you can review it and retry checkout.</p>
+				${state.checkoutStatus ? `<p class="${warningClass(state)}">Status: ${escapeHtml(state.checkoutStatus)}</p>` : ''}
+				<div class="${inlineActionsClass('justify-center')}">
 					${frameButton(actions, 'Back to cart', stateAction(state, { view: 'cart' }), 'secondary')}
 					${frameButton(actions, 'Retry checkout', stateAction(checkoutReadyState(state), {}))}
 				</div>
@@ -2498,14 +2650,12 @@ module.exports = {
 	default: {
 		setup(hostApi) {
 			this.hostApi = hostApi;
-			const initialView = readInitialPluginView();
-			if (initialView) {
+			const initialRoute = readInitialPluginRoute();
+			if (initialRoute) {
 				const state = getState(hostApi);
-				const initialProductId = readInitialProductId(state);
 				saveState(hostApi, {
 					...state,
-					view: initialView,
-					selectedProductId: initialProductId || state.selectedProductId,
+					...resolveInitialPluginRoute(initialRoute, state),
 					lastAddedProductId: ''
 				});
 			}
@@ -2661,11 +2811,61 @@ function readInitialPluginView() {
 	return ['products', 'product', 'cart', 'checkout', 'orders', 'success', 'failed', 'contact'].includes(view) ? view : null;
 }
 
-function readInitialProductId(state) {
+function readInitialPluginPath() {
 	const context = typeof pluginContext === 'object' && pluginContext ? pluginContext : null;
-	const productId = context && typeof context.initialProductId === 'string'
-		? context.initialProductId.trim()
+	const path = context && typeof context.initialPath === 'string'
+		? context.initialPath.trim()
 		: '';
-	return catalogProducts(state).some((product) => product.id === productId) ? productId : '';
+	return path.replace(/^\/+|\/+$/g, '').split('/').filter(Boolean).map((part) => {
+		try {
+			return decodeURIComponent(part);
+		} catch {
+			return part;
+		}
+	});
+}
+
+function readInitialPluginRoute() {
+	const pathParts = readInitialPluginPath();
+	if (pathParts.length) return { type: 'path', value: pathParts };
+	const view = readInitialPluginView();
+	return view ? { type: 'view', value: view } : { type: 'default' };
+}
+
+function productByPathPart(pathPart, state) {
+	const slug = kebabizePathSegment(pathPart);
+	return catalogProducts(state).find((product) => {
+		return kebabizePathSegment(product.id) === slug;
+	}) || null;
+}
+
+function resolveInitialPluginRoute(route, state) {
+	if (route.type === 'default') {
+		return { view: 'products', category: 'all', page: 1 };
+	}
+	if (route.type === 'view') {
+		return { view: route.value };
+	}
+
+	const pathPart = route.value[0] || '';
+	const product = productByPathPart(pathPart, state);
+	if (product) {
+		return {
+			view: 'product',
+			category: product.category,
+			selectedProductId: product.id,
+			page: 1
+		};
+	}
+
+	const routeSlug = kebabizePathSegment(pathPart);
+	if (['cart', 'checkout', 'orders', 'success', 'failed', 'contact'].includes(routeSlug)) {
+		return { view: routeSlug };
+	}
+	if (routeSlug === 'products' || routeSlug === 'shop') {
+		return { view: 'products', category: 'all', page: 1 };
+	}
+
+	return { view: 'products', category: 'all', page: 1 };
 }
 

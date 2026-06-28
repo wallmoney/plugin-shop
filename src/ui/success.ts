@@ -3,20 +3,20 @@ function renderSuccess(state) {
 	const actions = {};
 	const order = state.lastOrder;
 	return pluginFrame('Payment successful', `
-		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
+		<div class="${pageClass(state)}">
 			${renderShopHeader(actions, state)}
-			<section class="wm-card wm-success">
-				<div class="wm-success-mark">${icon('check', 28)}</div>
-				<h1 class="wm-title" style="font-size:2.25rem;margin-top:1.25rem">Congratulations</h1>
-				<p class="wm-muted">Your products have been paid. You will receive an email with order details and next steps.</p>
+			<section class="${cardClass(state, 'mx-auto mt-16 max-w-3xl text-center')}">
+				<div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-green-800">${icon('check', 28)}</div>
+				<h1 class="${titleClass('mt-5 text-4xl')}">Congratulations</h1>
+				<p class="${mutedClass(state)}">Your products have been paid. You will receive an email with order details and next steps.</p>
 				${order ? `
-					<div class="wm-card" style="max-width:24rem;margin:1.5rem auto 0;text-align:left">
-						<div class="wm-summary-line"><span class="wm-muted">Total</span><strong>${escapeHtml(formatMoney(order.total, order.currency))}</strong></div>
-						${order.paidAt ? `<div class="wm-summary-line"><span class="wm-muted">Paid</span><strong>${escapeHtml(order.paidAt)}</strong></div>` : ''}
-						${order.reference ? `<div class="wm-summary-line"><span class="wm-muted">Reference</span><strong>${escapeHtml(order.reference)}</strong></div>` : ''}
+					<div class="${cardClass(state, 'mx-auto mt-6 max-w-sm text-left')}">
+						<div class="${summaryLineClass()}"><span class="${mutedClass(state)}">Total</span><strong>${escapeHtml(formatMoney(order.total, order.currency))}</strong></div>
+						${order.paidAt ? `<div class="${summaryLineClass()}"><span class="${mutedClass(state)}">Paid</span><strong>${escapeHtml(order.paidAt)}</strong></div>` : ''}
+						${order.reference ? `<div class="${summaryLineClass()}"><span class="${mutedClass(state)}">Reference</span><strong>${escapeHtml(order.reference)}</strong></div>` : ''}
 					</div>
 				` : ''}
-				<div class="wm-inline-actions" style="justify-content:center">
+				<div class="${inlineActionsClass('justify-center')}">
 					${frameButton(actions, 'Continue shopping', stateAction(state, { view: 'products', category: 'all', page: 1 }))}
 				</div>
 			</section>
@@ -27,14 +27,14 @@ function renderSuccess(state) {
 function renderPaymentFailed(state) {
 	const actions = {};
 	return pluginFrame('Payment could not be processed', `
-		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
+		<div class="${pageClass(state)}">
 			${renderShopHeader(actions, state)}
-			<section class="wm-card wm-success">
-				<div class="wm-success-mark wm-fail-mark">${icon('x', 28)}</div>
-				<h1 class="wm-title" style="font-size:2.25rem;margin-top:1.25rem">Payment cannot be processed</h1>
-				<p class="wm-muted">The payment was not completed. Your cart is still available, so you can review it and retry checkout.</p>
-				${state.checkoutStatus ? `<p class="wm-warning">Status: ${escapeHtml(state.checkoutStatus)}</p>` : ''}
-				<div class="wm-inline-actions" style="justify-content:center">
+			<section class="${cardClass(state, 'mx-auto mt-16 max-w-3xl text-center')}">
+				<div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-red-800">${icon('x', 28)}</div>
+				<h1 class="${titleClass('mt-5 text-4xl')}">Payment cannot be processed</h1>
+				<p class="${mutedClass(state)}">The payment was not completed. Your cart is still available, so you can review it and retry checkout.</p>
+				${state.checkoutStatus ? `<p class="${warningClass(state)}">Status: ${escapeHtml(state.checkoutStatus)}</p>` : ''}
+				<div class="${inlineActionsClass('justify-center')}">
 					${frameButton(actions, 'Back to cart', stateAction(state, { view: 'cart' }), 'secondary')}
 					${frameButton(actions, 'Retry checkout', stateAction(checkoutReadyState(state), {}))}
 				</div>
