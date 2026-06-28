@@ -10,6 +10,7 @@ function defaultState() {
 		countryCode: '',
 		theme: 'auto',
 		lastAddedProductId: '',
+		lastAddedAt: 0,
 		contactSubjectIndex: '0',
 		contactSku: '',
 		query: '',
@@ -68,6 +69,11 @@ function cleanString(value, fallback) {
 	return trimmed || fallback || '';
 }
 
+function cleanPhone(value) {
+	const digits = String(value || '').replace(/\D/g, '');
+	return digits ? `+${digits.slice(0, 24)}` : '';
+}
+
 function normalizeDelivery(raw) {
 	const fallback = defaultState().delivery;
 	const value = objectValue(raw);
@@ -76,7 +82,7 @@ function normalizeDelivery(raw) {
 	return {
 		name: cleanString(value.name, fallback.name),
 		email: cleanString(value.email, fallback.email),
-		phone: cleanString(value.phone, fallback.phone),
+		phone: cleanPhone(value.phone || fallback.phone),
 		address: cleanString(value.address, fallback.address),
 		address2: cleanString(value.address2, fallback.address2),
 		city: cleanString(value.city, fallback.city),
@@ -222,6 +228,13 @@ function normalizeCatalog(raw) {
 			badge: cleanString(product.badge, ''),
 			packLabel: cleanString(product.packLabel, ''),
 			digital: product.digital === true,
+			stock: Number.isFinite(Number(product.stock))
+				? Number(product.stock)
+				: Number.isFinite(Number(product.available))
+					? Number(product.available)
+					: Number.isFinite(Number(product.quantityAvailable))
+						? Number(product.quantityAvailable)
+						: null,
 			order: Number(product.order)
 		}))
 		.filter((product) =>
@@ -277,7 +290,12 @@ function normalizeCart(raw, catalog) {
 	for (const product of activeCatalog(catalog).products) {
 		const quantity = Number(value[product.id]);
 		if (Number.isFinite(quantity) && quantity > 0) {
-			cart[product.id] = Math.round(quantity);
+			const rounded = Math.round(quantity);
+			const stock = Number(product.stock);
+			const max = Number.isFinite(stock) && stock >= 0 ? Math.floor(stock) : null;
+			if (max === null || max > 0) {
+				cart[product.id] = max === null ? rounded : Math.min(rounded, max);
+			}
 		}
 	}
 	return cart;
@@ -288,7 +306,10 @@ function normalizeQuantities(raw, catalog) {
 	const value = objectValue(raw);
 	for (const product of activeCatalog(catalog).products) {
 		const quantity = Number(value[product.id]);
-		quantities[product.id] = Number.isFinite(quantity) && quantity > 0 ? Math.max(1, Math.round(quantity)) : 1;
+		const stock = Number(product.stock);
+		const max = Number.isFinite(stock) && stock >= 0 ? Math.max(1, Math.floor(stock)) : null;
+		const normalized = Number.isFinite(quantity) && quantity > 0 ? Math.max(1, Math.round(quantity)) : 1;
+		quantities[product.id] = max === null ? normalized : Math.min(normalized, max);
 	}
 	return quantities;
 }
@@ -324,6 +345,7 @@ function normalizeState(raw) {
 		countryCode: cleanString(value.countryCode, fallback.countryCode).toUpperCase(),
 		theme: normalizeTheme(value.theme),
 		lastAddedProductId: cleanString(value.lastAddedProductId, fallback.lastAddedProductId),
+		lastAddedAt: Number.isFinite(Number(value.lastAddedAt)) ? Number(value.lastAddedAt) : fallback.lastAddedAt,
 		contactSubjectIndex: cleanString(value.contactSubjectIndex, fallback.contactSubjectIndex),
 		contactSku: cleanString(value.contactSku, fallback.contactSku),
 		query: typeof value.query === 'string' ? value.query : fallback.query,

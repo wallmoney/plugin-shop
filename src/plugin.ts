@@ -12,7 +12,8 @@ module.exports = {
 				saveState(hostApi, {
 					...state,
 					...resolveInitialPluginRoute(initialRoute, state),
-					lastAddedProductId: ''
+					lastAddedProductId: '',
+					lastAddedAt: 0
 				});
 			}
 			this.unsubscribe = hostApi.events.onPaymentExecuted((result) => {
@@ -147,7 +148,8 @@ function scheduleLastAddedReset(api, state) {
 		if (!nextState.lastAddedProductId) return;
 		saveState(api, {
 			...nextState,
-			lastAddedProductId: ''
+			lastAddedProductId: '',
+			lastAddedAt: 0
 		});
 	}, 1200);
 }

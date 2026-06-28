@@ -100,12 +100,16 @@ function inputClass(state, extra = '') {
 	return `w-full rounded-2xl border px-4 py-3 font-normal not-placeholder-shown:invalid:border-red-500 not-placeholder-shown:invalid:ring-1 not-placeholder-shown:invalid:ring-red-500/60 not-placeholder-shown:valid:border-emerald-500 not-placeholder-shown:valid:ring-1 not-placeholder-shown:valid:ring-emerald-500/50 user-invalid:border-red-500 user-invalid:ring-1 user-invalid:ring-red-500/60 user-valid:border-emerald-500 user-valid:ring-1 user-valid:ring-emerald-500/50 ${themeClasses(state, 'border-stone-300 bg-stone-50 text-stone-950 placeholder:text-stone-400', 'border-slate-700 bg-slate-950 text-white placeholder:text-slate-500')} ${extra}`;
 }
 
+function neutralInputClass(state, extra = '') {
+	return `w-full rounded-2xl border px-4 py-3 font-normal ${themeClasses(state, 'border-stone-300 bg-stone-50 text-stone-950 placeholder:text-stone-400', 'border-slate-700 bg-slate-950 text-white placeholder:text-slate-500')} ${extra}`;
+}
+
 function fieldLabelClass(state) {
 	return `mb-1.5 flex items-center gap-1 text-sm font-semibold ${themeClasses(state, 'text-stone-500', 'text-slate-400')}`;
 }
 
 function warningClass(state) {
-	return `mt-4 rounded-2xl border p-3 font-semibold ${themeClasses(state, 'border-amber-300/70 bg-amber-100 text-amber-950', 'border-amber-500/40 bg-amber-500/15 text-amber-200')}`;
+	return `mt-4 rounded-2xl border p-3 text-sm font-normal ${themeClasses(state, 'border-amber-300/70 bg-amber-100 text-amber-950', 'border-amber-500/40 bg-amber-500/15 text-amber-200')}`;
 }
 
 function buttonClass(variant = 'primary', extraClass = '') {
@@ -141,6 +145,10 @@ function quantityClass(state, extra = '') {
 
 function quantityButtonClass() {
 	return 'inline-flex cursor-pointer items-center justify-center px-3 py-2 text-inherit hover:bg-violet-600/20';
+}
+
+function quantityInputClass() {
+	return 'min-w-8 w-12 border-0 bg-transparent px-1 py-2 text-center font-semibold text-inherit outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 }
 
 function productMetaClass(state, extra = '') {

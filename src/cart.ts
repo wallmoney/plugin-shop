@@ -47,19 +47,40 @@ function wholeQuantity(value) {
 	return Number.isFinite(quantity) && quantity > 0 ? Math.max(1, Math.round(quantity)) : 1;
 }
 
+function productStock(product) {
+	const stock = Number(product && product.stock);
+	return Number.isFinite(stock) && stock >= 0 ? Math.floor(stock) : null;
+}
+
+function availableToAdd(state, product) {
+	const stock = productStock(product);
+	if (stock === null) return null;
+	return Math.max(0, stock - (state.cart[product.id] || 0));
+}
+
+function clampQuantity(value, max) {
+	const quantity = wholeQuantity(value);
+	return max === null ? quantity : Math.min(quantity, Math.max(1, max));
+}
+
 function productQuantity(state, productId) {
-	return wholeQuantity(state.productQuantities && state.productQuantities[productId]);
+	const product = catalogProducts(state).find((item) => item.id === productId);
+	if (!product) return 1;
+	const max = availableToAdd(state, product);
+	return clampQuantity(state.productQuantities && state.productQuantities[productId], max);
 }
 
 function setProductQuantity(state, productId, quantity) {
 	const product = catalogProducts(state).find((item) => item.id === productId);
 	if (!product) return state;
+	const max = availableToAdd(state, product);
 	return normalizeState({
 		...state,
 		lastAddedProductId: '',
+		lastAddedAt: 0,
 		productQuantities: {
 			...state.productQuantities,
-			[productId]: wholeQuantity(quantity)
+			[productId]: clampQuantity(quantity, max)
 		}
 	});
 }
@@ -77,8 +98,10 @@ function addQuantityToCart(state, productId, quantity) {
 	if (!product) return state;
 	const cart = { ...state.cart };
 	const current = cart[productId] || 0;
-	cart[productId] = current + wholeQuantity(quantity);
-	return normalizeState({ ...state, cart, checkoutStatus: 'draft', lastAddedProductId: productId });
+	const stock = productStock(product);
+	const nextQuantity = current + wholeQuantity(quantity);
+	cart[productId] = stock === null ? nextQuantity : Math.min(nextQuantity, stock);
+	return normalizeState({ ...state, cart, checkoutStatus: 'draft', lastAddedProductId: productId, lastAddedAt: Date.now() });
 }
 
 function addToCart(state, productId) {
@@ -93,13 +116,27 @@ function removeOneFromCart(state, productId) {
 	} else {
 		cart[productId] = current - 1;
 	}
-	return normalizeState({ ...state, cart, checkoutStatus: 'draft', lastAddedProductId: '' });
+	return normalizeState({ ...state, cart, checkoutStatus: 'draft', lastAddedProductId: '', lastAddedAt: 0 });
+}
+
+function setCartProductQuantity(state, productId, quantity) {
+	const product = catalogProducts(state).find((item) => item.id === productId);
+	if (!product) return state;
+	const cart = { ...state.cart };
+	const stock = productStock(product);
+	const nextQuantity = clampQuantity(quantity, stock);
+	if (stock === 0) {
+		delete cart[productId];
+	} else {
+		cart[productId] = nextQuantity;
+	}
+	return normalizeState({ ...state, cart, checkoutStatus: 'draft', lastAddedProductId: '', lastAddedAt: 0 });
 }
 
 function removeProductFromCart(state, productId) {
 	const cart = { ...state.cart };
 	delete cart[productId];
-	return normalizeState({ ...state, cart, checkoutStatus: 'draft', lastAddedProductId: '' });
+	return normalizeState({ ...state, cart, checkoutStatus: 'draft', lastAddedProductId: '', lastAddedAt: 0 });
 }
 
 function orderReference(state) {

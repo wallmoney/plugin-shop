@@ -176,7 +176,7 @@ function isValidEmail(value) {
 }
 
 function isValidPhone(value) {
-	return /^\+?[0-9][0-9\s().-]{5,24}$/.test(String(value || '').trim());
+	return /^\+[0-9]{7,24}$/.test(String(value || '').trim());
 }
 
 function isUnitedStates(value) {
@@ -221,7 +221,7 @@ function renderCheckoutField(state, field, storageActionId) {
 	const common = `class="${inputClass(state)}" name="${escapeHtml(field.name)}" data-plugin-storage-action="${escapeHtml(storageActionId)}" data-plugin-field="${escapeHtml(field.name)}" ${required}`;
 	const htmlValidation = {
 		'delivery.email': 'inputmode="email" autocomplete="email" pattern="[^\\s@]+@[^\\s@]+\\.[^\\s@]+" maxlength="254" title="Enter a valid email address."',
-		'delivery.phone': 'inputmode="tel" autocomplete="tel" pattern="\\+?[0-9][0-9\\s().-]{5,24}" minlength="7" maxlength="25" title="Enter a valid phone number. Use digits, spaces, brackets, hyphens, and an optional leading +."'
+		'delivery.phone': 'inputmode="tel" autocomplete="tel" pattern="\\+[0-9]{7,24}" minlength="8" maxlength="25" title="Enter a phone number in +123456789 format."'
 	}[field.name] || '';
 	if (field.type === 'select') {
 		return `<label>
@@ -336,7 +336,7 @@ function renderCheckout(state) {
 								<input class="h-4 w-4 accent-violet-600" type="checkbox" tabindex="-1" ${checkoutState.saveDelivery ? 'checked' : ''} />
 								<span>Save address for next order</span>
 							</button>
-							${frameButton(actions, 'Clear form', stateAction(state, { delivery: { ...emptyDelivery(), email: state.userEmail || '' }, checkoutStatus: 'draft' }, 'Delivery form cleared'), 'link')}
+							${frameButton(actions, 'Clear form', stateAction(state, { delivery: emptyDelivery(), userEmail: '', countryCode: '', selectedDeliveryProfileId: '', checkoutStatus: 'draft', emailRequestStatus: 'resolved' }, 'Delivery form cleared'), 'link')}
 						</div>
 						${savedAddressPanel}
 					` : ''}
