@@ -31,28 +31,40 @@ function productQuestionSubjectIndex(state) {
 }
 
 function productShareUrl(product) {
-	return `/marketplace/wallmoney/plugin-shop?view=product&product=${encodeURIComponent(product.id)}`;
+	return shopUrl(product.id);
 }
 
 function renderProductImage(state, product) {
 	const image = productImageUrl(state, product);
 	return image
-		? `<img src="${escapeHtml(image)}" alt="${escapeHtml(product.name)}" loading="lazy" />`
-		: `<div class="wm-empty-icon">${escapeHtml(product.icon || '•')}</div>`;
+		? `<img class="${imageClass()}" src="${escapeHtml(image)}" alt="${escapeHtml(product.name)}" loading="lazy" />`
+		: `<div class="${emptyIconClass()}">${escapeHtml(product.icon || '•')}</div>`;
 }
 
 function productBadges(product) {
+	const badges = [
+		product.badge ? `<span class="${productBadgeClass(0)}">${escapeHtml(product.badge)}</span>` : '',
+		product.digital === true ? `<span class="${productBadgeClass(1)}">Digital</span>` : ''
+	].filter(Boolean).join('');
+	return badges;
+}
+
+function productDetailBadges(product) {
 	return [
-		product.badge ? `<span class="wm-badge">${escapeHtml(product.badge)}</span>` : '',
-		product.digital === true ? '<span class="wm-badge wm-badge-digital">Digital</span>' : ''
+		product.badge ? `<span class="${detailBadgeClass(false)}">${escapeHtml(product.badge)}</span>` : '',
+		product.digital === true ? `<span class="${detailBadgeClass(true)}">Digital</span>` : ''
 	].filter(Boolean).join('');
 }
 
-function addToCartButton(actions, state, product, extraClass = 'wm-btn-primary') {
+function addButtonClass(isAdded, extraClass = '') {
+	return buttonClass('primary', `relative w-full overflow-hidden ${extraClass}`);
+}
+
+function addToCartButton(actions, state, product, extraClass = '') {
 	const isAdded = state.lastAddedProductId === product.id;
-	return `<button type="button" class="wm-btn ${extraClass} wm-product-add ${isAdded ? 'wm-is-added' : ''}" ${actionAttr(actions, stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`))}>
-		<span class="wm-add-default">Add to cart</span>
-		<span class="wm-add-added">Added</span>
+	return `<button type="button" class="${addButtonClass(isAdded, extraClass)}" ${actionAttr(actions, stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`))}>
+		<span>Add to cart</span>
+		${isAdded ? '<span class="absolute inset-0 flex items-center justify-center rounded-full bg-emerald-600 text-white animate-ping">Added</span>' : ''}
 	</button>`;
 }
 
@@ -65,17 +77,17 @@ function renderProducts(state) {
 	const visibleProducts = products.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
 	return pluginFrame(SHOP_CONFIG.name, `
-		<div class="wm-shop wm-theme-${escapeHtml(state.theme)}">
-			<div class="wm-shell wm-layout">
-				<aside class="wm-sidebar">
-					<button type="button" class="wm-brand" ${actionAttr(actions, stateAction(state, { view: 'products', category: 'all', page: 1 }))}>
+		<div class="${shopClass(state)}">
+			<div class="${shellClass()} flex h-[max(100vh,100dvh,100svh,820px)] min-h-[max(100vh,100dvh,100svh,820px)] overflow-hidden max-[900px]:block max-[900px]:h-auto max-[900px]:overflow-visible">
+				<aside class="h-full w-60 shrink-0 overflow-y-auto overscroll-contain border-r p-5 max-[900px]:h-auto max-[900px]:w-auto max-[900px]:border-b max-[900px]:border-r-0 ${themeClasses(state, 'border-stone-200 bg-stone-50/95', 'border-slate-800 bg-slate-900/95')}">
+					<button type="button" class="inline-flex items-center gap-3 border-0 bg-transparent text-2xl font-semibold tracking-normal text-inherit" ${actionAttr(actions, shopNavigateAction())}>
 						${shopLogoMarkup()}
 						<span>${escapeHtml(SHOP_CONFIG.name)}</span>
 					</button>
-					<p class="wm-subtitle">${escapeHtml(SHOP_CONFIG.tagline || '')}</p>
-					<nav class="wm-nav" aria-label="Shop categories">
+					<p class="mt-2 text-sm font-medium leading-6 ${mutedClass(state)}">${escapeHtml(SHOP_CONFIG.tagline || '')}</p>
+					<nav class="mt-6 flex flex-col gap-2 max-[900px]:flex-row max-[900px]:overflow-x-auto" aria-label="Shop categories">
 						${allCategories(state).map((category) => `
-							<button type="button" class="${state.category === category.id ? 'is-active' : ''}" ${actionAttr(actions, stateAction(state, {
+							<button type="button" class="rounded-2xl px-4 py-3 text-left font-semibold ${state.category === category.id ? themeClasses(state, 'bg-white text-stone-950 shadow-[0_18px_40px_rgba(28,25,23,.12)]', 'bg-slate-50 text-slate-950') : mutedClass(state)}" ${actionAttr(actions, stateAction(state, {
 								category: category.id,
 								view: 'products',
 								page: 1,
@@ -84,38 +96,38 @@ function renderProducts(state) {
 						`).join('')}
 					</nav>
 				</aside>
-				<main class="wm-main">
-					<div class="wm-main-head">
+				<main class="h-full min-w-0 flex-1 overflow-y-auto overscroll-contain px-10 py-6 max-[900px]:h-auto max-[900px]:overflow-visible max-[900px]:p-5">
+					<div class="flex items-end justify-between gap-4 border-b pb-6 max-[900px]:flex-col max-[900px]:items-start ${themeClasses(state, 'border-stone-200', 'border-slate-800')}">
 						<div>
-							<p class="wm-kicker">Browse category</p>
-							<h1 class="wm-title">${escapeHtml(categoryTitle(state))}</h1>
+							<p class="${kickerClass(state)}">Browse category</p>
+							<h1 class="${titleClass()}">${escapeHtml(categoryTitle(state))}</h1>
 						</div>
-						<div class="wm-actions">
+						<div class="flex items-center gap-3">
 							${renderThemeSwitcher(actions, state)}
-							<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'contact' }))}>${icon('mail', 17)} <span>Contact</span></button>
-							<button type="button" class="wm-chip" ${actionAttr(actions, stateAction(state, { view: 'cart' }))}>${icon('cart', 17)} <span>Cart ${cartCount(state)}</span></button>
-							<button type="button" class="wm-icon-btn wm-user-btn" title="Back to bank" ${actionAttr(actions, bankNavigateAction())}>${coreIdenticon(state.coreId)}</button>
+							<button type="button" class="${chipClass(state)}" ${actionAttr(actions, shopNavigateAction('contact'))}>${icon('mail', 17)} <span>Contact</span></button>
+							<button type="button" class="${chipClass(state)}" ${actionAttr(actions, shopNavigateAction('cart'))}>${icon('cart', 17)} <span>Cart ${cartCount(state)}</span></button>
+							<button type="button" class="${iconButtonClass(state, 'overflow-hidden')}" title="Back to bank" ${actionAttr(actions, bankNavigateAction())}>${coreIdenticon(state.coreId)}</button>
 						</div>
 					</div>
-					<div class="wm-grid">
+					<div class="mt-8 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
 						${visibleProducts.map((product) => `
-							<article class="wm-product">
-								<button type="button" class="wm-product-card" ${actionAttr(actions, productOpenAction(state, product))}>
-									<div class="wm-product-media">
+							<article class="text-left">
+								<button type="button" class="block w-full border-0 bg-transparent p-0 text-left text-inherit transition hover:-translate-y-1" ${actionAttr(actions, shopNavigateAction(product.id))}>
+									<div class="${mediaBoxClass(state, 'rounded-[1.75rem] transition hover:border-violet-600 hover:shadow-[0_18px_44px_rgba(15,23,42,.2)]')}">
 										${renderProductImage(state, product)}
 										${productBadges(product)}
 									</div>
-									<p class="wm-product-meta">${escapeHtml(product.vendor || SHOP_CONFIG.name)}</p>
-									<h2 class="wm-product-name">${escapeHtml(product.name)}</h2>
-									${product.packLabel ? `<p class="wm-product-pack">${escapeHtml(product.packLabel)}</p>` : ''}
-									<p class="wm-product-price">${escapeHtml(productPrice(state, product))}</p>
+									<p class="${productMetaClass(state)}">${escapeHtml(product.vendor || SHOP_CONFIG.name)}</p>
+									<h2 class="${productNameClass()}">${escapeHtml(product.name)}</h2>
+									${product.packLabel ? `<p class="${productPackClass(state)}">${escapeHtml(product.packLabel)}</p>` : ''}
+									<p class="${productPriceClass()}">${escapeHtml(productPrice(state, product))}</p>
 								</button>
-								${addToCartButton(actions, state, product)}
+								${addToCartButton(actions, state, product, 'mt-3')}
 							</article>
 						`).join('')}
 					</div>
 					${totalPages > 1 ? `
-						<div class="wm-inline-actions">
+						<div class="${inlineActionsClass()}">
 							${currentPage > 1 ? frameButton(actions, 'Previous', stateAction(state, { page: currentPage - 1 }), 'secondary') : ''}
 							${currentPage < totalPages ? frameButton(actions, 'Next', stateAction(state, { page: currentPage + 1 }), 'secondary') : ''}
 						</div>
@@ -132,60 +144,60 @@ function renderProductDetail(state) {
 	const actions = {};
 	const packLabel = String(product.packLabel || '').trim();
 	return pluginFrame(product.name, `
-		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
+		<div class="${pageClass(state)}">
 			${renderShopHeader(actions, state)}
-			<main class="wm-detail">
+			<main class="mx-auto grid max-w-7xl grid-cols-[minmax(0,1.05fr)_minmax(24rem,.95fr)] gap-8 p-6 max-[900px]:block max-[900px]:p-5">
 				<section>
-					${frameButton(actions, 'Back to products', stateAction(state, { view: 'products', category: 'all', page: 1, lastAddedProductId: '' }), 'secondary')}
-					<div class="wm-detail-media" style="margin-top:1rem">${renderProductImage(state, product)}</div>
+					${frameButton(actions, 'Back to products', shopNavigateAction(), 'secondary')}
+					<div class="${mediaBoxClass(state, 'mt-4 rounded-[2.25rem]')}">${renderProductImage(state, product)}</div>
 				</section>
-				<section class="wm-detail-copy">
-					<button type="button" class="wm-product-meta wm-link-text" ${actionAttr(actions, stateAction(state, { view: 'products', category: product.category, page: 1, lastAddedProductId: '' }))}>${escapeHtml(product.vendor || SHOP_CONFIG.name)}</button>
-					<h1 class="wm-title">${escapeHtml(product.name)}</h1>
-					<p class="wm-detail-badges">${productBadges(product)}</p>
-					<p class="wm-price">${escapeHtml(productPrice(state, product))}</p>
+				<section class="pt-12 max-[900px]:mt-6 max-[900px]:pt-0">
+					<button type="button" class="inline-flex border-0 bg-transparent p-0 text-sm font-medium text-inherit hover:underline" ${actionAttr(actions, stateAction(state, { view: 'products', category: product.category, page: 1, lastAddedProductId: '' }))}>${escapeHtml(product.vendor || SHOP_CONFIG.name)}</button>
+					<h1 class="${titleClass()}">${escapeHtml(product.name)}</h1>
+					<p class="mt-4 flex flex-wrap gap-2">${productDetailBadges(product)}</p>
+					<p class="my-8 text-3xl font-semibold">${escapeHtml(productPrice(state, product))}</p>
 					${packLabel ? `
-						<div class="wm-detail-field">
-							<p class="wm-detail-field-label">Pack</p>
-							<p class="wm-detail-field-value">${escapeHtml(packLabel)}</p>
+						<div class="mb-4">
+							<p class="mb-2 text-sm font-semibold ${mutedClass(state)}">Pack</p>
+							<p class="m-0 text-base font-medium">${escapeHtml(packLabel)}</p>
 						</div>
 					` : ''}
-					<div class="wm-detail-field">
-						<p class="wm-detail-field-label">Quantity</p>
-						<div class="wm-qty">
-							<button type="button" ${actionAttr(actions, stateAction(decrementProductQuantity(state, product.id), {}))}>${icon('minus', 15)}</button>
-							<span>${productQuantity(state, product.id)}</span>
-							<button type="button" ${actionAttr(actions, stateAction(incrementProductQuantity(state, product.id), {}))}>${icon('plus', 15)}</button>
+					<div class="mb-4">
+						<p class="mb-2 text-sm font-semibold ${mutedClass(state)}">Quantity</p>
+						<div class="${quantityClass(state)}">
+							<button type="button" class="${quantityButtonClass()}" ${actionAttr(actions, stateAction(decrementProductQuantity(state, product.id), {}))}>${icon('minus', 15)}</button>
+							<span class="min-w-8 text-center font-semibold">${productQuantity(state, product.id)}</span>
+							<button type="button" class="${quantityButtonClass()}" ${actionAttr(actions, stateAction(incrementProductQuantity(state, product.id), {}))}>${icon('plus', 15)}</button>
 						</div>
 					</div>
-					<div class="wm-inline-actions wm-detail-actions">
-						<button type="button" class="wm-btn wm-btn-secondary wm-product-add ${state.lastAddedProductId === product.id ? 'wm-is-added' : ''}" ${actionAttr(actions, stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`))}>
-							<span class="wm-add-default">Add to cart</span>
-							<span class="wm-add-added">Added</span>
+					<div class="${inlineActionsClass()}">
+						<button type="button" class="${buttonClass('secondary', 'relative overflow-hidden')}" ${actionAttr(actions, stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`))}>
+							<span>Add to cart</span>
+							${state.lastAddedProductId === product.id ? '<span class="absolute inset-0 flex items-center justify-center rounded-full bg-emerald-600 text-white animate-ping">Added</span>' : ''}
 						</button>
 						${frameButton(actions, 'Buy now', stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), { view: 'cart' }))}
 					</div>
-					<div style="margin-top:2rem;border-top:1px solid rgba(148,163,184,.25);padding-top:1.5rem">
+					<div class="mt-8 border-t border-slate-500/25 pt-6">
 						${product.skuid ? `
-							<div class="wm-product-tools">
-								<span class="wm-sku-small">SKU:</span>
-								<button type="button" class="wm-sku-copy" title="Copy SKU" ${actionAttr(actions, { type: 'copy', text: product.skuid, message: 'SKU copied.' })}>${escapeHtml(product.skuid)}</button>
-								<button type="button" class="wm-btn wm-btn-link wm-tool-link" ${actionAttr(actions, stateAction(state, {
+							<div class="mb-4 flex flex-wrap items-center gap-3 max-[900px]:flex-col max-[900px]:items-start">
+								<span class="text-xs font-normal tracking-normal ${mutedClass(state)}">SKU:</span>
+								<button type="button" class="border-0 bg-transparent p-0 text-xs font-normal tracking-normal ${mutedClass(state)} hover:underline" title="Copy SKU" ${actionAttr(actions, { type: 'copy', text: product.skuid, message: 'SKU copied.' })}>${escapeHtml(product.skuid)}</button>
+								<button type="button" class="${buttonClass('link', 'gap-1')}" ${actionAttr(actions, stateAction(state, {
 									view: 'contact',
 									contactSku: product.skuid,
 									contactSubjectIndex: productQuestionSubjectIndex(state),
 									lastAddedProductId: ''
 								}))}>${icon('messageCircleQuestionMark', 15)} Ask about this product</button>
-								<button type="button" class="wm-btn wm-btn-link wm-tool-link" ${actionAttr(actions, {
+								<button type="button" class="${buttonClass('link', 'gap-1')}" ${actionAttr(actions, {
 									type: 'share',
 									title: product.name,
-									text: `${product.name}${product.skuid ? ` SKU: ${product.skuid}` : ''}`,
+									text: product.name,
 									url: productShareUrl(product)
 								})}>${icon('share2', 15)} Share this product</button>
 							</div>
 						` : `
-							<div class="wm-product-tools">
-								<button type="button" class="wm-btn wm-btn-link wm-tool-link" ${actionAttr(actions, {
+							<div class="mb-4 flex flex-wrap items-center gap-3 max-[900px]:flex-col max-[900px]:items-start">
+								<button type="button" class="${buttonClass('link', 'gap-1')}" ${actionAttr(actions, {
 									type: 'share',
 									title: product.name,
 									text: product.name,
@@ -193,8 +205,8 @@ function renderProductDetail(state) {
 								})}>${icon('share2', 15)} Share this product</button>
 							</div>
 						`}
-						<p class="wm-product-meta">Product description</p>
-						<p style="line-height:1.8">${escapeHtml(product.description || '')}</p>
+						<p class="${productMetaClass(state)}">Product description</p>
+						<p class="leading-8">${escapeHtml(product.description || '')}</p>
 					</div>
 				</section>
 			</main>

@@ -32,7 +32,7 @@ function formatContactPhone(phone) {
 }
 
 function renderCompanyDetail(label, value) {
-	return value ? `<div class="wm-summary-line"><span class="wm-muted">${escapeHtml(label)}</span><span class="wm-contact-text">${escapeHtml(value)}</span></div>` : '';
+	return value ? `<div class="${summaryLineClass()}"><span class="font-semibold">${escapeHtml(label)}</span><span class="font-normal">${escapeHtml(value)}</span></div>` : '';
 }
 
 function contactSubjectIndex(state, subjects) {
@@ -60,40 +60,40 @@ function renderContactPage(state) {
 	const company = contact.company || {};
 
 	return pluginFrame('Contact', `
-		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
+		<div class="${pageClass(state)}">
 			${renderShopHeader(actions, state)}
-			<main class="wm-checkout wm-contact-layout">
-				<section class="wm-card">
-					<p class="wm-kicker">Shop support</p>
-					<h1 class="wm-title" style="font-size:2.25rem">Contact</h1>
-					<p class="wm-muted">Choose a topic to open your mail client with a prepared subject.</p>
-					<label class="wm-contact-topic">
-						<span class="wm-field-label">Topic</span>
-						<select class="wm-input" name="contactSubjectIndex" data-plugin-storage-action="${escapeHtml(contactSelectActionId)}" data-plugin-field="contactSubjectIndex">
+			<main class="mx-auto mt-10 grid max-w-6xl grid-cols-[minmax(0,1fr)_24rem] gap-6 max-[900px]:block max-[900px]:p-5">
+				<section class="${cardClass(state)}">
+					<p class="${kickerClass(state)}">Shop support</p>
+					<h1 class="${titleClass('text-4xl')}">Contact</h1>
+					<p class="${mutedClass(state)}">Choose a topic to open your mail client with a prepared subject.</p>
+					<label class="mt-6 block max-w-md">
+						<span class="${fieldLabelClass(state)}">Topic</span>
+						<select class="${inputClass(state)}" name="contactSubjectIndex" data-plugin-storage-action="${escapeHtml(contactSelectActionId)}" data-plugin-field="contactSubjectIndex">
 							${subjects.length ? subjects.map((item, index) => `<option value="${escapeHtml(String(index))}" ${index === selectedSubjectIndex ? 'selected' : ''}>${escapeHtml(item.label)}</option>`).join('') : '<option value="0">Shop contact</option>'}
 						</select>
 					</label>
 					${email ? `
-						<button type="button" class="wm-btn wm-btn-primary wm-contact-compose" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, selectedSubject.subject, body) })}>
+						<button type="button" class="${buttonClass('primary', 'mt-4 w-full max-w-72 gap-3 max-[900px]:max-w-none')}" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, selectedSubject.subject, body) })}>
 							${icon('mail', 17)} Compose via Email
 						</button>
 					` : ''}
-					${!email && !mobile ? `<p class="wm-warning">No shop contact is configured.</p>` : ''}
+					${!email && !mobile ? `<p class="${warningClass(state)}">No shop contact is configured.</p>` : ''}
 				</section>
-				<aside class="wm-card">
-					<h2 style="display:flex;align-items:center;gap:.5rem;margin:0;font-size:1.25rem;font-weight:700">${icon('building', 18)} Company details</h2>
+				<aside class="${cardClass(state, 'max-[900px]:mt-6')}">
+					<h2 class="m-0 flex items-center gap-2 text-xl font-semibold">${icon('building', 18)} Company details</h2>
 					${renderCompanyDetail('Company', company.name)}
 					${renderCompanyDetail('Registration number', company.registrationNumber)}
 					${renderCompanyDetail('VAT ID', company.vatId)}
 					${renderCompanyDetail('Address', company.address)}
 					${company.website ? `
-						<div class="wm-summary-line">
-							<span class="wm-muted">Website</span>
-							<button type="button" class="wm-btn wm-btn-link" ${actionAttr(actions, { type: 'navigate', href: company.website })}>${icon('externalLink', 15)} Open</button>
+						<div class="${summaryLineClass()}">
+							<span class="font-semibold">Website</span>
+							<button type="button" class="${buttonClass('link', 'gap-1')}" ${actionAttr(actions, { type: 'navigate', href: company.website })}>${icon('externalLink', 15)} Open</button>
 						</div>
 					` : ''}
-					${email ? `<div class="wm-summary-line"><span class="wm-muted">Email</span><button type="button" class="wm-contact-value" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, 'Shop contact', 'Hello, I would like to contact your shop.') })}><span class="wm-contact-text">${escapeHtml(email)}</span>${icon('mail', 15)}</button></div>` : ''}
-					${mobile ? `<div class="wm-summary-line"><span class="wm-muted">Phone</span><button type="button" class="wm-contact-value" ${actionAttr(actions, { type: 'navigate', href: contactPhoneUrl(mobile) })}><span class="wm-contact-text">${escapeHtml(formattedMobile || mobile)}</span>${icon('phone', 15)}</button></div>` : ''}
+					${email ? `<div class="${summaryLineClass()} items-center"><span class="font-semibold">Email</span><button type="button" class="inline-flex items-center justify-end gap-2 border-0 bg-transparent p-0 text-right font-normal text-inherit hover:underline" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, 'Shop contact', 'Hello, I would like to contact your shop.') })}><span>${escapeHtml(email)}</span>${icon('mail', 15)}</button></div>` : ''}
+					${mobile ? `<div class="${summaryLineClass()} items-center"><span class="font-semibold">Phone</span><button type="button" class="inline-flex items-center justify-end gap-2 border-0 bg-transparent p-0 text-right font-normal text-inherit hover:underline" ${actionAttr(actions, { type: 'navigate', href: contactPhoneUrl(mobile) })}><span>${escapeHtml(formattedMobile || mobile)}</span>${icon('phone', 15)}</button></div>` : ''}
 				</aside>
 			</main>
 		</div>
