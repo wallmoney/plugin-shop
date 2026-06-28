@@ -69,9 +69,9 @@ function renderContactPage(state) {
 					<p class="${mutedClass(state)}">Choose a topic to open your mail client with a prepared subject.</p>
 					<label class="mt-6 block max-w-md">
 						<span class="${fieldLabelClass(state)}">Topic</span>
-						<span class="relative block">
+						<span class="relative block cursor-[context-menu]">
 							<span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 ${mutedClass(state)}">${icon('contextMenu', 17)}</span>
-							<select class="${inputClass(state, 'pl-11')}" name="contactSubjectIndex" data-plugin-storage-action="${escapeHtml(contactSelectActionId)}" data-plugin-field="contactSubjectIndex">
+							<select class="${neutralInputClass(state, 'cursor-[context-menu] pl-11')}" name="contactSubjectIndex" data-plugin-storage-action="${escapeHtml(contactSelectActionId)}" data-plugin-field="contactSubjectIndex">
 								${subjects.length ? subjects.map((item, index) => `<option value="${escapeHtml(String(index))}" ${index === selectedSubjectIndex ? 'selected' : ''}>${escapeHtml(item.label)}</option>`).join('') : '<option value="0">Shop contact</option>'}
 							</select>
 						</span>

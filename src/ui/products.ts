@@ -15,6 +15,7 @@ function productOpenAction(state, product) {
 		category: product.category,
 		selectedProductId: product.id,
 		lastAddedProductId: '',
+		lastAddedAt: 0,
 		productQuantities: {
 			...state.productQuantities,
 			[product.id]: productQuantity(state, product.id)
@@ -32,6 +33,19 @@ function productQuestionSubjectIndex(state) {
 
 function productShareUrl(product) {
 	return shopUrl(product.id);
+}
+
+function productWasJustAdded(state, product) {
+	const addedAt = Number(state.lastAddedAt);
+	if (state.lastAddedProductId !== product.id || !Number.isFinite(addedAt)) return false;
+	return Date.now() - addedAt < 1300;
+}
+
+function productQuantityInput(actions, state, product) {
+	const max = availableToAdd(state, product);
+	const value = productQuantity(state, product.id);
+	const actionId = addFrameAction(actions, stateAction(setProductQuantity(state, product.id, value)));
+	return `<input class="${quantityInputClass()}" type="number" min="1" ${max === null ? '' : `max="${escapeHtml(max || 1)}"`} step="1" inputmode="numeric" value="${escapeHtml(value)}" aria-label="Quantity" data-plugin-storage-action="${escapeHtml(actionId)}" data-plugin-field="productQuantities.${escapeHtml(product.id)}" />`;
 }
 
 function renderProductImage(state, product) {
@@ -61,7 +75,7 @@ function addButtonClass(isAdded, extraClass = '') {
 }
 
 function addToCartButton(actions, state, product, extraClass = '') {
-	const isAdded = state.lastAddedProductId === product.id;
+	const isAdded = productWasJustAdded(state, product);
 	return `<button type="button" class="${addButtonClass(isAdded, extraClass)}" ${actionAttr(actions, stateAction(addToCart(state, product.id), {}, `${product.name} added to cart`))}>
 		<span>${isAdded ? 'Added' : 'Add to cart'}</span>
 	</button>`;
@@ -116,7 +130,6 @@ function renderProducts(state) {
 										${renderProductImage(state, product)}
 										${productBadges(product)}
 									</div>
-									<p class="${productMetaClass(state)}">${escapeHtml(product.vendor || SHOP_CONFIG.name)}</p>
 									<h2 class="${productNameClass()}">${escapeHtml(product.name)}</h2>
 									${product.packLabel ? `<p class="${productPackClass(state)}">${escapeHtml(product.packLabel)}</p>` : ''}
 									<p class="${productPriceClass()}">${escapeHtml(productPrice(state, product))}</p>
@@ -142,6 +155,7 @@ function renderProductDetail(state) {
 	if (!product) return renderProducts(state);
 	const actions = {};
 	const packLabel = String(product.packLabel || '').trim();
+	const isAdded = productWasJustAdded(state, product);
 	return pluginFrame(product.name, `
 		<div class="${pageClass(state)}">
 			${renderShopHeader(actions, state)}
@@ -151,7 +165,7 @@ function renderProductDetail(state) {
 					<div class="${mediaBoxClass(state, 'mt-4 rounded-[2.25rem]')}">${renderProductImage(state, product)}</div>
 				</section>
 				<section class="pt-12 max-[900px]:mt-6 max-[900px]:pt-0">
-					<button type="button" class="inline-flex cursor-pointer border-0 bg-transparent p-0 text-sm font-medium text-inherit hover:underline" ${actionAttr(actions, stateAction(state, { view: 'products', category: product.category, page: 1, lastAddedProductId: '' }))}>${escapeHtml(product.vendor || SHOP_CONFIG.name)}</button>
+					<button type="button" class="inline-flex cursor-pointer border-0 bg-transparent p-0 text-sm font-medium text-inherit hover:underline" ${actionAttr(actions, stateAction(state, { view: 'products', category: product.category, page: 1, lastAddedProductId: '', lastAddedAt: 0 }))}>${escapeHtml(product.vendor || SHOP_CONFIG.name)}</button>
 					<h1 class="${titleClass()}">${escapeHtml(product.name)}</h1>
 					<p class="mt-4 flex flex-wrap gap-2">${productDetailBadges(product)}</p>
 					<p class="my-8 text-3xl font-semibold">${escapeHtml(productPrice(state, product))}</p>
@@ -165,13 +179,13 @@ function renderProductDetail(state) {
 						<p class="mb-2 text-sm font-semibold ${mutedClass(state)}">Quantity</p>
 						<div class="${quantityClass(state)}">
 							<button type="button" class="${quantityButtonClass()}" ${actionAttr(actions, stateAction(decrementProductQuantity(state, product.id), {}))}>${icon('minus', 15)}</button>
-							<span class="min-w-8 text-center font-semibold">${productQuantity(state, product.id)}</span>
+							${productQuantityInput(actions, state, product)}
 							<button type="button" class="${quantityButtonClass()}" ${actionAttr(actions, stateAction(incrementProductQuantity(state, product.id), {}))}>${icon('plus', 15)}</button>
 						</div>
 					</div>
 					<div class="${inlineActionsClass()}">
-						<button type="button" class="${buttonClass('secondary', `relative min-w-[7rem] overflow-hidden ${state.lastAddedProductId === product.id ? '!border-emerald-600 !bg-emerald-600 !text-white' : ''}`)}" ${actionAttr(actions, stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`))}>
-							<span>${state.lastAddedProductId === product.id ? 'Added' : 'Add to cart'}</span>
+						<button type="button" class="${buttonClass('secondary', `relative min-w-[7rem] overflow-hidden ${isAdded ? '!border-emerald-600 !bg-emerald-600 !text-white' : ''}`)}" ${actionAttr(actions, stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`))}>
+							<span>${isAdded ? 'Added' : 'Add to cart'}</span>
 						</button>
 						${frameButton(actions, 'Buy now', stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), { view: 'cart' }))}
 					</div>
@@ -184,7 +198,8 @@ function renderProductDetail(state) {
 									view: 'contact',
 									contactSku: product.skuid,
 									contactSubjectIndex: productQuestionSubjectIndex(state),
-									lastAddedProductId: ''
+									lastAddedProductId: '',
+									lastAddedAt: 0
 								}))}>${icon('messageCircleQuestionMark', 15)} Ask about this product</button>
 								<button type="button" class="${buttonClass('link', 'gap-1')}" ${actionAttr(actions, {
 									type: 'share',
