@@ -53,6 +53,9 @@ function renderContactPage(state) {
 		subject: 'Shop contact',
 		body: 'Hello, I would like to contact your shop.'
 	};
+	const body = state.contactSku
+		? `I have a question about product SKU: ${state.contactSku}`
+		: selectedSubject.body;
 	const contactSelectActionId = addFrameAction(actions, stateAction(state, { contactSubjectIndex: String(selectedSubjectIndex) }));
 	const company = contact.company || {};
 
@@ -71,7 +74,7 @@ function renderContactPage(state) {
 						</select>
 					</label>
 					${email ? `
-						<button type="button" class="wm-btn wm-btn-primary wm-contact-compose" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, selectedSubject.subject, selectedSubject.body) })}>
+						<button type="button" class="wm-btn wm-btn-primary wm-contact-compose" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, selectedSubject.subject, body) })}>
 							${icon('mail', 17)} Compose via Email
 						</button>
 					` : ''}
@@ -89,8 +92,8 @@ function renderContactPage(state) {
 							<button type="button" class="wm-btn wm-btn-link" ${actionAttr(actions, { type: 'navigate', href: company.website })}>${icon('externalLink', 15)} Open</button>
 						</div>
 					` : ''}
-					${email ? `<div class="wm-summary-line"><span class="wm-muted">Email</span><span class="wm-contact-value"><strong>${escapeHtml(email)}</strong><button type="button" class="wm-icon-btn" title="Email shop" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, 'Shop contact', 'Hello, I would like to contact your shop.') })}>${icon('mail', 15)}</button></span></div>` : ''}
-					${mobile ? `<div class="wm-summary-line"><span class="wm-muted">Mobile</span><span class="wm-contact-value"><strong>${escapeHtml(formattedMobile || mobile)}</strong><button type="button" class="wm-icon-btn" title="Call shop" ${actionAttr(actions, { type: 'navigate', href: contactPhoneUrl(mobile) })}>${icon('phone', 15)}</button></span></div>` : ''}
+					${email ? `<div class="wm-summary-line"><span class="wm-muted">Email</span><button type="button" class="wm-contact-value" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, 'Shop contact', 'Hello, I would like to contact your shop.') })}><strong>${escapeHtml(email)}</strong>${icon('mail', 15)}</button></div>` : ''}
+					${mobile ? `<div class="wm-summary-line"><span class="wm-muted">Mobile</span><button type="button" class="wm-contact-value" ${actionAttr(actions, { type: 'navigate', href: contactPhoneUrl(mobile) })}><strong>${escapeHtml(formattedMobile || mobile)}</strong>${icon('phone', 15)}</button></div>` : ''}
 				</aside>
 			</main>
 		</div>

@@ -457,11 +457,14 @@ function countryCodeFromValue(value) {
 	const normalized = typeof value === 'string' ? value.trim() : '';
 	if (!normalized) return '';
 	const parenthesizedCode = normalized.match(/\(([A-Za-z]{2})\)\s*$/);
-	if (parenthesizedCode) return parenthesizedCode[1].toUpperCase();
+	if (parenthesizedCode) {
+		const code = parenthesizedCode[1].toUpperCase();
+		return COUNTRY_OPTIONS.some((item) => item.code === code) ? code : '';
+	}
 	const upper = normalized.toUpperCase();
 	const lower = normalized.toLowerCase();
 	const country = COUNTRY_OPTIONS.find((item) => item.code === upper || item.name.toLowerCase() === lower);
-	return country ? country.code : upper.length === 2 ? upper : '';
+	return country ? country.code : '';
 }
 
 
@@ -479,6 +482,7 @@ function defaultState() {
 		theme: 'auto',
 		lastAddedProductId: '',
 		contactSubjectIndex: '0',
+		contactSku: '',
 		query: '',
 		page: 1,
 		productQuantities: {},
@@ -792,6 +796,7 @@ function normalizeState(raw) {
 		theme: normalizeTheme(value.theme),
 		lastAddedProductId: cleanString(value.lastAddedProductId, fallback.lastAddedProductId),
 		contactSubjectIndex: cleanString(value.contactSubjectIndex, fallback.contactSubjectIndex),
+		contactSku: cleanString(value.contactSku, fallback.contactSku),
 		query: typeof value.query === 'string' ? value.query : fallback.query,
 		page: Number.isFinite(Number(value.page)) && Number(value.page) > 0 ? Math.floor(Number(value.page)) : fallback.page,
 		productQuantities: normalizeQuantities(value.productQuantities, catalog),
@@ -1199,9 +1204,11 @@ function icon(name, size = 18) {
 		check: '<path d="M20 6 9 17l-5-5"/>',
 		externalLink: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
 		mail: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+		messageCircleQuestionMark: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4"/><path d="M12 17h.01"/>',
 		monitor: '<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>',
 		moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
 		phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 3.08 5.18 2 2 0 0 1 5.06 3h3a2 2 0 0 1 2 1.72c.12.86.31 1.7.57 2.5a2 2 0 0 1-.45 2.11L9 10.5a16 16 0 0 0 4.5 4.5l1.17-1.17a2 2 0 0 1 2.11-.45c.8.26 1.64.45 2.5.57A2 2 0 0 1 22 16.92Z"/>',
+		share2: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98"/><path d="m15.41 6.51-6.82 3.98"/>',
 		plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
 		minus: '<path d="M5 12h14"/>',
 		sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
@@ -1295,7 +1302,7 @@ function pluginFrame(title, body, actions, options = {}) {
 			@media (max-width:900px){.wm-layout{display:block}.wm-sidebar{width:auto;border-right:0;border-bottom:1px solid #e7e5e4}.wm-nav{flex-direction:row;overflow-x:auto}.wm-main{padding:1.25rem}.wm-main-head{align-items:flex-start;flex-direction:column}.wm-detail,.wm-checkout{display:block;padding:1.25rem}.wm-detail-copy,.wm-checkout aside{margin-top:1.5rem;padding-top:0}.wm-row{grid-template-columns:5.5rem minmax(0,1fr)}.wm-row>strong{grid-column:2}.wm-form-grid{grid-template-columns:1fr}.wm-span-2{grid-column:auto}}
 			html:has(.wm-theme-light),body:has(.wm-theme-light){background:#f6f4ee;color:#0c0a09}html:has(.wm-theme-dark),body:has(.wm-theme-dark){background:#020617;color:#f8fafc}
 			.wm-theme-light{background:#f6f4ee!important;color:#0c0a09!important}.wm-theme-dark{background:#020617!important;color:#f8fafc!important}.wm-theme-light .wm-sidebar{background:rgba(251,250,247,.96)!important;border-color:#e7e5e4!important}.wm-theme-light .wm-card,.wm-theme-light .wm-chip,.wm-theme-light .wm-icon-btn,.wm-theme-light .wm-btn-secondary,.wm-theme-light .wm-qty{background:#fff!important;color:#292524!important;border-color:#d6d3d1!important}.wm-theme-light .wm-product-media,.wm-theme-light .wm-detail-media,.wm-theme-light .wm-row-media,.wm-theme-light .wm-input{background:#fafaf9!important;color:#0c0a09!important;border-color:#d6d3d1!important}.wm-theme-light .wm-muted,.wm-theme-light .wm-subtitle,.wm-theme-light .wm-kicker,.wm-theme-light .wm-product-meta,.wm-theme-light .wm-product-pack{color:#6b7280!important}.wm-theme-dark .wm-sidebar{background:rgba(15,23,42,.96)!important;border-color:#1e293b!important}.wm-theme-dark .wm-card,.wm-theme-dark .wm-chip,.wm-theme-dark .wm-icon-btn,.wm-theme-dark .wm-btn-secondary,.wm-theme-dark .wm-qty{background:#0f172a!important;color:#f8fafc!important;border-color:#334155!important}.wm-theme-dark .wm-product-media,.wm-theme-dark .wm-detail-media,.wm-theme-dark .wm-row-media,.wm-theme-dark .wm-input{background:#1e293b!important;color:#fff!important;border-color:#334155!important}.wm-theme-dark .wm-muted,.wm-theme-dark .wm-subtitle,.wm-theme-dark .wm-kicker,.wm-theme-dark .wm-product-meta,.wm-theme-dark .wm-product-pack{color:#cbd5e1!important}.wm-svg{display:inline-block;flex:0 0 auto}.wm-identicon{width:100%;height:100%;border-radius:999px}.wm-user-btn{overflow:hidden;border-radius:999px}.wm-brand,.wm-title,.wm-product-name,.wm-btn,.wm-chip,.wm-icon-btn,.wm-nav button,.wm-product-price,.wm-price,.wm-total,.wm-qty span{font-weight:650;letter-spacing:0}.wm-title{font-weight:750}.wm-product-meta,.wm-product-pack,.wm-muted,.wm-subtitle,.wm-kicker{font-weight:500}.wm-product-card{display:block;width:100%;padding:0;border:0;background:transparent;color:inherit;text-align:left;transition:transform .16s ease}.wm-product-card:hover{transform:translateY(-3px)}.wm-product-card:hover .wm-product-media{border-color:#7c3aed!important;box-shadow:0 18px 44px rgba(15,23,42,.2)}.wm-product-media,.wm-detail-media{cursor:pointer}.wm-product-media{transition:border-color .16s ease,box-shadow .16s ease}.wm-theme-switch{display:inline-flex;align-items:center;gap:.15rem;border:1px solid rgba(148,163,184,.35);background:rgba(148,163,184,.12);border-radius:999px;padding:.2rem}.wm-theme-switch button{display:inline-flex;align-items:center;justify-content:center;width:2rem;height:2rem;border:0;border-radius:999px;background:transparent;color:inherit;opacity:.65;cursor:pointer}.wm-theme-switch button.is-active{background:rgba(255,255,255,.14);opacity:1}.wm-icon-btn{display:inline-flex;align-items:center;justify-content:center;width:2.7rem;height:2.7rem;padding:0}.wm-chip{display:inline-flex;align-items:center;gap:.45rem;cursor:pointer}.wm-qty{background:rgba(148,163,184,.11)}.wm-qty button{display:inline-flex;align-items:center;justify-content:center;color:inherit;cursor:pointer}.wm-qty button:hover{background:rgba(124,58,237,.16)}.wm-btn-link{min-height:auto;padding:.2rem .35rem;border-radius:.45rem;background:transparent!important;color:#94a3b8!important;font-size:.85rem}.wm-btn-success{background:#059669!important;color:#fff!important}.wm-product-add{display:flex;align-items:center;justify-content:center;position:relative;text-align:center}.wm-add-added{display:none}.wm-is-added{animation:wm-added-bg 1.6s ease both}.wm-is-added .wm-add-default{animation:wm-added-default-text 1.6s ease both}.wm-is-added .wm-add-added{display:inline;position:absolute;inset:auto;animation:wm-added-text 1.6s ease both}@keyframes wm-added-bg{0%,72%{background:#059669;color:#fff}100%{background:#6d28d9;color:#fff}}@keyframes wm-added-text{0%,72%{opacity:1}100%{opacity:0}}@keyframes wm-added-default-text{0%,72%{opacity:0}100%{opacity:1}}.wm-detail-badges{display:flex;flex-wrap:wrap;gap:.5rem;margin:1rem 0 0}.wm-detail-badges .wm-badge{position:static;display:inline-flex}.wm-detail-badges .wm-badge-digital{top:auto}.wm-cart-actions{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-top:1rem}.wm-cart-right{display:flex;flex-wrap:wrap;gap:.65rem;justify-content:flex-end}.wm-pay-btn[disabled]{opacity:.55;transform:none!important}.wm-field-label{display:flex;align-items:center;gap:.25rem;margin-bottom:.4rem;color:#94a3b8;font-size:.85rem;font-weight:600}.wm-required{color:#ef4444}.wm-required-note{margin:1rem 0 0;color:#94a3b8;font-size:.82rem}.wm-coreid{overflow-wrap:anywhere;word-break:break-word;letter-spacing:.03em}.wm-checkbox{display:inline-flex;align-items:center;gap:.5rem;color:inherit;font-weight:500}.wm-checkbox input{width:1rem;height:1rem;accent-color:#7c3aed}.wm-form-actions-top{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem;margin-top:1rem}.wm-saved-select{min-width:min(100%,18rem)}.wm-saved{margin-top:1rem;border:1px solid rgba(148,163,184,.35);border-radius:1rem;background:rgba(148,163,184,.1);overflow:hidden}.wm-saved summary{padding:.85rem 1rem;cursor:pointer;font-weight:650}.wm-saved-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem;align-items:center;border-top:1px solid rgba(148,163,184,.25);padding:.65rem}.wm-saved-title{font-weight:650}.wm-saved-sub{display:block;margin:.15rem 0 0;color:#94a3b8;font-size:.8rem}.wm-summary-core{max-width:100%;overflow-wrap:anywhere}.wm-fail-mark{background:#fee2e2;color:#991b1b}.wm-form-grid label[hidden]{display:none}
-			.wm-checkbox{border:0!important;background:transparent!important;box-shadow:none!important;padding:.2rem 0;color:inherit}.wm-checkbox input{background:transparent}.wm-contact-topic{display:block;max-width:28rem;margin-top:1.5rem}.wm-contact-compose{width:100%;max-width:18rem;margin-top:1rem}.wm-contact-value{display:inline-flex;align-items:center;justify-content:flex-end;gap:.5rem;text-align:right}.wm-contact-value .wm-icon-btn{width:2rem;height:2rem;min-width:2rem}.wm-contact-layout .wm-summary-line{align-items:center}@media (max-width:900px){.wm-contact-compose{max-width:none}.wm-contact-value{max-width:100%;flex-wrap:wrap}}
+			.wm-add-added{display:inline;position:absolute;opacity:0}.wm-is-added{animation:wm-added-bg 1.6s ease}.wm-is-added .wm-add-default{animation:wm-added-default-text 1.6s ease}.wm-is-added .wm-add-added{display:inline;position:absolute;opacity:0;animation:wm-added-text 1.6s ease}.wm-checkbox{border:0!important;background:transparent!important;box-shadow:none!important;padding:.2rem 0;color:inherit}.wm-checkbox input{background:transparent}.wm-contact-topic{display:block;max-width:28rem;margin-top:1.5rem}.wm-contact-compose{display:inline-flex;align-items:center;justify-content:center;gap:.65rem;width:100%;max-width:18rem;margin-top:1rem}.wm-contact-value{display:inline-flex;align-items:center;justify-content:flex-end;gap:.55rem;border:0;background:transparent;color:inherit;text-align:right;font:inherit;font-weight:650;cursor:pointer}.wm-contact-value:hover{text-decoration:underline}.wm-contact-layout .wm-summary-line{align-items:center}.wm-link-text{display:inline-flex;border:0;background:transparent;color:inherit;padding:0;cursor:pointer}.wm-link-text:hover{text-decoration:underline}.wm-sku-small{margin:.45rem 0 0;color:#94a3b8;font-size:.78rem;font-weight:400;letter-spacing:.02em}.wm-product-tools{display:flex;flex-wrap:wrap;align-items:center;gap:.55rem;margin:0 0 1rem}.wm-sku-copy{border:0;background:transparent;color:#94a3b8;padding:0;font-size:.78rem;font-weight:400;cursor:pointer}.wm-sku-copy:hover{text-decoration:underline}.wm-tool-link{display:inline-flex;align-items:center;gap:.35rem;color:#94a3b8!important}@media (max-width:900px){.wm-contact-compose{max-width:none}.wm-contact-value{max-width:100%;flex-wrap:wrap}.wm-product-tools{align-items:flex-start;flex-direction:column}}
 		</style>${body}`
 	};
 }
@@ -1405,6 +1412,9 @@ function renderContactPage(state) {
 		subject: 'Shop contact',
 		body: 'Hello, I would like to contact your shop.'
 	};
+	const body = state.contactSku
+		? `I have a question about product SKU: ${state.contactSku}`
+		: selectedSubject.body;
 	const contactSelectActionId = addFrameAction(actions, stateAction(state, { contactSubjectIndex: String(selectedSubjectIndex) }));
 	const company = contact.company || {};
 
@@ -1423,7 +1433,7 @@ function renderContactPage(state) {
 						</select>
 					</label>
 					${email ? `
-						<button type="button" class="wm-btn wm-btn-primary wm-contact-compose" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, selectedSubject.subject, selectedSubject.body) })}>
+						<button type="button" class="wm-btn wm-btn-primary wm-contact-compose" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, selectedSubject.subject, body) })}>
 							${icon('mail', 17)} Compose via Email
 						</button>
 					` : ''}
@@ -1441,8 +1451,8 @@ function renderContactPage(state) {
 							<button type="button" class="wm-btn wm-btn-link" ${actionAttr(actions, { type: 'navigate', href: company.website })}>${icon('externalLink', 15)} Open</button>
 						</div>
 					` : ''}
-					${email ? `<div class="wm-summary-line"><span class="wm-muted">Email</span><span class="wm-contact-value"><strong>${escapeHtml(email)}</strong><button type="button" class="wm-icon-btn" title="Email shop" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, 'Shop contact', 'Hello, I would like to contact your shop.') })}>${icon('mail', 15)}</button></span></div>` : ''}
-					${mobile ? `<div class="wm-summary-line"><span class="wm-muted">Mobile</span><span class="wm-contact-value"><strong>${escapeHtml(formattedMobile || mobile)}</strong><button type="button" class="wm-icon-btn" title="Call shop" ${actionAttr(actions, { type: 'navigate', href: contactPhoneUrl(mobile) })}>${icon('phone', 15)}</button></span></div>` : ''}
+					${email ? `<div class="wm-summary-line"><span class="wm-muted">Email</span><button type="button" class="wm-contact-value" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, 'Shop contact', 'Hello, I would like to contact your shop.') })}><strong>${escapeHtml(email)}</strong>${icon('mail', 15)}</button></div>` : ''}
+					${mobile ? `<div class="wm-summary-line"><span class="wm-muted">Mobile</span><button type="button" class="wm-contact-value" ${actionAttr(actions, { type: 'navigate', href: contactPhoneUrl(mobile) })}><strong>${escapeHtml(formattedMobile || mobile)}</strong>${icon('phone', 15)}</button></div>` : ''}
 				</aside>
 			</main>
 		</div>
@@ -1467,11 +1477,24 @@ function productOpenAction(state, product) {
 		view: 'product',
 		category: product.category,
 		selectedProductId: product.id,
+		lastAddedProductId: '',
 		productQuantities: {
 			...state.productQuantities,
 			[product.id]: productQuantity(state, product.id)
 		}
 	});
+}
+
+function productQuestionSubjectIndex(state) {
+	const subjects = state.settings && state.settings.contact && Array.isArray(state.settings.contact.subjects)
+		? state.settings.contact.subjects
+		: [];
+	const index = subjects.findIndex((subject) => String(subject.label || '').toLowerCase().includes('product'));
+	return String(index >= 0 ? index : 0);
+}
+
+function productShareUrl(product) {
+	return `/marketplace/wallmoney/plugin-shop?view=product&product=${encodeURIComponent(product.id)}`;
 }
 
 function renderProductImage(state, product) {
@@ -1575,12 +1598,13 @@ function renderProductDetail(state) {
 			${renderShopHeader(actions, state)}
 			<main class="wm-detail">
 				<section>
-					${frameButton(actions, 'Back to products', stateAction(state, { view: 'products', category: product.category }), 'secondary')}
+					${frameButton(actions, 'Back to products', stateAction(state, { view: 'products', category: 'all', page: 1, lastAddedProductId: '' }), 'secondary')}
 					<div class="wm-detail-media" style="margin-top:1rem">${renderProductImage(state, product)}</div>
 				</section>
 				<section class="wm-detail-copy">
-					<p class="wm-product-meta">${escapeHtml(product.vendor || SHOP_CONFIG.name)}</p>
+					<button type="button" class="wm-product-meta wm-link-text" ${actionAttr(actions, stateAction(state, { view: 'products', category: product.category, page: 1, lastAddedProductId: '' }))}>${escapeHtml(product.vendor || SHOP_CONFIG.name)}</button>
 					<h1 class="wm-title">${escapeHtml(product.name)}</h1>
+					${product.skuid ? `<p class="wm-sku-small">SKU: ${escapeHtml(product.skuid)}</p>` : ''}
 					<p class="wm-detail-badges">${productBadges(product)}</p>
 					<p class="wm-price">${escapeHtml(productPrice(state, product))}</p>
 					<p class="wm-product-meta">Pack</p>
@@ -1599,6 +1623,32 @@ function renderProductDetail(state) {
 						${frameButton(actions, 'Buy now', stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), { view: 'cart' }))}
 					</div>
 					<div style="margin-top:2rem;border-top:1px solid rgba(148,163,184,.25);padding-top:1.5rem">
+						${product.skuid ? `
+							<div class="wm-product-tools">
+								<button type="button" class="wm-sku-copy" title="Copy SKU" ${actionAttr(actions, { type: 'copy', text: product.skuid, message: 'SKU copied.' })}>SKU: ${escapeHtml(product.skuid)}</button>
+								<button type="button" class="wm-btn wm-btn-link wm-tool-link" ${actionAttr(actions, stateAction(state, {
+									view: 'contact',
+									contactSku: product.skuid,
+									contactSubjectIndex: productQuestionSubjectIndex(state),
+									lastAddedProductId: ''
+								}))}>${icon('messageCircleQuestionMark', 15)} Ask about this product</button>
+								<button type="button" class="wm-btn wm-btn-link wm-tool-link" ${actionAttr(actions, {
+									type: 'share',
+									title: product.name,
+									text: `${product.name}${product.skuid ? ` SKU: ${product.skuid}` : ''}`,
+									url: productShareUrl(product)
+								})}>${icon('share2', 15)} Share this product</button>
+							</div>
+						` : `
+							<div class="wm-product-tools">
+								<button type="button" class="wm-btn wm-btn-link wm-tool-link" ${actionAttr(actions, {
+									type: 'share',
+									title: product.name,
+									text: product.name,
+									url: productShareUrl(product)
+								})}>${icon('share2', 15)} Share this product</button>
+							</div>
+						`}
 						<p class="wm-product-meta">Product description</p>
 						<p style="line-height:1.8">${escapeHtml(product.description || '')}</p>
 					</div>
@@ -2432,9 +2482,13 @@ module.exports = {
 			this.hostApi = hostApi;
 			const initialView = readInitialPluginView();
 			if (initialView) {
+				const state = getState(hostApi);
+				const initialProductId = readInitialProductId(state);
 				saveState(hostApi, {
-					...getState(hostApi),
-					view: initialView
+					...state,
+					view: initialView,
+					selectedProductId: initialProductId || state.selectedProductId,
+					lastAddedProductId: ''
 				});
 			}
 			this.unsubscribe = hostApi.events.onPaymentExecuted((result) => {
@@ -2587,5 +2641,13 @@ function readInitialPluginView() {
 		? context.initialView.trim().toLowerCase()
 		: '';
 	return ['products', 'product', 'cart', 'checkout', 'orders', 'success', 'failed', 'contact'].includes(view) ? view : null;
+}
+
+function readInitialProductId(state) {
+	const context = typeof pluginContext === 'object' && pluginContext ? pluginContext : null;
+	const productId = context && typeof context.initialProductId === 'string'
+		? context.initialProductId.trim()
+		: '';
+	return catalogProducts(state).some((product) => product.id === productId) ? productId : '';
 }
 

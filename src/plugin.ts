@@ -5,9 +5,13 @@ module.exports = {
 			this.hostApi = hostApi;
 			const initialView = readInitialPluginView();
 			if (initialView) {
+				const state = getState(hostApi);
+				const initialProductId = readInitialProductId(state);
 				saveState(hostApi, {
-					...getState(hostApi),
-					view: initialView
+					...state,
+					view: initialView,
+					selectedProductId: initialProductId || state.selectedProductId,
+					lastAddedProductId: ''
 				});
 			}
 			this.unsubscribe = hostApi.events.onPaymentExecuted((result) => {
@@ -160,4 +164,12 @@ function readInitialPluginView() {
 		? context.initialView.trim().toLowerCase()
 		: '';
 	return ['products', 'product', 'cart', 'checkout', 'orders', 'success', 'failed', 'contact'].includes(view) ? view : null;
+}
+
+function readInitialProductId(state) {
+	const context = typeof pluginContext === 'object' && pluginContext ? pluginContext : null;
+	const productId = context && typeof context.initialProductId === 'string'
+		? context.initialProductId.trim()
+		: '';
+	return catalogProducts(state).some((product) => product.id === productId) ? productId : '';
 }

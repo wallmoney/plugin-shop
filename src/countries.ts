@@ -277,9 +277,12 @@ function countryCodeFromValue(value) {
 	const normalized = typeof value === 'string' ? value.trim() : '';
 	if (!normalized) return '';
 	const parenthesizedCode = normalized.match(/\(([A-Za-z]{2})\)\s*$/);
-	if (parenthesizedCode) return parenthesizedCode[1].toUpperCase();
+	if (parenthesizedCode) {
+		const code = parenthesizedCode[1].toUpperCase();
+		return COUNTRY_OPTIONS.some((item) => item.code === code) ? code : '';
+	}
 	const upper = normalized.toUpperCase();
 	const lower = normalized.toLowerCase();
 	const country = COUNTRY_OPTIONS.find((item) => item.code === upper || item.name.toLowerCase() === lower);
-	return country ? country.code : upper.length === 2 ? upper : '';
+	return country ? country.code : '';
 }
