@@ -15,7 +15,6 @@ function productOpenAction(state, product) {
 		category: product.category,
 		selectedProductId: product.id,
 		lastAddedProductId: '',
-		lastAddedAt: 0,
 		productQuantities: {
 			...state.productQuantities,
 			[product.id]: productQuantity(state, product.id)
@@ -36,9 +35,7 @@ function productShareUrl(product) {
 }
 
 function productWasJustAdded(state, product) {
-	const addedAt = Number(state.lastAddedAt);
-	if (state.lastAddedProductId !== product.id || !Number.isFinite(addedAt)) return false;
-	return Date.now() - addedAt < 1300;
+	return state.lastAddedProductId === product.id;
 }
 
 function productQuantityInput(actions, state, product) {
@@ -165,7 +162,7 @@ function renderProductDetail(state) {
 					<div class="${mediaBoxClass(state, 'mt-4 rounded-[2.25rem]')}">${renderProductImage(state, product)}</div>
 				</section>
 				<section class="pt-12 max-[900px]:mt-6 max-[900px]:pt-0">
-					<button type="button" class="inline-flex cursor-pointer border-0 bg-transparent p-0 text-sm font-medium text-inherit hover:underline" ${actionAttr(actions, stateAction(state, { view: 'products', category: product.category, page: 1, lastAddedProductId: '', lastAddedAt: 0 }))}>${escapeHtml(product.vendor || SHOP_CONFIG.name)}</button>
+					<button type="button" class="inline-flex cursor-pointer border-0 bg-transparent p-0 text-sm font-medium text-inherit hover:underline" ${actionAttr(actions, stateAction(state, { view: 'products', category: product.category, page: 1, lastAddedProductId: '' }))}>${escapeHtml(product.vendor || SHOP_CONFIG.name)}</button>
 					<h1 class="${titleClass()}">${escapeHtml(product.name)}</h1>
 					<p class="mt-4 flex flex-wrap gap-2">${productDetailBadges(product)}</p>
 					<p class="my-8 text-3xl font-semibold">${escapeHtml(productPrice(state, product))}</p>
@@ -198,8 +195,7 @@ function renderProductDetail(state) {
 									view: 'contact',
 									contactSku: product.skuid,
 									contactSubjectIndex: productQuestionSubjectIndex(state),
-									lastAddedProductId: '',
-									lastAddedAt: 0
+									lastAddedProductId: ''
 								}))}>${icon('messageCircleQuestionMark', 15)} Ask about this product</button>
 								<button type="button" class="${buttonClass('link', 'gap-1')}" ${actionAttr(actions, {
 									type: 'share',

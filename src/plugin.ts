@@ -12,8 +12,7 @@ module.exports = {
 				saveState(hostApi, {
 					...state,
 					...resolveInitialPluginRoute(initialRoute, state),
-					lastAddedProductId: '',
-					lastAddedAt: 0
+					lastAddedProductId: ''
 				});
 			}
 			this.unsubscribe = hostApi.events.onPaymentExecuted((result) => {
@@ -139,6 +138,7 @@ module.exports = {
 function scheduleLastAddedReset(api, state) {
 	if (!state.lastAddedProductId) return;
 	if (typeof setTimeout !== 'function') return;
+	if (lastAddedResetTimer && lastAddedResetProductId === state.lastAddedProductId) return;
 	if (lastAddedResetTimer) clearTimeout(lastAddedResetTimer);
 	lastAddedResetProductId = state.lastAddedProductId;
 	lastAddedResetTimer = setTimeout(() => {
@@ -148,8 +148,7 @@ function scheduleLastAddedReset(api, state) {
 		if (!nextState.lastAddedProductId) return;
 		saveState(api, {
 			...nextState,
-			lastAddedProductId: '',
-			lastAddedAt: 0
+			lastAddedProductId: ''
 		});
 	}, 1200);
 }
