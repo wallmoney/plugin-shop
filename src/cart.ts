@@ -77,7 +77,6 @@ function setProductQuantity(state, productId, quantity) {
 	return normalizeState({
 		...state,
 		lastAddedProductId: '',
-		lastAddedAt: 0,
 		productQuantities: {
 			...state.productQuantities,
 			[productId]: clampQuantity(quantity, max)
@@ -101,7 +100,7 @@ function addQuantityToCart(state, productId, quantity) {
 	const stock = productStock(product);
 	const nextQuantity = current + wholeQuantity(quantity);
 	cart[productId] = stock === null ? nextQuantity : Math.min(nextQuantity, stock);
-	return normalizeState({ ...state, cart, checkoutStatus: 'draft', lastAddedProductId: productId, lastAddedAt: Date.now() });
+	return normalizeState({ ...state, cart, checkoutStatus: 'draft', lastAddedProductId: productId });
 }
 
 function addToCart(state, productId) {
@@ -116,7 +115,7 @@ function removeOneFromCart(state, productId) {
 	} else {
 		cart[productId] = current - 1;
 	}
-	return normalizeState({ ...state, cart, checkoutStatus: 'draft', lastAddedProductId: '', lastAddedAt: 0 });
+	return normalizeState({ ...state, cart, checkoutStatus: 'draft', lastAddedProductId: '' });
 }
 
 function setCartProductQuantity(state, productId, quantity) {
@@ -130,13 +129,13 @@ function setCartProductQuantity(state, productId, quantity) {
 	} else {
 		cart[productId] = nextQuantity;
 	}
-	return normalizeState({ ...state, cart, checkoutStatus: 'draft', lastAddedProductId: '', lastAddedAt: 0 });
+	return normalizeState({ ...state, cart, checkoutStatus: 'draft', lastAddedProductId: '' });
 }
 
 function removeProductFromCart(state, productId) {
 	const cart = { ...state.cart };
 	delete cart[productId];
-	return normalizeState({ ...state, cart, checkoutStatus: 'draft', lastAddedProductId: '', lastAddedAt: 0 });
+	return normalizeState({ ...state, cart, checkoutStatus: 'draft', lastAddedProductId: '' });
 }
 
 function orderReference(state) {
