@@ -14,11 +14,24 @@ function productOpenAction(state, product) {
 		view: 'product',
 		category: product.category,
 		selectedProductId: product.id,
+		lastAddedProductId: '',
 		productQuantities: {
 			...state.productQuantities,
 			[product.id]: productQuantity(state, product.id)
 		}
 	});
+}
+
+function productQuestionSubjectIndex(state) {
+	const subjects = state.settings && state.settings.contact && Array.isArray(state.settings.contact.subjects)
+		? state.settings.contact.subjects
+		: [];
+	const index = subjects.findIndex((subject) => String(subject.label || '').toLowerCase().includes('product'));
+	return String(index >= 0 ? index : 0);
+}
+
+function productShareUrl(product) {
+	return `/marketplace/wallmoney/plugin-shop?view=product&product=${encodeURIComponent(product.id)}`;
 }
 
 function renderProductImage(state, product) {
@@ -122,12 +135,13 @@ function renderProductDetail(state) {
 			${renderShopHeader(actions, state)}
 			<main class="wm-detail">
 				<section>
-					${frameButton(actions, 'Back to products', stateAction(state, { view: 'products', category: product.category }), 'secondary')}
+					${frameButton(actions, 'Back to products', stateAction(state, { view: 'products', category: 'all', page: 1, lastAddedProductId: '' }), 'secondary')}
 					<div class="wm-detail-media" style="margin-top:1rem">${renderProductImage(state, product)}</div>
 				</section>
 				<section class="wm-detail-copy">
-					<p class="wm-product-meta">${escapeHtml(product.vendor || SHOP_CONFIG.name)}</p>
+					<button type="button" class="wm-product-meta wm-link-text" ${actionAttr(actions, stateAction(state, { view: 'products', category: product.category, page: 1, lastAddedProductId: '' }))}>${escapeHtml(product.vendor || SHOP_CONFIG.name)}</button>
 					<h1 class="wm-title">${escapeHtml(product.name)}</h1>
+					${product.skuid ? `<p class="wm-sku-small">SKU: ${escapeHtml(product.skuid)}</p>` : ''}
 					<p class="wm-detail-badges">${productBadges(product)}</p>
 					<p class="wm-price">${escapeHtml(productPrice(state, product))}</p>
 					<p class="wm-product-meta">Pack</p>
@@ -146,6 +160,32 @@ function renderProductDetail(state) {
 						${frameButton(actions, 'Buy now', stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), { view: 'cart' }))}
 					</div>
 					<div style="margin-top:2rem;border-top:1px solid rgba(148,163,184,.25);padding-top:1.5rem">
+						${product.skuid ? `
+							<div class="wm-product-tools">
+								<button type="button" class="wm-sku-copy" title="Copy SKU" ${actionAttr(actions, { type: 'copy', text: product.skuid, message: 'SKU copied.' })}>SKU: ${escapeHtml(product.skuid)}</button>
+								<button type="button" class="wm-btn wm-btn-link wm-tool-link" ${actionAttr(actions, stateAction(state, {
+									view: 'contact',
+									contactSku: product.skuid,
+									contactSubjectIndex: productQuestionSubjectIndex(state),
+									lastAddedProductId: ''
+								}))}>${icon('messageCircleQuestionMark', 15)} Ask about this product</button>
+								<button type="button" class="wm-btn wm-btn-link wm-tool-link" ${actionAttr(actions, {
+									type: 'share',
+									title: product.name,
+									text: `${product.name}${product.skuid ? ` SKU: ${product.skuid}` : ''}`,
+									url: productShareUrl(product)
+								})}>${icon('share2', 15)} Share this product</button>
+							</div>
+						` : `
+							<div class="wm-product-tools">
+								<button type="button" class="wm-btn wm-btn-link wm-tool-link" ${actionAttr(actions, {
+									type: 'share',
+									title: product.name,
+									text: product.name,
+									url: productShareUrl(product)
+								})}>${icon('share2', 15)} Share this product</button>
+							</div>
+						`}
 						<p class="wm-product-meta">Product description</p>
 						<p style="line-height:1.8">${escapeHtml(product.description || '')}</p>
 					</div>
