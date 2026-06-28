@@ -5,6 +5,17 @@ const root = new URL('..', import.meta.url).pathname;
 const manifestPath = join(root, 'package.json');
 const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
 const sourceFiles = Array.isArray(manifest.pluginSrc) ? manifest.pluginSrc : [];
+const tailwindMarker = '/*__WM_TAILWIND_CSS__*/';
+const tailwindCssPath = join(root, 'build/plugin-tailwind.css');
+
+let tailwindCss = '';
+try {
+	tailwindCss = await readFile(tailwindCssPath, 'utf8');
+} catch {
+	if (process.env.WM_REQUIRE_TAILWIND !== '0') {
+		throw new Error('Missing build/plugin-tailwind.css. Run npm run build:css before building the plugin.');
+	}
+}
 
 if (!sourceFiles.length) {
 	throw new Error('package.json pluginSrc must list plugin source files in execution order.');
@@ -12,7 +23,10 @@ if (!sourceFiles.length) {
 
 const chunks = await Promise.all(
 	sourceFiles.map(async (file) => {
-		const source = await readFile(join(root, file), 'utf8');
+		let source = await readFile(join(root, file), 'utf8');
+		if (source.includes(tailwindMarker)) {
+			source = source.replace(tailwindMarker, tailwindCss);
+		}
 		return `// ${file}\n${source.trim()}\n`;
 	})
 );

@@ -32,7 +32,7 @@ function formatContactPhone(phone) {
 }
 
 function renderCompanyDetail(label, value) {
-	return value ? `<div class="wm-summary-line"><span class="wm-muted">${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>` : '';
+	return value ? `<div class="wm-summary-line"><span class="wm-muted">${escapeHtml(label)}</span><span class="wm-contact-text">${escapeHtml(value)}</span></div>` : '';
 }
 
 function contactSubjectIndex(state, subjects) {
@@ -92,8 +92,8 @@ function renderContactPage(state) {
 							<button type="button" class="wm-btn wm-btn-link" ${actionAttr(actions, { type: 'navigate', href: company.website })}>${icon('externalLink', 15)} Open</button>
 						</div>
 					` : ''}
-					${email ? `<div class="wm-summary-line"><span class="wm-muted">Email</span><button type="button" class="wm-contact-value" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, 'Shop contact', 'Hello, I would like to contact your shop.') })}><strong>${escapeHtml(email)}</strong>${icon('mail', 15)}</button></div>` : ''}
-					${mobile ? `<div class="wm-summary-line"><span class="wm-muted">Mobile</span><button type="button" class="wm-contact-value" ${actionAttr(actions, { type: 'navigate', href: contactPhoneUrl(mobile) })}><strong>${escapeHtml(formattedMobile || mobile)}</strong>${icon('phone', 15)}</button></div>` : ''}
+					${email ? `<div class="wm-summary-line"><span class="wm-muted">Email</span><button type="button" class="wm-contact-value" ${actionAttr(actions, { type: 'navigate', href: contactMailUrl(email, 'Shop contact', 'Hello, I would like to contact your shop.') })}><span class="wm-contact-text">${escapeHtml(email)}</span>${icon('mail', 15)}</button></div>` : ''}
+					${mobile ? `<div class="wm-summary-line"><span class="wm-muted">Phone</span><button type="button" class="wm-contact-value" ${actionAttr(actions, { type: 'navigate', href: contactPhoneUrl(mobile) })}><span class="wm-contact-text">${escapeHtml(formattedMobile || mobile)}</span>${icon('phone', 15)}</button></div>` : ''}
 				</aside>
 			</main>
 		</div>

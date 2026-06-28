@@ -107,7 +107,7 @@ function renderProducts(state) {
 									</div>
 									<p class="wm-product-meta">${escapeHtml(product.vendor || SHOP_CONFIG.name)}</p>
 									<h2 class="wm-product-name">${escapeHtml(product.name)}</h2>
-									<p class="wm-product-pack">${escapeHtml(product.packLabel || 'Standard pack')}</p>
+									${product.packLabel ? `<p class="wm-product-pack">${escapeHtml(product.packLabel)}</p>` : ''}
 									<p class="wm-product-price">${escapeHtml(productPrice(state, product))}</p>
 								</button>
 								${addToCartButton(actions, state, product)}
@@ -130,6 +130,7 @@ function renderProductDetail(state) {
 	const product = selectedProduct(state);
 	if (!product) return renderProducts(state);
 	const actions = {};
+	const packLabel = String(product.packLabel || '').trim();
 	return pluginFrame(product.name, `
 		<div class="wm-page wm-theme-${escapeHtml(state.theme)}">
 			${renderShopHeader(actions, state)}
@@ -141,18 +142,23 @@ function renderProductDetail(state) {
 				<section class="wm-detail-copy">
 					<button type="button" class="wm-product-meta wm-link-text" ${actionAttr(actions, stateAction(state, { view: 'products', category: product.category, page: 1, lastAddedProductId: '' }))}>${escapeHtml(product.vendor || SHOP_CONFIG.name)}</button>
 					<h1 class="wm-title">${escapeHtml(product.name)}</h1>
-					${product.skuid ? `<p class="wm-sku-small">SKU: ${escapeHtml(product.skuid)}</p>` : ''}
 					<p class="wm-detail-badges">${productBadges(product)}</p>
 					<p class="wm-price">${escapeHtml(productPrice(state, product))}</p>
-					<p class="wm-product-meta">Pack</p>
-					<p><span class="wm-btn wm-btn-secondary">${escapeHtml(product.packLabel || 'Standard pack')}</span></p>
-					<p class="wm-product-meta">Quantity</p>
-					<div class="wm-qty">
-						<button type="button" ${actionAttr(actions, stateAction(decrementProductQuantity(state, product.id), {}))}>${icon('minus', 15)}</button>
-						<span>${productQuantity(state, product.id)}</span>
-						<button type="button" ${actionAttr(actions, stateAction(incrementProductQuantity(state, product.id), {}))}>${icon('plus', 15)}</button>
+					${packLabel ? `
+						<div class="wm-detail-field">
+							<p class="wm-detail-field-label">Pack</p>
+							<p class="wm-detail-field-value">${escapeHtml(packLabel)}</p>
+						</div>
+					` : ''}
+					<div class="wm-detail-field">
+						<p class="wm-detail-field-label">Quantity</p>
+						<div class="wm-qty">
+							<button type="button" ${actionAttr(actions, stateAction(decrementProductQuantity(state, product.id), {}))}>${icon('minus', 15)}</button>
+							<span>${productQuantity(state, product.id)}</span>
+							<button type="button" ${actionAttr(actions, stateAction(incrementProductQuantity(state, product.id), {}))}>${icon('plus', 15)}</button>
+						</div>
 					</div>
-					<div class="wm-inline-actions">
+					<div class="wm-inline-actions wm-detail-actions">
 						<button type="button" class="wm-btn wm-btn-secondary wm-product-add ${state.lastAddedProductId === product.id ? 'wm-is-added' : ''}" ${actionAttr(actions, stateAction(addQuantityToCart(state, product.id, productQuantity(state, product.id)), {}, `${product.name} added to cart`))}>
 							<span class="wm-add-default">Add to cart</span>
 							<span class="wm-add-added">Added</span>
@@ -162,7 +168,8 @@ function renderProductDetail(state) {
 					<div style="margin-top:2rem;border-top:1px solid rgba(148,163,184,.25);padding-top:1.5rem">
 						${product.skuid ? `
 							<div class="wm-product-tools">
-								<button type="button" class="wm-sku-copy" title="Copy SKU" ${actionAttr(actions, { type: 'copy', text: product.skuid, message: 'SKU copied.' })}>SKU: ${escapeHtml(product.skuid)}</button>
+								<span class="wm-sku-small">SKU:</span>
+								<button type="button" class="wm-sku-copy" title="Copy SKU" ${actionAttr(actions, { type: 'copy', text: product.skuid, message: 'SKU copied.' })}>${escapeHtml(product.skuid)}</button>
 								<button type="button" class="wm-btn wm-btn-link wm-tool-link" ${actionAttr(actions, stateAction(state, {
 									view: 'contact',
 									contactSku: product.skuid,
