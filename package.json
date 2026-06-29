@@ -7,15 +7,26 @@
 	"description": "Run an ecommerce storefront with IPFS-hosted listings, categories, cart, saved delivery details, and Wall Money checkout.",
 	"version": "0.1.0",
 	"license": "MIT",
+	"main": "dist/plugin.js",
+	"exports": "./dist/plugin.js",
+	"files": [
+		"dist/plugin.js",
+		"icon.svg",
+		"README.md",
+		"package.json"
+	],
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
 		"dev": "vite dev",
 		"build:catalog": "node scripts/build-catalog.mjs",
 		"build:css": "tailwindcss -i src/ui/tailwind.css -o build/plugin-tailwind.css --minify",
 		"build:inventory": "npm run build:catalog",
 		"build:plugin": "npm run build:catalog && npm run build:css && node scripts/build-plugin.mjs",
-		"build:package": "npm run build:plugin && node scripts/package-plugin.mjs",
 		"build:web": "svelte-kit sync && vite build",
-		"build": "npm run build:plugin && npm run build:web",
+		"build": "npm run build:plugin",
+		"test": "npm run check",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"deploy:worker:order-fulfillment": "wrangler deploy --config workers/wrangler.order-fulfillment.jsonc",
 		"deploy:worker:order-fulfillment:d1": "wrangler deploy --config workers/wrangler.order-fulfillment.d1.jsonc",
