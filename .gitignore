@@ -34,3 +34,5 @@ bun.lock
 bun.lockb
 
 .svelte-kit/
+build/
+dist/
