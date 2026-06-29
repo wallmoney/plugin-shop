@@ -2,7 +2,7 @@
 	"id": "wmshop",
 	"org": "wallmoney",
 	"repo": "plugin-shop",
-	"name": "wallmoney-shop",
+	"name": "@wallmoney/plugin-shop",
 	"displayName": "Wall Money Shop",
 	"description": "Run an ecommerce storefront with IPFS-hosted listings, categories, cart, saved delivery details, and Wall Money checkout.",
 	"version": "0.1.0",
