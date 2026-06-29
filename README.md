@@ -30,7 +30,7 @@ Dedicated cart link:
 
 ## Source Layout
 
-Edit the SvelteKit preview in `app/` and the portal plugin runtime in `src/`. The marketplace installs the compiled `dist/plugin.js` bundle.
+Edit the SvelteKit preview in `app/` and the portal plugin runtime in `src/`. Releases build the compiled `dist/plugin.js` bundle and publish it to npm; the marketplace loads that bundle through jsDelivr.
 
 ```text
 app/routes/+page.svelte      SvelteKit shop preview UI
@@ -39,7 +39,6 @@ migrations/orders/*.sql     Optional Cloudflare D1 order collection schema migra
 seeds/catalog/products.sql  Optional demo D1 catalog rows
 scripts/build-catalog.mjs   Optionally regenerates src/inventory.ts when data/catalog.json exists
 scripts/build-plugin.mjs    Compiles ordered plugin source into dist/plugin.js
-scripts/package-plugin.mjs  Copies non-ignored runtime plugin files into build/plugin-package/
 workers/catalog-d1.ts       Optional D1-backed catalog JSON Worker
 workers/order-fulfillment.ts      Optional payment-verified fulfillment Worker
 workers/order-stock.ts      Optional external stock-decrement webhook using Cloudflare KV
@@ -59,28 +58,20 @@ src/ui/orders.ts    Local order result view
 src/email.ts        Admin order fulfillment composition
 src/stock.ts        Optional post-payment stock decrement webhook payload
 src/plugin.ts       Portal runtime entrypoint
-dist/plugin.js      Generated marketplace bundle
-build/              Generated static SvelteKit preview
+dist/plugin.js      Generated npm/jsDelivr bundle, not committed
+build/              Generated static SvelteKit preview, not committed
 ```
 
 ## Build Outputs
 
-The portal plugin sandbox cannot execute a SvelteKit app directly. This repo therefore builds two useful outputs:
+The portal plugin sandbox cannot execute a SvelteKit app directly. This repo therefore builds two useful outputs locally and in CI:
 
-- `dist/plugin.js` — marketplace-ready plugin bundle consumed by `package.json` via `"bundle"`.
+- `dist/plugin.js` — marketplace-ready plugin bundle consumed by `package.json` via `"bundle"` and published to npm.
 - `build/` — static SvelteKit preview for local design/development.
 
-The marketplace runtime reads the explicit `"bundle": "dist/plugin.js"` entry, so it does not need source files, migrations, Workers, demo data, or the Svelte preview. `.pluginignore` is included for archive-based plugin upload tooling; it keeps only runtime-relevant files such as `package.json`, `icon.svg`, `README.md`, and `dist/plugin.js`.
+GitHub keeps the metadata and source. npm keeps the compiled bundle. The marketplace reads `package.json` from GitHub, resolves the latest npm release, then loads `dist/plugin.js` from jsDelivr.
 
-To build a runtime-only package folder using `.pluginignore`:
-
-```sh
-npm run build:package
-```
-
-That command rebuilds `dist/plugin.js`, then copies the non-ignored plugin files into `build/plugin-package/`.
-
-Build both:
+Build the npm plugin bundle:
 
 ```sh
 npm run build
